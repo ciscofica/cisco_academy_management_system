@@ -23,12 +23,16 @@ export const AuthProvider = ({ children }) => {
         try {
             const res = await registerRequest(user);
             console.log(res.data);
-            setIsAuthenticated(true);
-            setUser(res.data);
+            return true;
         } catch (error) {
-            setErrors(error.response.data.message);
+            console.log(error);
+            setErrors(
+                error.response?.data?.message ||
+                "No se pudo registrar el usuario"
+            );
+            return false;
         }
-    }
+    };
     // const signin = async (user) => {
     //     try {
     //         const res = await loginRequest(user);
@@ -81,7 +85,7 @@ export const AuthProvider = ({ children }) => {
     };
 
 
-    
+
 
     useEffect(() => {
         if (errors.length > 0) {

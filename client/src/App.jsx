@@ -35,8 +35,8 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
           <Route element={<ProtectedRoute />}>
-            <Route path="/register" element={<RegisterPage />} />
             <Route path="/permissions" element={<PermissionPage />} />
             <Route path="/add-permission" element={<PermissionFormPage />} />
             <Route path="/permission/:id" element={<h1>Update Permission</h1>} />
