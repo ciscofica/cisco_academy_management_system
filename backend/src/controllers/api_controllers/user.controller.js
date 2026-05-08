@@ -2,6 +2,7 @@ import User from "../../models/User.js";
 // import notifications from "../../notifications.json" assert { type: "json" };
 import fs from "fs";
 import path from "path";
+import Role from "../../models/Role.js";
 
 const jsonPath = path.resolve("./src/notifications.json");
 const notifications = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
@@ -20,12 +21,23 @@ export const register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 8);
 
+    const defaultRole = await Role.findOne({
+      where: { name: "Usuario" },
+    });
+
+    if (!defaultRole) {
+      return res.status(400).json({
+        message: ["No existe el rol Usuario. Créalo antes de registrar nuevos usuarios."],
+      });
+    }
+
     const newUser = await User.create({
       email,
       name,
       password: hashedPassword,
       address,
-      status,
+      status: "1",
+      role_id: defaultRole.role_id,
     });
 
     // const token = await createAccessToken({user : newUser});

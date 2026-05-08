@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { useAuth } from "../context/AuthContext";
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 function LoginPage() {
     const { register, handleSubmit, formState: { errors } } = useForm();
     const { signin, errors: signinErrors, isAuthenticated } = useAuth();
@@ -42,6 +42,12 @@ function LoginPage() {
                     >
                         Ingresar
                     </button>
+                    <p className="text-center text-white mt-4">
+                        ¿No tienes cuenta?{" "}
+                        <Link to="/register" className="text-blue-300 hover:underline">
+                            Regístrate aquí
+                        </Link>
+                    </p>
                 </form>
                 {
                     // Solo mostrar el error si RegisterErrors no está vacío
