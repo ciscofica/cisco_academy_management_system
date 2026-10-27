@@ -148,18 +148,7 @@ const PreviewCoursePage = () => {
                     <h3 className='uppercase text-xl mb-4'>Fechas Importantes</h3>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-inner">
-                            <p className="text-lg font-normal text-gray-700 dark:text-gray-200">
-                                <strong>Fechas Inscripciones: </strong> {course.start_registration_date ? new Date(course.start_registration_date).toLocaleDateString() : "No Asignado"}
-                                <strong> - </strong> {course.end_registration_date ? new Date(course.end_registration_date).toLocaleDateString() : "No Asignado"}
-                            </p>
-                        </div>
-                        <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-inner">
-                            <p className="text-lg font-normal text-gray-700 dark:text-gray-200">
-                                <strong>Fecha Matrículas: </strong> {course.start_enrollment_date ? new Date(course.start_enrollment_date).toLocaleDateString() : "No Asignado"}
-                                <strong> - </strong> {course.end_enrollment_date ? new Date(course.end_enrollment_date).toLocaleDateString() : "No Asignado"}
-                            </p>
-                        </div>
+
                         <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow-inner">
                             <p className="text-lg font-normal text-gray-700 dark:text-gray-200">
                                 <strong>Fecha Inicio: </strong> {course.start_date ? new Date(course.start_date).toLocaleDateString() : "No Asignado"}

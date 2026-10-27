@@ -30,10 +30,6 @@ function StartCoursePage() {
     period: "",
     start_date: "",
     end_date: "",
-    start_registration_date: "",
-    end_registration_date: "",
-    start_enrollment_date: "",
-    end_enrollment_date: "",
     status: "Planificado",
   });
 
@@ -77,10 +73,6 @@ function StartCoursePage() {
       period: "",
       start_date: "",
       end_date: "",
-      start_registration_date: "",
-      end_registration_date: "",
-      start_enrollment_date: "",
-      end_enrollment_date: "",
       status: "Planificado",
     });
     setSelectedTemplate(null);
@@ -359,68 +351,7 @@ function StartCoursePage() {
           </div>
 
           {/* Step 4: Registration dates */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                <span className="text-red-700 dark:text-red-400 font-bold text-sm">4</span>
-              </div>
-              <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
-                <FontAwesomeIcon icon={faUserGraduate} className="mr-2 text-gray-400" />
-                Fechas de inscripción y matrícula
-              </h2>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1.5">
-                  Inicio de inscripción
-                </label>
-                <input
-                  type="date"
-                  name="start_registration_date"
-                  value={form.start_registration_date}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1.5">
-                  Fin de inscripción
-                </label>
-                <input
-                  type="date"
-                  name="end_registration_date"
-                  value={form.end_registration_date}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1.5">
-                  Inicio de matrícula
-                </label>
-                <input
-                  type="date"
-                  name="start_enrollment_date"
-                  value={form.start_enrollment_date}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1.5">
-                  Fin de matrícula
-                </label>
-                <input
-                  type="date"
-                  name="end_enrollment_date"
-                  value={form.end_enrollment_date}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-sm"
-                />
-              </div>
-            </div>
-          </div>
 
           {/* Actions */}
           <div className="flex items-center justify-between">

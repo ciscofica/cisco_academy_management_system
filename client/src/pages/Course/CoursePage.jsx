@@ -95,10 +95,7 @@ function CoursePage() {
                         <tr>
                             <th scope="col" className="px-6 py-3">ID</th>
                             <th scope="col" className="px-6 py-3">Nombre</th>
-                            <th scope="col" className="px-6 py-3">Fecha Inicio Inscipciones</th>
-                            <th scope="col" className="px-6 py-3">Fecha Fin Inscipciones</th>
-                            <th scope="col" className="px-6 py-3">Fecha Inicio Matriculas</th>
-                            <th scope="col" className="px-6 py-3">Fecha Fin Matriculas</th>
+
                             <th scope="col" className="px-6 py-3">Fecha Inicio Curso</th>
                             <th scope="col" className="px-6 py-3">Fecha Fin Curso</th>
                             <th scope="col" className="px-6 py-3">Estado</th>
@@ -112,10 +109,7 @@ function CoursePage() {
                                     {course.course_id}
                                 </th>
                                 <td className="px-6 py-4">{course.course_name}</td>
-                                <td className="px-6 py-4">{new Date(course.start_registration_date).toLocaleDateString()}</td>
-                                <td className="px-6 py-4">{new Date(course.end_registration_date).toLocaleDateString()}</td>
-                                <td className="px-6 py-4">{new Date(course.start_enrollment_date).toLocaleDateString()}</td>
-                                <td className="px-6 py-4">{new Date(course.end_enrollment_date).toLocaleDateString()}</td>
+
                                 <td className="px-6 py-4">{new Date(course.start_date).toLocaleDateString()}</td>
                                 <td className="px-6 py-4">{new Date(course.end_date).toLocaleDateString()}</td>
                                 <td className="px-6 py-4">{course.status}</td>

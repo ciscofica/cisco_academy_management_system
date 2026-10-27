@@ -20,10 +20,6 @@ function CourseForm({ onClose, course }) {
             setValue("start_date", formatDateForInput(course.start_date));
             setValue("end_date", formatDateForInput(course.end_date));
             setValue("status", course.status); // Set initial value for status if available
-            setValue("start_registration_date", formatDateForInput(course.start_registration_date));
-            setValue("end_registration_date", formatDateForInput(course.end_registration_date));
-            setValue("start_enrollment_date", formatDateForInput(course.start_enrollment_date));
-            setValue("end_enrollment_date", formatDateForInput(course.end_enrollment_date));
         }
     }, [course, setValue]);
 
@@ -55,46 +51,7 @@ function CourseForm({ onClose, course }) {
                     autoFocus
                 />
 
-                {/* Fecha Inicio de Registro */}
-                <label htmlFor="start_registration_date" className="text-gray-500 dark:text-white block my-2">
-                    Fecha Inicio de Registro:
-                </label>
-                <input
-                    id="start_registration_date"
-                    type="datetime-local"
-                    {...register("start_registration_date")}
-                    className="w-full bg-zinc-300 dark:bg-zinc-700 text-gray-500 dark:text-white px-4 py-2 rounded-md my-2"
-                />
-                {/* Fecha Fin de Registro */}
-                <label htmlFor="end_registration_date" className="text-gray-500 dark:text-white block my-2">
-                    Fecha Fin de Registro:
-                </label>
-                <input
-                    id="end_registration_date"
-                    type="datetime-local"
-                    {...register("end_registration_date")}
-                    className="w-full bg-zinc-300 dark:bg-zinc-700 text-gray-500 dark:text-white px-4 py-2 rounded-md my-2"
-                />
-                {/* Fecha Inicio de Matrículas */}
-                <label htmlFor="start_enrollment_date" className="text-gray-500 dark:text-white block my-2">
-                    Fecha Inicio de Matrículas:
-                </label>
-                <input
-                    id="start_enrollment_date"
-                    type="datetime-local"
-                    {...register("start_enrollment_date")}
-                    className="w-full bg-zinc-300 dark:bg-zinc-700 text-gray-500 dark:text-white px-4 py-2 rounded-md my-2"
-                />
-                {/* Fecha Fin de Matrículas */}
-                <label htmlFor="end_enrollment_date" className="text-gray-500 dark:text-white block my-2">
-                    Fecha Fin de Matrículas:
-                </label>
-                <input
-                    id="end_enrollment_date"
-                    type="datetime-local"
-                    {...register("end_enrollment_date")}
-                    className="w-full bg-zinc-300 dark:bg-zinc-700 text-gray-500 dark:text-white px-4 py-2 rounded-md my-2"
-                />
+
 
                 {/* Fecha de Inicio del Curso */}
                 <label htmlFor="start_date" className="text-gray-500 dark:text-white block my-2">

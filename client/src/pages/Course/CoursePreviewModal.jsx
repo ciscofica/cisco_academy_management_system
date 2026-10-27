@@ -60,8 +60,7 @@ function CourseDetailsModal({ isOpen, onClose, course }) {
                 <div>
                     <h3 className="uppercase text-gray-700 dark:text-white">Fechas</h3>
                     <div className="p-2 border-b border-gray-200 dark:border-gray-600 text-gray-700 dark:text-white">
-                        <p><strong>Fecha Inscripciones: </strong>{course.start_registration_date ? new Date(course.start_registration_date).toLocaleDateString() : "No asignado"} - {course.end_registration_date ? new Date(course.end_registration_date).toLocaleDateString() : "No asignado"}</p>
-                        <p><strong>Fecha Inicio Matrículas: </strong>{course.start_enrollment_date ? new Date(course.start_enrollment_date).toLocaleDateString() : "No asignado"} - {course.end_enrollment_date ? new Date(course.end_enrollment_date).toLocaleDateString() : "No asignado"}</p>
+
                         <p><strong>Fecha Inicio Curso: </strong>{course.start_date ? new Date(course.start_date).toLocaleDateString() : "No asignado"}</p>
                         <p><strong>Fecha Fin Curso: </strong>{course.end_date ? new Date(course.end_date).toLocaleDateString() : "No asignado"}</p>
                     </div>
