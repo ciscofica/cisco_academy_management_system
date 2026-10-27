@@ -30,10 +30,11 @@ import Schedule from "../../models/Schedule.js";
 export const getAllCourses = async (req, res) => {
   try {
     const { search = "", limit = 10, page = 1 } = req.body;
-    const offset = (page - 1) * limit; 
+    const offset = (page - 1) * limit;
 
     const courses = await Course.findAndCountAll({
       where: {
+        status: { [Op.ne]: 'Plantilla' }, // Excluir plantillas del listado normal
         [Op.or]: [
           { course_name: { [Op.like]: `%${search}%` } }, // Buscar por nombre del curso
           // ! falta establecer las relaciones necesarias para que busque en todas esas columnas
@@ -57,7 +58,7 @@ export const getAllCourses = async (req, res) => {
             { model: InfoUtn, through: { attributes: [] } },
             {
               model: Payment,
-              through: { attributes: [] }, 
+              through: { attributes: [] },
               include: [
                 {
                   model: PaymentType,
@@ -85,24 +86,24 @@ export const getAllCourses = async (req, res) => {
             },
             {
               model: Schedule,
-              through: { attributes: [] }, 
+              through: { attributes: [] },
             },
             {
               model: Cost,
-              through: { attributes: [] }, 
+              through: { attributes: [] },
             },
           ],
         },
       ],
-      limit, 
-      offset, 
-      distinct: true, 
+      limit,
+      offset,
+      distinct: true,
     });
 
     return res.status(200).json({
-      total: courses.count, 
+      total: courses.count,
       totalPages: Math.ceil(courses.count / limit),
-      courses: courses.rows, 
+      courses: courses.rows,
     });
   } catch (error) {
     console.log(error.message);
@@ -180,7 +181,7 @@ export const getCourseById = async (req, res) => {
             { model: InfoUtn, through: { attributes: [] } },
             {
               model: Payment,
-              through: { attributes: [] }, 
+              through: { attributes: [] },
               include: [
                 {
                   model: PaymentType,
@@ -208,11 +209,11 @@ export const getCourseById = async (req, res) => {
             },
             {
               model: Schedule,
-              through: { attributes: [] }, 
+              through: { attributes: [] },
             },
             {
               model: Cost,
-              through: { attributes: [] }, 
+              through: { attributes: [] },
             },
           ],
         },
@@ -295,6 +296,223 @@ export const getCoursesDropdown = async (req, res) => {
   }
 };
 
+export const getCourseTemplates = async (req, res) => {
+  try {
+    const templates = await Course.findAll({
+      where: {
+        status: "Plantilla",
+      },
+      include: [
+        {
+          model: Detail,
+          include: [
+            { model: Instructor },
+            { model: Modality, through: { attributes: [] } },
+            { model: Schedule, through: { attributes: [] } },
+            { model: Cost, through: { attributes: [] } },
+            { model: DetailValues },
+          ],
+        },
+      ],
+      order: [["course_name", "ASC"]],
+    });
+
+    return res.json(templates);
+  } catch (error) {
+    console.error("Error al obtener plantillas de cursos:", error);
+    return res.status(500).json({
+      message: "Error al obtener plantillas de cursos.",
+      error: error.message,
+    });
+  }
+};
+
+export const startCourseFromTemplate = async (req, res) => {
+  try {
+    const {
+      template_course_id,
+      period,
+      start_date,
+      end_date,
+      start_registration_date,
+      end_registration_date,
+      start_enrollment_date,
+      end_enrollment_date,
+      status,
+    } = req.body;
+
+    if (!template_course_id) {
+      return res.status(400).json({
+        message: "Debe seleccionar un curso base.",
+      });
+    }
+
+    if (!period) {
+      return res.status(400).json({
+        message: "Debe ingresar el periodo del curso.",
+      });
+    }
+
+    const templateCourse = await Course.findByPk(template_course_id);
+
+    if (!templateCourse) {
+      return res.status(404).json({
+        message: "No se encontró el curso base seleccionado.",
+      });
+    }
+
+    if (templateCourse.status !== "Plantilla") {
+      return res.status(400).json({
+        message: "El curso seleccionado no es una plantilla.",
+      });
+    }
+
+    const newCourse = await Course.create({
+      course_name: `${templateCourse.course_name} - ${period}`,
+      start_date,
+      end_date,
+      status: status || "Planificado",
+      created_at: new Date(),
+      updated_at: new Date(),
+      created_by: templateCourse.created_by || null,
+      start_registration_date,
+      end_registration_date,
+      start_enrollment_date,
+      end_enrollment_date,
+      detail_id: templateCourse.detail_id,
+    });
+
+    return res.status(201).json({
+      message: "Curso iniciado correctamente desde plantilla.",
+      course: newCourse,
+    });
+  } catch (error) {
+    console.error("Error al iniciar curso desde plantilla:", error);
+    return res.status(500).json({
+      message: "Error al iniciar curso desde plantilla.",
+      error: error.message,
+    });
+  }
+};
+
+export const getCourseExpedient = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const course = await Course.findOne({
+      where: { course_id: id, status: { [Op.ne]: 'Plantilla' } },
+      include: [
+        {
+          model: Detail,
+          include: [
+            { model: DetailValues },
+            {
+              model: Instructor,
+              include: [
+                { model: Certificate, through: { attributes: [] } },
+              ],
+            },
+            { model: Modality, through: { attributes: [] } },
+            { model: Schedule, through: { attributes: [] } },
+            { model: Cost, through: { attributes: [] } },
+          ],
+        },
+        {
+          model: Participant,
+          include: [
+            { model: ParticipantType },
+            {
+              model: Payment,
+              through: { attributes: [] },
+              include: [{ model: PaymentType }],
+            },
+          ],
+        },
+        {
+          model: Chapter,
+          through: { attributes: [] },
+        },
+      ],
+    });
+
+    if (!course) {
+      return res.status(404).json({ message: "Curso no encontrado o es una plantilla." });
+    }
+
+    return res.status(200).json({ course });
+  } catch (error) {
+    console.error("Error al obtener expediente del curso:", error);
+    return res.status(500).json({ message: "Error al obtener expediente del curso.", error: error.message });
+  }
+};
+
+export const getCoursesReport = async (req, res) => {
+  try {
+    const { status: filterStatus } = req.query;
+
+    const whereClause = { status: { [Op.ne]: 'Plantilla' } };
+    if (filterStatus && filterStatus !== 'Todos') {
+      whereClause.status = filterStatus;
+    }
+
+    const courses = await Course.findAll({
+      where: whereClause,
+      include: [
+        {
+          model: Detail,
+          include: [
+            { model: Instructor },
+            { model: Modality, through: { attributes: [] } },
+          ],
+        },
+      ],
+      order: [["start_date", "DESC"]],
+    });
+
+    return res.status(200).json({ courses });
+  } catch (error) {
+    console.error("Error al obtener reporte de cursos:", error);
+    return res.status(500).json({ message: "Error al obtener reporte de cursos.", error: error.message });
+  }
+};
+
+export const getCourseParticipantsReport = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const course = await Course.findOne({
+      where: { course_id: id, status: { [Op.ne]: 'Plantilla' } },
+      include: [
+        {
+          model: Participant,
+          include: [
+            { model: ParticipantType },
+            { model: InfoUtn, through: { attributes: [] } },
+            {
+              model: Payment,
+              through: { attributes: [] },
+              include: [{ model: PaymentType }],
+            },
+          ],
+        },
+      ],
+    });
+
+    if (!course) {
+      return res.status(404).json({ message: "Curso no encontrado." });
+    }
+
+    return res.status(200).json({
+      course_name: course.course_name,
+      course_id: course.course_id,
+      status: course.status,
+      participants: course.Participants || [],
+    });
+  } catch (error) {
+    console.error("Error al obtener reporte de participantes:", error);
+    return res.status(500).json({ message: "Error al obtener reporte de participantes.", error: error.message });
+  }
+};
+
 export const getCertificates = async (req, res) => {
   try {
     const { id } = req.params;
@@ -324,14 +542,14 @@ export const getCertificates = async (req, res) => {
             { model: DetailValues },
             {
               model: Modality,
-              through: { attributes: [] }, 
+              through: { attributes: [] },
             },
           ],
         },
       ],
     });
-    
-    if(course.status != "Finalizado"){
+
+    if (course.status != "Finalizado") {
       return res.status(400).json({ message: "El estado del curso debe ser FINALIZADO para poder generar los certificados," });
     }
 
@@ -359,9 +577,9 @@ export const getCertificates = async (req, res) => {
 
     doc.pipe(res);
 
-    const primaryColor = "#b3d9ff"; 
+    const primaryColor = "#b3d9ff";
     const utnColor = "#f4040c";
-    const textColor = "#333333"; 
+    const textColor = "#333333";
     const borderWidth = 2;
 
     course.Participants.forEach((participant) => {
@@ -456,10 +674,10 @@ export const getCertificates = async (req, res) => {
       doc.moveDown(1);
 
       doc
-      .fontSize(11)
-      .text(`Fecha Emisión: ${today}`, {
-        align: "right",
-      });
+        .fontSize(11)
+        .text(`Fecha Emisión: ${today}`, {
+          align: "right",
+        });
 
       const signatureY = doc.page.height - 120;
       const signatureMargin = 50;

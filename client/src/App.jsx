@@ -26,6 +26,10 @@ import CostPage from "./pages/Cost/CostPage";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import ProtectedRoute from "./ProtectedRoute";
+import StartCoursePage from "./pages/Course/StartCoursePage";
+import CourseExpedientPage from "./pages/Course/CourseExpedientPage";
+import CourseReportsPage from "./pages/Course/CourseReportsPage";
+import CourseParticipantsReportPage from "./pages/Course/CourseParticipantsReportPage";
 
 function App() {
   return (
@@ -57,6 +61,10 @@ function App() {
             <Route path="/participants" element={<ParticipantPage />} />
             <Route path="/details" element={<DetailPage />} />
             <Route path="/costs" element={<CostPage />} />
+            <Route path="/course/start" element={<StartCoursePage />} />
+            <Route path="/course/:id/expedient" element={<CourseExpedientPage />} />
+            <Route path="/courses/report" element={<CourseReportsPage />} />
+            <Route path="/course/:id/participants-report" element={<CourseParticipantsReportPage />} />
           </Route>
         </Routes>
         <Footer />

@@ -9,4 +9,18 @@ export const createCourseRequest = (course) => axios.post(`/course`, course);
 export const updateCourseRequest = (course) => axios.put(`/course/${course.id}`, course);
 export const deleteCourseRequest = (id) => axios.delete(`/course/${id}`);
 export const getCoursesDropdownRequest = () => axios.get(`/courses-dropdown`);
+export const getCourseTemplatesRequest = () =>
+  axios.get("/course/templates");
+
+export const startCourseFromTemplateRequest = (course) =>
+  axios.post("/course/start-from-template", course);
 // export const getCertificatesRequest = (id) => axios.get(`/courses-certificate/${id}`, {responseType: 'blob'});
+
+export const getCourseExpedientRequest = (id) =>
+  axios.get(`/course/${id}/expedient`);
+
+export const getCoursesReportRequest = (status) =>
+  axios.get(`/courses/report`, { params: { status } });
+
+export const getCourseParticipantsReportRequest = (id) =>
+  axios.get(`/course/${id}/participants-report`);

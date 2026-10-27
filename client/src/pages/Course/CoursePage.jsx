@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEye, faEdit, faTrash , faCertificate} from "@fortawesome/free-solid-svg-icons";
+import { faEye, faEdit, faTrash, faCertificate, faFolderOpen, faPlayCircle, faChartBar } from "@fortawesome/free-solid-svg-icons";
 import { useCourse } from "../../context/CourseContext";
 import RegisterCourseModal from "../Course/RegisterCourseModal";
 import ReportsModalityModal from "../Reports/ReportsModalityModal";
@@ -13,6 +14,8 @@ function CoursePage() {
     const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
     const [selectedCourse, setSelectedCourse] = useState(null);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+    const navigate = useNavigate();
+
     useEffect(() => {
         getCourses({ search: searchTerm, page: currentPage });
     }, [searchTerm, currentPage]);
@@ -69,12 +72,20 @@ function CoursePage() {
                     >
                         Registrar Curso
                     </button>
-                    {/* <button
-                        onClick={() => setIsReportsModalOpen(true)}
-                        className="px-4 py-2 rounded-lg text-gray-700 bg-gray-50 dark:bg-gray-700 dark:text-gray-400"
+                    <button
+                        onClick={() => navigate("/course/start")}
+                        className="px-4 py-2 rounded-lg text-white bg-gradient-to-r from-red-700 to-red-600 hover:from-red-800 hover:to-red-700 shadow-sm flex items-center gap-2 text-sm font-medium"
                     >
+                        <FontAwesomeIcon icon={faPlayCircle} />
+                        Iniciar nuevo curso
+                    </button>
+                    <button
+                        onClick={() => navigate("/courses/report")}
+                        className="px-4 py-2 rounded-lg text-gray-700 bg-gray-300 dark:bg-gray-700 dark:text-gray-400 flex items-center gap-2 text-sm"
+                    >
+                        <FontAwesomeIcon icon={faChartBar} />
                         Reportes
-                    </button> */}
+                    </button>
                 </div>
             </div>
 
@@ -115,6 +126,9 @@ function CoursePage() {
                                     </button>
                                     <button className="text-yellow-500 hover:text-yellow-700" onClick={() => handleEdit(course)}>
                                         <FontAwesomeIcon icon={faEdit} />
+                                    </button>
+                                    <button className="text-green-500 hover:text-green-700" onClick={() => navigate(`/course/${course.course_id}/expedient`)} title="Ver expediente">
+                                        <FontAwesomeIcon icon={faFolderOpen} />
                                     </button>
                                     {/* <button className="text-purple-500 hover:text-purple-700" onClick={() => handleDownloadCertificate(course.id)}> */}
                                     <button className="text-purple-500 hover:text-purple-700" onClick={() => handleDownloadCertificate(course.course_id)}>

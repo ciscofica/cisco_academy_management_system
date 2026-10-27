@@ -24,7 +24,9 @@ import {
     faDiagramProject,
     faHourglass,
     faInfo,
-    faMoneyCheckDollar
+    faMoneyCheckDollar,
+    faPlayCircle,
+    faChartBar
 } from '@fortawesome/free-solid-svg-icons';
 
 import profilePicture from '../assets/usuario.webp';
@@ -150,6 +152,8 @@ function Navbar() {
                         {expandedSections.cursos && (
                             <ul className="pl-4">
                                 <li><Link to="/courses" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faDiagramProject} className="mr-2" />Cursos</Link></li>
+                                <li><Link to="/course/start" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faPlayCircle} className="mr-2" />Iniciar nuevo curso</Link></li>
+                                <li><Link to="/courses/report" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faChartBar} className="mr-2" />Reporte de cursos</Link></li>
                                 <li><Link to="/details" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faSwatchbook} className="mr-2" />Detalle</Link></li>
                                 <li><Link to="/chapters" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faBookOpen} className="mr-2" />Capítulos</Link></li>
                                 <li><Link to="/participants" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faUser} className="mr-2" />Participante</Link></li>
