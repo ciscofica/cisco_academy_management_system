@@ -2,71 +2,63 @@ import { Link } from "react-router-dom";
 
 function HomePage() {
   return (
-    <div className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100 font-sans">
-      {/* Hero Section */}
-      <section className="flex items-center justify-center h-screen bg-cover bg-center" style={{ backgroundImage: 'url("/hero-background.jpg")' }}>
-        <div className="bg-black bg-opacity-60 p-8 rounded-lg text-center max-w-xl">
-          <h2 className="text-4xl font-extrabold text-white mb-4">Bienvenidos a la Plataforma de Gestión de Cursos Cisco</h2>
-          <p className="text-gray-300 mb-6">
-            Diseñada especialmente para la gestión de los Cursos dictados por la Academia de la Facultad de Ingeniería en Ciencias Aplicadas.
+    <div className="min-h-[calc(100vh-130px)] bg-slate-50 flex flex-col justify-center">
+
+      {/* ── HERO BANNER ─────────────────────────────────────────────────── */}
+      <section className="py-16 px-6 text-center">
+        <div className="max-w-3xl mx-auto">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight mb-4">
+            Plataforma de Gestión de{" "}
+            <span className="text-[#6cc24a]">Cursos Cisco</span>
+          </h1>
+
+          <p className="text-base md:text-lg text-slate-600 mb-8 max-w-xl mx-auto leading-relaxed">
+            Facultad de Ingeniería en Ciencias Aplicadas · UTN.
+            <br className="hidden sm:inline" />
+            Administración centralizada de cursos, estudiantes y certificaciones.
           </p>
-          {/* <Link to={"/login"}  className="px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition mr-4">Iniciar Sesión</Link> */}
+
+          <div className="flex justify-center">
+            <Link
+              to="/login"
+              className="px-8 py-3 bg-[#6cc24a] hover:bg-[#5aad3a] text-white font-semibold rounded-full shadow-sm hover:shadow transition-all"
+            >
+              Iniciar Sesión
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      {/* <section id="features" className="py-16 bg-gray-50 dark:bg-gray-800">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-10 text-gray-800 dark:text-white">Características</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="p-6 bg-white dark:bg-gray-700 rounded-lg shadow-md hover:shadow-lg transition">
-              <h3 className="text-2xl font-semibold text-indigo-600 mb-2">Certificaciones Internacionales</h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Accede a certificaciones reconocidas a nivel mundial para mejorar tus habilidades en redes y tecnología de la información.
-              </p>
-            </div>
-            <div className="p-6 bg-white dark:bg-gray-700 rounded-lg shadow-md hover:shadow-lg transition">
-              <h3 className="text-2xl font-semibold text-indigo-600 mb-2">Gestión de Cursos</h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Visualiza y administra tus cursos, completa módulos y mantén un seguimiento de tu progreso académico.
-              </p>
-            </div>
-            <div className="p-6 bg-white dark:bg-gray-700 rounded-lg shadow-md hover:shadow-lg transition">
-              <h3 className="text-2xl font-semibold text-indigo-600 mb-2">Soporte Académico</h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Recibe soporte personalizado y acceso a materiales de estudio adicionales, garantizando una experiencia de aprendizaje completa.
-              </p>
-            </div>
+      {/* ── RESUMEN MINIMALISTA ────────────────────────────────────────── */}
+      <section className="max-w-4xl mx-auto px-6 pb-16 w-full">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8 border-t border-gray-200 text-center md:text-left">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-800 uppercase tracking-wide mb-1">
+              Cursos y Horarios
+            </h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Planificación académica, capítulos y modalidades de estudio.
+            </p>
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-slate-800 uppercase tracking-wide mb-1">
+              Participantes y Docentes
+            </h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Control de matrículas, roles e instructores asignados.
+            </p>
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-slate-800 uppercase tracking-wide mb-1">
+              Certificaciones y Pagos
+            </h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Seguimiento de certificados emitidos y reportes de gestión.
+            </p>
           </div>
         </div>
-      </section> */}
+      </section>
 
-      {/* Gallery Section */}
-      {/* <section id="gallery" className="py-16 bg-white dark:bg-gray-900">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-10 text-gray-800 dark:text-white">Galería</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {[1, 2, 3, 4, 5, 6].map((img, idx) => (
-              <div key={idx} className="overflow-hidden rounded-lg shadow-md">
-                <img src={`/gallery-${img}.jpg`} alt={`Gallery ${img}`} className="w-full h-full object-cover hover:scale-105 transition transform duration-300" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section> */}
-
-      {/* Call to Action Section */}
-      {/* <section className="py-16 bg-indigo-600 text-white">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4">¿Listo para mejorar tus habilidades?</h2>
-          <p className="mb-6">
-            Únete a nuestra comunidad académica y accede a cursos exclusivos diseñados para maximizar tu conocimiento en redes y TI.
-          </p>
-          <button className="px-6 py-3 bg-white text-indigo-600 rounded-md hover:bg-gray-200 transition">Inscribirse Ahora</button>
-        </div>
-      </section> */}
-
-      
     </div>
   );
 }

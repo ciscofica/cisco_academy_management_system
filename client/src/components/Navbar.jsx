@@ -72,155 +72,158 @@ function Navbar() {
 
     return (
         <>
-            <nav className="bg-red-700 dark:bg-gray-800 flex justify-between items-center py-5 px-10">
-                <div className="flex items-center">
+            {/* ── NAVBAR ─────────────────────────────────────────────────────── */}
+            <nav className="bg-white border-b border-gray-200 flex justify-between items-center py-4 px-10 shadow-sm">
+                <div className="flex items-center gap-3">
                     {isAuthenticated && (
                         <button
-                            className="text-white bg-transparent hover:bg-transparent focus:ring-4 focus:ring-transparent font-medium rounded-lg text-sm p-2.5 dark:bg-transparent dark:hover:bg-transparent focus:outline-none dark:focus:ring-transparent"
+                            className="text-slate-500 hover:text-slate-800 hover:bg-gray-100 focus:outline-none rounded-lg p-2 transition-colors"
                             type="button"
-                            onClick={toggleDrawer} // Abre o cierra el drawer
+                            onClick={toggleDrawer}
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
                             </svg>
                         </button>
                     )}
-                    <Link to={'/'}>
-                        {/* <h1 className="text-2xl font-bold ml-2">UTN Cisco Academy Management System</h1> */}
-                        <h1 className="text-2xl font-semibold ml-2"> UTN CMS <span className="text-sm">v 0.0.5</span> </h1>
+                    <Link to={'/'} className="flex items-center gap-2">
+                        {/* Franja verde NetAcad a la izquierda del título */}
+                        <span className="inline-block w-1 h-6 rounded-full bg-[#6cc24a]"></span>
+                        <h1 className="text-xl font-bold text-slate-800 tracking-tight">
+                            UTN CMS{" "}
+                            <span className="text-xs font-normal text-slate-400">v 0.0.5</span>
+                        </h1>
                     </Link>
                 </div>
-                <ul className="flex gap-x-4">
+
+                <ul className="flex items-center gap-x-3">
                     {isAuthenticated ? (
                         <>
-                            <li className="pt-1">
-                                <button type="button" className="flex text-sm bg-transparent rounded-full md:me-0 focus:ring-4 focus:ring-gray-300 dark:focus:ring-gray-600">
-                                    <img className="w-6 h-6 rounded-full " src={profilePicture} alt="Profile Image" />
-                                    <span className="pl-3">{user.userExists.name}</span>
-                                </button>
-                            </li>
                             <li>
-                                <button onClick={handleLogout} className="px-4 text-white font-semibold">Cerrar Sesión</button>
-                            </li>
-                        </>
-                    ) : (
-                        <li>
-                            <Link to={"/login"} className="px-4 py-1 text-white dark:text-white font-semibold">Iniciar Sesión</Link>
-                        </li>
-                    )}
-                </ul>
-                {/* <ul className="flex gap-x-4">
-                    {isAuthenticated ? (
-                        <>
-                            <li className="pt-1">
-                                <button type="button" className="flex items-center text-white bg-gray-800 hover:bg-gray-700 rounded-full px-4 py-2 focus:outline-none focus:ring-4 focus:ring-gray-300 dark:focus:ring-gray-600 transition">
+                                <button
+                                    type="button"
+                                    className="flex items-center gap-2 text-sm text-slate-700 bg-gray-100 hover:bg-gray-200 rounded-full px-3 py-1.5 transition-colors"
+                                >
                                     <img className="w-6 h-6 rounded-full" src={profilePicture} alt="Profile Image" />
-                                    <span className="pl-3">{user.userExists.name}</span>
+                                    <span className="font-medium">{user.userExists.name}</span>
                                 </button>
                             </li>
                             <li>
-                                <button onClick={handleLogout} className="px-4 py-2 bg-red-500 text-white rounded-md font-semibold hover:bg-red-600 focus:outline-none focus:ring-4 focus:ring-red-300 transition">
+                                <button
+                                    onClick={handleLogout}
+                                    className="px-4 py-1.5 text-sm font-semibold text-slate-600 border border-gray-300 rounded-full hover:bg-gray-100 hover:text-slate-800 transition-colors"
+                                >
                                     Cerrar Sesión
                                 </button>
                             </li>
                         </>
                     ) : (
                         <li>
-                            <Link to="/login" className="px-4 py-2 bg-indigo-500 text-white rounded-md font-semibold hover:bg-indigo-600 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition">
+                            <Link
+                                to={"/login"}
+                                className="px-5 py-2 text-sm font-semibold text-white bg-[#6cc24a] hover:bg-[#5aad3a] rounded-full transition-colors shadow-sm"
+                            >
                                 Iniciar Sesión
                             </Link>
                         </li>
                     )}
-                </ul> */}
-
+                </ul>
             </nav>
 
+            {/* ── DRAWER LATERAL ─────────────────────────────────────────────── */}
             {isAuthenticated && (
                 <div
                     ref={drawerRef}
-                    className={`fixed top-0 left-0 z-40 h-screen p-4 overflow-y-auto transition-transform ${isDrawerOpen ? 'translate-x-0' : '-translate-x-full'} bg-white w-64 dark:bg-gray-800 `}
+                    className={`fixed top-0 left-0 z-40 h-screen p-5 overflow-y-auto transition-transform ${isDrawerOpen ? 'translate-x-0' : '-translate-x-full'} bg-white w-64 border-r border-gray-200 shadow-lg`}
                     tabIndex="-1"
                 >
-                    <div className="pb-7 ">
+                    {/* Header del drawer */}
+                    <div className="flex items-center gap-2 mb-6 pb-4 border-b border-gray-100">
+                        <span className="inline-block w-1 h-5 rounded-full bg-[#6cc24a]"></span>
+                        <span className="text-sm font-bold text-slate-700 uppercase tracking-wider">Menú</span>
+                    </div>
+
+                    {/* Sección: Gestión de Cursos */}
+                    <div className="pb-5">
                         <button
-                            className="w-full text-l        eft text-gray-700 dark:text-gray-300 py-2 flex items-center"
+                            className="w-full text-left text-slate-700 font-semibold py-2 flex items-center gap-2 hover:text-[#6cc24a] transition-colors"
                             onClick={() => toggleSection("cursos")}
                         >
-                            <FontAwesomeIcon icon={faBook} className="mr-2" />
+                            <FontAwesomeIcon icon={faBook} className="text-[#6cc24a]" />
                             Gestión de Cursos
                         </button>
                         {expandedSections.cursos && (
-                            <ul className="pl-4">
-                                <li><Link to="/courses" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faDiagramProject} className="mr-2" />Cursos</Link></li>
-                                <li><Link to="/course/start" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faPlayCircle} className="mr-2" />Iniciar nuevo curso</Link></li>
-                                <li><Link to="/courses/report" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faChartBar} className="mr-2" />Reporte de cursos</Link></li>
-                                <li><Link to="/details" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faSwatchbook} className="mr-2" />Detalle</Link></li>
-                                <li><Link to="/chapters" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faBookOpen} className="mr-2" />Capítulos</Link></li>
-                                <li><Link to="/participants" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faUser} className="mr-2" />Participante</Link></li>
-                                <li><Link to="/participant-types" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faPerson} className="mr-2" />Tipos de Participante</Link></li>
-                                <li><Link to="/infos_utn" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faInfo} className="mr-2" />Info UTN</Link></li>
-                                <li><Link to="/instructors" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faUserAlt} className="mr-2" />Instructor</Link></li>
-                                <li><Link to="/detail-values" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faMoneyBill1Wave} className="mr-2" />Detalle de Valores</Link></li>
-
+                            <ul className="pl-5 mt-1 space-y-1">
+                                <li><Link to="/courses" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faDiagramProject} className="w-3.5" />Cursos</Link></li>
+                                <li><Link to="/course/start" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faPlayCircle} className="w-3.5" />Iniciar nuevo curso</Link></li>
+                                <li><Link to="/courses/report" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faChartBar} className="w-3.5" />Reporte de cursos</Link></li>
+                                <li><Link to="/details" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faSwatchbook} className="w-3.5" />Detalle</Link></li>
+                                <li><Link to="/chapters" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faBookOpen} className="w-3.5" />Capítulos</Link></li>
+                                <li><Link to="/participants" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faUser} className="w-3.5" />Participante</Link></li>
+                                <li><Link to="/participant-types" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faPerson} className="w-3.5" />Tipos de Participante</Link></li>
+                                <li><Link to="/infos_utn" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faInfo} className="w-3.5" />Info UTN</Link></li>
+                                <li><Link to="/instructors" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faUserAlt} className="w-3.5" />Instructor</Link></li>
+                                <li><Link to="/detail-values" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faMoneyBill1Wave} className="w-3.5" />Detalle de Valores</Link></li>
                             </ul>
                         )}
                     </div>
-                    <div className="pb-7">
+
+                    {/* Sección: Gestión de Detalle */}
+                    <div className="pb-5">
                         <button
-                            className="w-full text-left text-gray-700 dark:text-gray-300 py-2 flex items-center"
+                            className="w-full text-left text-slate-700 font-semibold py-2 flex items-center gap-2 hover:text-[#6cc24a] transition-colors"
                             onClick={() => toggleSection("detail")}
                         >
-                            <FontAwesomeIcon icon={faCogs} className="mr-2" />
+                            <FontAwesomeIcon icon={faCogs} className="text-[#6cc24a]" />
                             Gestión de Detalle
                         </button>
                         {expandedSections.detail && (
-                            <ul className="pl-4">
-
-                                <li><Link to="/payments" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faMoneyBill} className="mr-2" />Pagos </Link></li>
-                                <li><Link to="/payment-types" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faMoneyCheck} className="mr-2" />Tipo de Pagos </Link></li>
-                                <li><Link to="/costs" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faMoneyCheckDollar} className="mr-2" />Costos Cursos </Link></li>
-                                <li><Link to="/certificates" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faCertificate} className="mr-2" />Certificados Inst.</Link></li>
-                                <li><Link to="/schedules" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faHourglass} className="mr-2" />Horarios</Link></li>
-                                <li><Link to="/modalities" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faCogs} className="mr-2" />Modalidades</Link></li>
-
-
+                            <ul className="pl-5 mt-1 space-y-1">
+                                <li><Link to="/payments" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faMoneyBill} className="w-3.5" />Pagos</Link></li>
+                                <li><Link to="/payment-types" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faMoneyCheck} className="w-3.5" />Tipo de Pagos</Link></li>
+                                <li><Link to="/costs" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faMoneyCheckDollar} className="w-3.5" />Costos Cursos</Link></li>
+                                <li><Link to="/certificates" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faCertificate} className="w-3.5" />Certificados Inst.</Link></li>
+                                <li><Link to="/schedules" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faHourglass} className="w-3.5" />Horarios</Link></li>
+                                <li><Link to="/modalities" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faCogs} className="w-3.5" />Modalidades</Link></li>
                             </ul>
                         )}
                     </div>
-                    <div className="pb-7">
+
+                    {/* Sección: Gestión de Usuarios */}
+                    <div className="pb-5">
                         <button
-                            className="w-full text-left text-gray-700 dark:text-gray-300 py-2 flex items-center"
+                            className="w-full text-left text-slate-700 font-semibold py-2 flex items-center gap-2 hover:text-[#6cc24a] transition-colors"
                             onClick={() => toggleSection("usuarios")}
                         >
-                            <FontAwesomeIcon icon={faUsers} className="mr-2" />
+                            <FontAwesomeIcon icon={faUsers} className="text-[#6cc24a]" />
                             Gestión de Usuarios
                         </button>
                         {expandedSections.usuarios && (
-                            <ul className="pl-4">
-                                <li><Link to="/#" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faUser} className="mr-2" />Usuarios <span className="text-amber-400">( prox )</span></Link></li>
-                                <li><Link to="/roles" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faBuildingUser} className="mr-2" />Roles</Link></li>
-                                <li><Link to="/permissions" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faBan} className="mr-2" />Permisos</Link></li>
+                            <ul className="pl-5 mt-1 space-y-1">
+                                <li><Link to="/#" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faUser} className="w-3.5" />Usuarios <span className="text-amber-400 text-xs">( prox )</span></Link></li>
+                                <li><Link to="/roles" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faBuildingUser} className="w-3.5" />Roles</Link></li>
+                                <li><Link to="/permissions" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faBan} className="w-3.5" />Permisos</Link></li>
                             </ul>
                         )}
                     </div>
 
-                    <div className="pb-7">
+                    {/* Sección: Gestión Adicional */}
+                    <div className="pb-5">
                         <button
-                            className="w-full text-left text-gray-700 dark:text-gray-300 py-2 flex items-center"
+                            className="w-full text-left text-slate-700 font-semibold py-2 flex items-center gap-2 hover:text-[#6cc24a] transition-colors"
                             onClick={() => toggleSection("adicional")}
                         >
-                            <FontAwesomeIcon icon={faCogs} className="mr-2" />
+                            <FontAwesomeIcon icon={faCogs} className="text-[#6cc24a]" />
                             Gestión Adicional
                         </button>
                         {expandedSections.adicional && (
-                            <ul className="pl-4">
-                                <li><Link to="#" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faBookOpenReader} className="mr-2" />Convenios <span className="text-amber-400">( prox )</span></Link></li>
-                                <li><Link to="#" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faComputer} className="mr-2" />Activos <span className="text-amber-400">( prox )</span></Link></li>
-                                <li><Link to="#" className="block py-1 text-gray-500 dark:hover:text-white" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faScaleBalanced} className="mr-2" />Auditoria <span className="text-amber-400">( prox )</span></Link></li>
+                            <ul className="pl-5 mt-1 space-y-1">
+                                <li><Link to="#" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faBookOpenReader} className="w-3.5" />Convenios <span className="text-amber-400 text-xs">( prox )</span></Link></li>
+                                <li><Link to="#" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faComputer} className="w-3.5" />Activos <span className="text-amber-400 text-xs">( prox )</span></Link></li>
+                                <li><Link to="#" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faScaleBalanced} className="w-3.5" />Auditoria <span className="text-amber-400 text-xs">( prox )</span></Link></li>
                             </ul>
                         )}
                     </div>
-
                 </div>
             )}
         </>
