@@ -905,6 +905,11 @@ export const enrollCourseParticipant = async (req, res) => {
     await CourseParticipant.create({
       course_id: id,
       participant_id: participant.participant_id,
+      total_payment: total_payment ? parseFloat(total_payment) : 0.0,
+      enrolled: enrolled !== undefined ? Boolean(enrolled) : true,
+      approval: false,
+      grade_final: null,
+      status_code: "I",
       created_at: new Date(),
       updated_at: new Date(),
     });
@@ -961,6 +966,75 @@ export const removeCourseParticipant = async (req, res) => {
   } catch (error) {
     console.error("Error al retirar participante:", error);
     return res.status(500).json({ message: "Error al retirar participante.", error: error.message });
+  }
+};
+
+export const updateParticipantAcademicRecord = async (req, res) => {
+  try {
+    const { id, participantId } = req.params;
+    const { grade_final, status_code, total_payment, enrolled, approval } = req.body;
+
+    const coursePart = await CourseParticipant.findOne({
+      where: {
+        course_id: id,
+        participant_id: participantId,
+      },
+    });
+
+    if (!coursePart) {
+      return res.status(404).json({ message: "Registro del estudiante en este curso no encontrado." });
+    }
+
+    if (grade_final !== undefined && grade_final !== null && grade_final !== "") {
+      const numGrade = parseFloat(grade_final);
+      coursePart.grade_final = numGrade;
+      if (approval !== undefined) {
+        coursePart.approval = Boolean(approval);
+      } else {
+        coursePart.approval = numGrade >= 70.0;
+      }
+      coursePart.status_code = coursePart.approval ? "P" : "F";
+    }
+
+    if (status_code !== undefined) {
+      coursePart.status_code = status_code;
+      if (status_code === "P") coursePart.approval = true;
+      if (status_code === "F" || status_code === "I") coursePart.approval = false;
+    }
+
+    if (total_payment !== undefined) {
+      coursePart.total_payment = parseFloat(total_payment) || 0.0;
+    }
+
+    if (enrolled !== undefined) {
+      coursePart.enrolled = Boolean(enrolled);
+    }
+
+    coursePart.updated_at = new Date();
+    await coursePart.save();
+
+    const course = await Course.findByPk(id, { include: [{ model: Detail }] });
+    if (course?.Detail) {
+      const allParts = await CourseParticipant.findAll({ where: { course_id: id } });
+      const enrolledCount = allParts.filter((cp) => cp.enrolled).length;
+      const failedCount = allParts.filter((cp) => cp.status_code === "F").length;
+      await course.Detail.update({
+        num_enrolled: enrolledCount,
+        num_failed: failedCount,
+        updated_at: new Date(),
+      });
+    }
+
+    return res.status(200).json({
+      message: "Historial académico del estudiante actualizado.",
+      courseParticipant: coursePart,
+    });
+  } catch (error) {
+    console.error("Error al actualizar récord académico:", error);
+    return res.status(500).json({
+      message: "Error al actualizar récord académico del estudiante.",
+      error: error.message,
+    });
   }
 };
 

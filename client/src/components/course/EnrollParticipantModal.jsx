@@ -19,6 +19,7 @@ export default function EnrollParticipantModal({ isOpen, onClose, courseId, onEn
   const [allParticipants, setAllParticipants] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedParticipantId, setSelectedParticipantId] = useState("");
+  const [existingPayment, setExistingPayment] = useState(0.0);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -81,6 +82,7 @@ export default function EnrollParticipantModal({ isOpen, onClose, courseId, onEn
       setSubmitting(true);
       const res = await enrollCourseParticipantRequest(courseId, {
         participant_id: selectedParticipantId,
+        total_payment: parseFloat(existingPayment) || 0.0,
       });
       Swal.fire({
         icon: "success",
@@ -229,6 +231,23 @@ export default function EnrollParticipantModal({ isOpen, onClose, courseId, onEn
               </select>
               <span className="text-[11px] text-slate-400 mt-1 block">
                 Se vinculará el historial de este estudiante a la presente convocatoria.
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Pago inicial para esta edición (USD)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                value={existingPayment}
+                onChange={(e) => setExistingPayment(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-[#6cc24a]"
+              />
+              <span className="text-[11px] text-slate-400 mt-1 block">
+                Inicia en $0.00 de forma independiente (no hereda saldos de otros cursos).
               </span>
             </div>
 

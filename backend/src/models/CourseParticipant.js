@@ -2,11 +2,10 @@
 import { DataTypes } from "sequelize";
 import Course from './Course.js';
 import User from './User.js';
-import db from '../database/db.js';  // Importa todo el objeto
+import db from '../database/db.js';
 import Participant from "./Participant.js";
 
-const { sequelize } = db;  // Extrae sequelize del objeto
-
+const { sequelize } = db;
 
 const CourseParticipant = sequelize.define(
   "CourseParticipant",
@@ -31,6 +30,31 @@ const CourseParticipant = sequelize.define(
         key: "participant_id",
       },
       allowNull: false,
+    },
+    total_payment: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0.0,
+      field: "total_payment",
+    },
+    enrolled: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+      field: "enrolled",
+    },
+    approval: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      field: "approval",
+    },
+    grade_final: {
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: true,
+      field: "grade_final",
+    },
+    status_code: {
+      type: DataTypes.STRING(10),
+      defaultValue: "I",
+      field: "status_code",
     },
     createdAt: {
       type: DataTypes.DATE,

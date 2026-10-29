@@ -32,3 +32,6 @@ export const enrollCourseParticipantRequest = (id, data) =>
 
 export const removeCourseParticipantRequest = (id, participantId) =>
   axios.delete(`/course/${id}/participant/${participantId}`);
+
+export const updateParticipantAcademicRecordRequest = (id, participantId, data) =>
+  axios.put(`/course/${id}/participant/${participantId}/academic-record`, data);

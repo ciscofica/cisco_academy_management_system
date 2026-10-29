@@ -10,6 +10,7 @@ import { getInstructorsDropdownRequest } from "../../api/instructor";
 import { getModalitiesDropdownRequest } from "../../api/modality";
 import OfficialDocumentModal from "../../components/course/OfficialDocumentModal";
 import EnrollParticipantModal from "../../components/course/EnrollParticipantModal";
+import EditAcademicRecordModal from "../../components/course/EditAcademicRecordModal";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faArrowLeft,
@@ -59,9 +60,10 @@ function CourseExpedientPage() {
   const [instructorsList, setInstructorsList] = useState([]);
   const [modalitiesList, setModalitiesList] = useState([]);
 
-  // Modales operativos Fase 3
+  // Modales operativos Fase 3 y 4
   const [selectedDocForPreview, setSelectedDocForPreview] = useState(null);
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
+  const [selectedParticipantForEdit, setSelectedParticipantForEdit] = useState(null);
 
   // Filtros y búsquedas en pestañas
   const [chapterSearchTerm, setChapterSearchTerm] = useState("");
@@ -688,13 +690,25 @@ function CourseExpedientPage() {
               <div className="bg-[#edf7e6] rounded-xl p-4 border border-green-200">
                 <p className="text-xs text-[#3a8c25] font-medium">Matriculados Oficiales</p>
                 <p className="text-xl font-bold text-[#3a8c25] mt-1">
-                  {participants.filter((p) => p.enrolled).length}
+                  {
+                    participants.filter((p) =>
+                      p.CourseParticipant?.enrolled !== undefined
+                        ? p.CourseParticipant.enrolled
+                        : p.enrolled
+                    ).length
+                  }
                 </p>
               </div>
               <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
                 <p className="text-xs text-[#005073] font-medium">Aprobados NetAcad</p>
                 <p className="text-xl font-bold text-[#005073] mt-1">
-                  {participants.filter((p) => p.approval).length}
+                  {
+                    participants.filter((p) =>
+                      p.CourseParticipant?.approval !== undefined
+                        ? p.CourseParticipant.approval
+                        : p.approval
+                    ).length
+                  }
                 </p>
               </div>
               <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200">
@@ -702,7 +716,14 @@ function CourseExpedientPage() {
                 <p className="text-xl font-bold text-emerald-700 mt-1">
                   $
                   {participants
-                    .reduce((acc, p) => acc + (parseFloat(p.total_payment) || 0), 0)
+                    .reduce((acc, p) => {
+                      const val =
+                        p.CourseParticipant?.total_payment !== null &&
+                        p.CourseParticipant?.total_payment !== undefined
+                          ? p.CourseParticipant.total_payment
+                          : p.total_payment || 0;
+                      return acc + (parseFloat(val) || 0);
+                    }, 0)
                     .toFixed(2)}{" "}
                   <span className="text-xs font-normal">USD</span>
                 </p>
@@ -748,7 +769,15 @@ function CourseExpedientPage() {
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                   }`}
                 >
-                  Matriculados ({participants.filter((p) => p.enrolled).length})
+                  Matriculados (
+                  {
+                    participants.filter((p) =>
+                      p.CourseParticipant?.enrolled !== undefined
+                        ? p.CourseParticipant.enrolled
+                        : p.enrolled
+                    ).length
+                  }
+                  )
                 </button>
                 <button
                   onClick={() => setParticipantFilter("approved")}
@@ -758,7 +787,15 @@ function CourseExpedientPage() {
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                   }`}
                 >
-                  Aprobados ({participants.filter((p) => p.approval).length})
+                  Aprobados (
+                  {
+                    participants.filter((p) =>
+                      p.CourseParticipant?.approval !== undefined
+                        ? p.CourseParticipant.approval
+                        : p.approval
+                    ).length
+                  }
+                  )
                 </button>
               </div>
             </div>
@@ -773,9 +810,9 @@ function CourseExpedientPage() {
                       <th className="px-4 py-3">Cédula / DNI</th>
                       <th className="px-4 py-3">Tipo</th>
                       <th className="px-4 py-3 text-center">Matrícula</th>
-                      <th className="px-4 py-3 text-center">Pago Registrado</th>
-                      <th className="px-4 py-3 text-center">Rendimiento</th>
-                      <th className="px-4 py-3 text-right">Acción</th>
+                      <th className="px-4 py-3 text-center">Pago de esta Clase</th>
+                      <th className="px-4 py-3 text-center">Rendimiento NetAcad</th>
+                      <th className="px-4 py-3 text-right">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -786,73 +823,113 @@ function CourseExpedientPage() {
                           (p.name || "").toLowerCase().includes(term) ||
                           String(p.cid || "").includes(term);
                         if (!matchSearch) return false;
-                        if (participantFilter === "enrolled") return p.enrolled;
-                        if (participantFilter === "approved") return p.approval;
+
+                        const isEnr =
+                          p.CourseParticipant?.enrolled !== undefined
+                            ? p.CourseParticipant.enrolled
+                            : p.enrolled;
+                        const isApp =
+                          p.CourseParticipant?.approval !== undefined
+                            ? p.CourseParticipant.approval
+                            : p.approval;
+
+                        if (participantFilter === "enrolled") return isEnr;
+                        if (participantFilter === "approved") return isApp;
                         return true;
                       })
-                      .map((p) => (
-                        <tr
-                          key={p.participant_id}
-                          className="border-b border-gray-100 hover:bg-slate-50 transition-colors"
-                        >
-                          <td className="px-4 py-3 font-semibold text-slate-800">
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-7 h-7 rounded-full bg-[#005073]/10 text-[#005073] font-bold text-xs flex items-center justify-center flex-shrink-0">
-                                {p.name ? p.name.charAt(0) : "E"}
+                      .map((p) => {
+                        const cp = p.CourseParticipant || {};
+                        const pPayment =
+                          cp.total_payment !== null && cp.total_payment !== undefined
+                            ? cp.total_payment
+                            : p.total_payment || 0.0;
+                        const pEnrolled =
+                          cp.enrolled !== undefined ? cp.enrolled : p.enrolled;
+                        const pApproved =
+                          cp.approval !== undefined ? cp.approval : p.approval;
+                        const pGrade = cp.grade_final;
+                        const pStatusCode =
+                          cp.status_code || (pApproved ? "P" : "I");
+
+                        return (
+                          <tr
+                            key={p.participant_id}
+                            className="border-b border-gray-100 hover:bg-slate-50 transition-colors"
+                          >
+                            <td className="px-4 py-3 font-semibold text-slate-800">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-7 h-7 rounded-full bg-[#005073]/10 text-[#005073] font-bold text-xs flex items-center justify-center flex-shrink-0">
+                                  {p.name ? p.name.charAt(0) : "E"}
+                                </div>
+                                <span className="line-clamp-1">{p.name}</span>
                               </div>
-                              <span className="line-clamp-1">{p.name}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-slate-600 font-mono text-xs">
-                            {p.cid || p.dni || "—"}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
-                              {p.ParticipantType?.name || "Particular"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <span
-                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
-                                p.enrolled
-                                  ? "bg-[#edf7e6] text-[#3a8c25] border-green-200"
-                                  : "bg-gray-100 text-slate-500 border-gray-200"
-                              }`}
-                            >
-                              <FontAwesomeIcon
-                                icon={p.enrolled ? faCheckCircle : faTimesCircle}
-                                className="text-[10px]"
-                              />
-                              {p.enrolled ? "Matriculado" : "Pendiente"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-center font-semibold text-slate-700">
-                            ${Number(p.total_payment || 0).toFixed(2)} USD
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <span
-                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                                p.approval
-                                  ? "bg-emerald-100 text-emerald-800"
-                                  : "bg-blue-50 text-[#049fd9]"
-                              }`}
-                            >
-                              {p.approval ? "Aprobado" : "En curso"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <button
-                              onClick={() =>
-                                handleRemoveParticipant(p.participant_id, p.name)
-                              }
-                              title="Retirar de esta edición"
-                              className="text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
-                            >
-                              <FontAwesomeIcon icon={faTrashAlt} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                            <td className="px-4 py-3 text-slate-600 font-mono text-xs">
+                              {p.cid || p.dni || "—"}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                                {p.ParticipantType?.name || "Particular"}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <span
+                                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                                  pEnrolled
+                                    ? "bg-[#edf7e6] text-[#3a8c25] border-green-200"
+                                    : "bg-gray-100 text-slate-500 border-gray-200"
+                                }`}
+                              >
+                                <FontAwesomeIcon
+                                  icon={pEnrolled ? faCheckCircle : faTimesCircle}
+                                  className="text-[10px]"
+                                />
+                                {pEnrolled ? "Matriculado" : "Pendiente"}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-center font-semibold text-slate-700">
+                              ${Number(pPayment).toFixed(2)} USD
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              {pGrade !== null && pGrade !== undefined ? (
+                                <span
+                                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                                    pStatusCode === "P"
+                                      ? "bg-emerald-100 text-emerald-800 border-emerald-200"
+                                      : pStatusCode === "F"
+                                      ? "bg-red-100 text-red-800 border-red-200"
+                                      : "bg-blue-50 text-[#049fd9] border-blue-200"
+                                  }`}
+                                >
+                                  {parseFloat(pGrade).toFixed(1)} / 100 ({pStatusCode})
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-[#049fd9] border border-blue-200">
+                                  En curso (I)
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <button
+                                onClick={() => setSelectedParticipantForEdit(p)}
+                                title="Calificar y registrar pago para esta edición"
+                                className="text-slate-500 hover:text-[#049fd9] p-1.5 rounded-lg hover:bg-blue-50 transition-colors mr-1"
+                              >
+                                <FontAwesomeIcon icon={faEdit} />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  handleRemoveParticipant(p.participant_id, p.name)
+                                }
+                                title="Retirar de esta edición"
+                                className="text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                              >
+                                <FontAwesomeIcon icon={faTrashAlt} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
@@ -1117,6 +1194,15 @@ function CourseExpedientPage() {
           onClose={() => setIsEnrollModalOpen(false)}
           courseId={id}
           onEnrolled={loadExpedient}
+        />
+
+        {/* Modal para Calificar y Registrar Pago NetAcad del Estudiante */}
+        <EditAcademicRecordModal
+          isOpen={Boolean(selectedParticipantForEdit)}
+          onClose={() => setSelectedParticipantForEdit(null)}
+          courseId={id}
+          participant={selectedParticipantForEdit}
+          onSaved={loadExpedient}
         />
       </div>
     </div>
