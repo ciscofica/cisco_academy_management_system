@@ -952,6 +952,152 @@ export const enrollCourseParticipant = async (req, res) => {
   }
 };
 
+export const enrollCourseParticipantsBulk = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { participants = [] } = req.body;
+
+    if (!Array.isArray(participants) || participants.length === 0) {
+      return res.status(400).json({ message: "No se proporcionaron estudiantes para matricular." });
+    }
+
+    const course = await Course.findByPk(id, {
+      include: [{ model: Detail }],
+    });
+    if (!course) {
+      return res.status(404).json({ message: "Curso no encontrado." });
+    }
+
+    let newlyEnrolledCount = 0;
+    let alreadyEnrolledCount = 0;
+    const errors = [];
+
+    const getTypeId = (tipoStr) => {
+      if (!tipoStr) return 1;
+      const lower = String(tipoStr).toLowerCase();
+      if (lower.includes("egresad") || lower.includes("graduad")) return 2;
+      if (lower.includes("postgrad")) return 3;
+      if (lower.includes("particul") || lower.includes("extern") || lower.includes("public")) return 4;
+      if (lower.includes("docent")) return 5;
+      return 1;
+    };
+
+    for (const item of participants) {
+      try {
+        const rawCid = item.cid || item.cedula || item.dni;
+        if (!rawCid) {
+          errors.push({ item, error: "Fila omitida: falta número de cédula." });
+          continue;
+        }
+
+        const cidNum = parseInt(String(rawCid).replace(/\D/g, ""), 10);
+        if (!cidNum || isNaN(cidNum)) {
+          errors.push({ item, error: `Cédula inválida: ${rawCid}` });
+          continue;
+        }
+
+        const name = item.name || item.nombres || item.apellidos_y_nombres || "Sin Nombre";
+        const email = item.email || item.correo || null;
+        const phone = item.phone || item.telefono || item.celular || "sin registro";
+        const address = item.address || item.ciudad || "sin registro";
+        const institution = item.institution || item.empresa || "sin registro";
+        const degree = item.degree || item.carrera || null;
+        const degreeLevel = item.degree_level || item.nivel || null;
+        const parsedLevel = degreeLevel ? parseInt(degreeLevel, 10) : null;
+        const typeId = item.participant_type_id || getTypeId(item.tipo || item.type);
+
+        // 1. Buscar o crear Participante
+        let participant = await Participant.findOne({ where: { cid: cidNum } });
+        if (!participant) {
+          participant = await Participant.create({
+            name,
+            cid: cidNum,
+            email,
+            phone,
+            address,
+            institution,
+            participant_type_id: typeId,
+            degree,
+            degree_level: parsedLevel,
+            enrolled: true,
+            registered: true,
+            approval: false,
+            total_payment: 0.0,
+            active: true,
+            created_at: new Date(),
+            updated_at: new Date(),
+          });
+        } else {
+          // Actualizar datos de contacto si no existían
+          let updated = false;
+          if (email && !participant.email) { participant.email = email; updated = true; }
+          if (degree && !participant.degree) { participant.degree = degree; updated = true; }
+          if (parsedLevel && !participant.degree_level) { participant.degree_level = parsedLevel; updated = true; }
+          if (phone && phone !== "sin registro" && (!participant.phone || participant.phone === "sin registro")) { participant.phone = phone; updated = true; }
+          if (address && address !== "sin registro" && (!participant.address || participant.address === "sin registro")) { participant.address = address; updated = true; }
+          if (institution && institution !== "sin registro" && (!participant.institution || participant.institution === "sin registro")) { participant.institution = institution; updated = true; }
+          if (updated) await participant.save();
+        }
+
+        // 2. Comprobar si ya está matriculado en este curso
+        const existing = await CourseParticipant.findOne({
+          where: {
+            course_id: id,
+            participant_id: participant.participant_id,
+          },
+        });
+
+        if (existing) {
+          alreadyEnrolledCount++;
+          continue;
+        }
+
+        // 3. Crear relación en esta edición
+        await CourseParticipant.create({
+          course_id: id,
+          participant_id: participant.participant_id,
+          total_payment: 0.0,
+          enrolled: true,
+          approval: false,
+          grade_final: null,
+          status_code: "I",
+          created_at: new Date(),
+          updated_at: new Date(),
+        });
+
+        newlyEnrolledCount++;
+      } catch (rowErr) {
+        errors.push({ item, error: rowErr.message });
+      }
+    }
+
+    // 4. Actualizar contadores del curso
+    if (newlyEnrolledCount > 0 && course.Detail) {
+      const curEnrolled = course.Detail.num_enrolled || 0;
+      const curRegistered = course.Detail.num_registered || 0;
+      await course.Detail.update({
+        num_enrolled: curEnrolled + newlyEnrolledCount,
+        num_registered: curRegistered + newlyEnrolledCount,
+        updated_at: new Date(),
+      });
+    }
+
+    return res.status(200).json({
+      message: `Proceso completado: ${newlyEnrolledCount} matriculados exitosamente, ${alreadyEnrolledCount} ya estaban inscritos.`,
+      newlyEnrolledCount,
+      alreadyEnrolledCount,
+      errorsCount: errors.length,
+      errors,
+    });
+  } catch (error) {
+    console.error("Error en carga masiva de participantes:", error);
+    return res.status(500).json({
+      message: "Error al procesar la carga masiva.",
+      error: error.message,
+    });
+  }
+};
+
 export const removeCourseParticipant = async (req, res) => {
   try {
     const { id, participantId } = req.params;

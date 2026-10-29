@@ -30,6 +30,9 @@ export const getCourseParticipantsReportRequest = (id) =>
 export const enrollCourseParticipantRequest = (id, data) =>
   axios.post(`/course/${id}/enroll-participant`, data);
 
+export const enrollCourseParticipantsBulkRequest = (id, participants) =>
+  axios.post(`/course/${id}/enroll-bulk`, { participants });
+
 export const removeCourseParticipantRequest = (id, participantId) =>
   axios.delete(`/course/${id}/participant/${participantId}`);
 

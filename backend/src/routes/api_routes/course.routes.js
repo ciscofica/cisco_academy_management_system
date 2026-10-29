@@ -15,6 +15,7 @@ import {
   getCoursesReport,
   getCourseParticipantsReport,
   enrollCourseParticipant,
+  enrollCourseParticipantsBulk,
   removeCourseParticipant,
   updateParticipantAcademicRecord,
   validateCourseClosure,
@@ -36,6 +37,7 @@ router.get("/courses/report", getCoursesReport);
 router.get("/course/:id/expedient", getCourseExpedient);
 router.get("/course/:id/participants-report", getCourseParticipantsReport);
 router.post("/course/:id/enroll-participant", enrollCourseParticipant);
+router.post("/course/:id/enroll-bulk", enrollCourseParticipantsBulk);
 router.delete("/course/:id/participant/:participantId", removeCourseParticipant);
 router.put("/course/:id/participant/:participantId/academic-record", updateParticipantAcademicRecord);
 router.get("/course/:id/validate-closure", validateCourseClosure);
