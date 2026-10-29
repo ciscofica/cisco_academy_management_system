@@ -35,3 +35,12 @@ export const removeCourseParticipantRequest = (id, participantId) =>
 
 export const updateParticipantAcademicRecordRequest = (id, participantId, data) =>
   axios.put(`/course/${id}/participant/${participantId}/academic-record`, data);
+
+export const validateCourseClosureRequest = (id) =>
+  axios.get(`/course/${id}/validate-closure`);
+
+export const closeCourseEditionRequest = (id, data) =>
+  axios.post(`/course/${id}/close-edition`, data);
+
+export const reopenCourseEditionRequest = (id) =>
+  axios.post(`/course/${id}/reopen-edition`);

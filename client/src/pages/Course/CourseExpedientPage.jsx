@@ -5,12 +5,14 @@ import {
   getCourseExpedientRequest,
   updateCourseEditionRequest,
   removeCourseParticipantRequest,
+  reopenCourseEditionRequest,
 } from "../../api/course";
 import { getInstructorsDropdownRequest } from "../../api/instructor";
 import { getModalitiesDropdownRequest } from "../../api/modality";
 import OfficialDocumentModal from "../../components/course/OfficialDocumentModal";
 import EnrollParticipantModal from "../../components/course/EnrollParticipantModal";
 import EditAcademicRecordModal from "../../components/course/EditAcademicRecordModal";
+import CourseClosureValidationModal from "../../components/course/CourseClosureValidationModal";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faArrowLeft,
@@ -44,6 +46,8 @@ import {
   faEye,
   faMoneyBillWave,
   faFilter,
+  faLock,
+  faShieldAlt,
 } from "@fortawesome/free-solid-svg-icons";
 
 function CourseExpedientPage() {
@@ -60,10 +64,11 @@ function CourseExpedientPage() {
   const [instructorsList, setInstructorsList] = useState([]);
   const [modalitiesList, setModalitiesList] = useState([]);
 
-  // Modales operativos Fase 3 y 4
+  // Modales operativos Fase 3, 4 y 5
   const [selectedDocForPreview, setSelectedDocForPreview] = useState(null);
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
   const [selectedParticipantForEdit, setSelectedParticipantForEdit] = useState(null);
+  const [isClosureModalOpen, setIsClosureModalOpen] = useState(false);
 
   // Filtros y búsquedas en pestañas
   const [chapterSearchTerm, setChapterSearchTerm] = useState("");
@@ -220,6 +225,39 @@ function CourseExpedientPage() {
     }
   };
 
+  const handleReopenEdition = async () => {
+    const result = await Swal.fire({
+      title: "¿Reabrir expediente?",
+      text: "El curso volverá al estado 'En ejecución' para permitir rectificaciones académicas.",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#049fd9",
+      cancelButtonColor: "#94a3b8",
+      confirmButtonText: "Sí, Reabrir",
+      cancelButtonText: "Cancelar",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await reopenCourseEditionRequest(id);
+        await loadExpedient();
+        Swal.fire({
+          icon: "success",
+          title: "Expediente Reabierto",
+          text: "El curso se encuentra nuevamente en ejecución.",
+          confirmButtonColor: "#6cc24a",
+        });
+      } catch (err) {
+        console.error(err);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "No se pudo reabrir el expediente.",
+        });
+      }
+    }
+  };
+
   const statusConfig = {
     Planificado: { color: "bg-blue-50 text-[#049fd9] border-blue-200", dot: "bg-[#049fd9]" },
     "En inscripción": { color: "bg-amber-50 text-amber-700 border-amber-200", dot: "bg-amber-500" },
@@ -300,14 +338,73 @@ function CourseExpedientPage() {
             Volver a la lista de cursos
           </button>
 
-          <button
-            onClick={handleOpenEditModal}
-            className="px-4 py-2 bg-white border border-gray-300 text-slate-700 rounded-xl hover:bg-gray-50 hover:border-[#049fd9] hover:text-[#005073] text-sm font-semibold transition-all shadow-sm flex items-center gap-2"
-          >
-            <FontAwesomeIcon icon={faEdit} className="text-[#049fd9]" />
-            Editar configuración de la edición
-          </button>
+          <div className="flex items-center gap-3">
+            {course.status !== "Finalizado" ? (
+              <button
+                onClick={() => setIsClosureModalOpen(true)}
+                className="px-4 py-2 bg-[#005073] hover:bg-[#003d57] text-white rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2"
+              >
+                <FontAwesomeIcon icon={faLock} />
+                Finalizar y Cerrar Curso
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="px-3.5 py-1.5 bg-gray-100 text-slate-700 border border-gray-300 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                  <FontAwesomeIcon icon={faLock} className="text-slate-500" />
+                  Expediente Sellado (Solo Lectura)
+                </span>
+                <button
+                  onClick={handleReopenEdition}
+                  title="Reabrir temporalmente para rectificaciones académicas"
+                  className="text-xs text-slate-400 hover:text-[#049fd9] underline font-medium"
+                >
+                  Reabrir
+                </button>
+              </div>
+            )}
+
+            <button
+              onClick={handleOpenEditModal}
+              disabled={course.status === "Finalizado"}
+              className={`px-4 py-2 border rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 ${
+                course.status === "Finalizado"
+                  ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                  : "bg-white border-gray-300 text-slate-700 hover:bg-gray-50 hover:border-[#049fd9] hover:text-[#005073]"
+              }`}
+            >
+              <FontAwesomeIcon
+                icon={faEdit}
+                className={course.status === "Finalizado" ? "text-gray-400" : "text-[#049fd9]"}
+              />
+              Editar configuración
+            </button>
+          </div>
         </div>
+
+        {/* Read-Only Banner when Finalized */}
+        {course.status === "Finalizado" && (
+          <div className="bg-slate-900 text-white p-4 rounded-2xl shadow-sm mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-slate-700">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-[#6cc24a] flex-shrink-0">
+                <FontAwesomeIcon icon={faShieldAlt} className="text-lg" />
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-[#6cc24a]">
+                  Expediente Clausurado y Auditado (Modo Solo Lectura)
+                </p>
+                <p className="text-xs text-slate-300">
+                  Esta edición completó formalmente sus horas académicas y el 100% de calificaciones NetAcad. El expediente está sellado para fines de acreditación universitaria y emisión de actas oficiales.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setActiveTab("documents")}
+              className="px-4 py-2 bg-[#6cc24a] hover:bg-[#5aad3a] text-white rounded-xl text-xs font-bold transition-all shadow-sm flex-shrink-0"
+            >
+              Ver Actas Oficiales
+            </button>
+          </div>
+        )}
 
         {/* Header Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
@@ -1203,6 +1300,18 @@ function CourseExpedientPage() {
           courseId={id}
           participant={selectedParticipantForEdit}
           onSaved={loadExpedient}
+        />
+
+        {/* Modal de Validación Previa y Cierre Auditable */}
+        <CourseClosureValidationModal
+          isOpen={isClosureModalOpen}
+          onClose={() => setIsClosureModalOpen(false)}
+          courseId={id}
+          courseName={course?.course_name}
+          onClosed={loadExpedient}
+          onOpenGradeModal={(student) => {
+            setSelectedParticipantForEdit(student);
+          }}
         />
       </div>
     </div>

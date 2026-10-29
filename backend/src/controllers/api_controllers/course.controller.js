@@ -1038,6 +1038,207 @@ export const updateParticipantAcademicRecord = async (req, res) => {
   }
 };
 
+export const validateCourseClosure = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const course = await Course.findByPk(id, {
+      include: [
+        {
+          model: Detail,
+          include: [{ model: Instructor }, { model: Modality, through: { attributes: [] } }],
+        },
+        {
+          model: Participant,
+          include: [{ model: ParticipantType }],
+        },
+      ],
+    });
+
+    if (!course) {
+      return res.status(404).json({ message: "Curso no encontrado." });
+    }
+
+    const participants = course.Participants || [];
+    const detail = course.Detail || {};
+    const instructor = detail.Instructor || null;
+    const modalities = detail.Modalities || [];
+
+    // 1. Fechas
+    const hasDates = Boolean(course.start_date && course.end_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const endDate = course.end_date ? new Date(course.end_date) : null;
+    const datesPassed = hasDates && endDate && today >= endDate;
+
+    // 2. Evaluaciones
+    const pendingStudents = [];
+    let evaluatedCount = 0;
+
+    for (const p of participants) {
+      const cp = p.CourseParticipant || {};
+      const hasGrade = cp.grade_final !== null && cp.grade_final !== undefined;
+      const isResolved = cp.status_code === "P" || cp.status_code === "F";
+      if (hasGrade || isResolved) {
+        evaluatedCount++;
+      } else {
+        pendingStudents.push({
+          participant_id: p.participant_id,
+          name: p.name,
+          cid: p.cid,
+          status_code: cp.status_code || "I",
+        });
+      }
+    }
+
+    const evaluationsPassed = participants.length > 0 ? pendingStudents.length === 0 : true;
+
+    // 3. Instructor y modalidad
+    const instructorPassed = Boolean(instructor && instructor.instructor_id);
+    const modalityPassed = Boolean(modalities && modalities.length > 0);
+
+    // 4. Horas
+    const totalHours = Number(detail.total_hours) || 0;
+    const hoursPassed = totalHours > 0;
+
+    const canClose = evaluationsPassed && instructorPassed && modalityPassed;
+
+    return res.status(200).json({
+      course_id: course.course_id,
+      course_name: course.course_name,
+      current_status: course.status,
+      can_close: canClose,
+      checks: {
+        dates: {
+          passed: Boolean(datesPassed),
+          start_date: course.start_date,
+          end_date: course.end_date,
+          message: datesPassed
+            ? "El periodo de fechas planificado ha culminado."
+            : "La fecha de fin programada aún no se cumple o está en curso.",
+        },
+        evaluations: {
+          passed: Boolean(evaluationsPassed),
+          total: participants.length,
+          evaluated: evaluatedCount,
+          pending: pendingStudents.length,
+          pending_students: pendingStudents,
+          message: evaluationsPassed
+            ? "100% de estudiantes con evaluación final registrada (P/F)."
+            : `Existen ${pendingStudents.length} estudiante(s) sin calificación definitiva o en estado Incompleto.`,
+        },
+        instructor: {
+          passed: Boolean(instructorPassed),
+          instructor_name: instructor ? instructor.name : null,
+          message: instructorPassed
+            ? `Docente titular asignado: ${instructor.name}`
+            : "No hay docente titular asignado a la edición.",
+        },
+        modality: {
+          passed: Boolean(modalityPassed),
+          modalities: modalities.map((m) => m.name),
+          message: modalityPassed
+            ? `Modalidad activa: ${modalities.map((m) => m.name).join(", ")}`
+            : "No se ha definido la modalidad del curso.",
+        },
+        hours: {
+          passed: Boolean(hoursPassed),
+          total_hours: totalHours,
+          message: hoursPassed
+            ? `${totalHours} horas académicas oficiales registradas.`
+            : "No se han definido las horas del curso.",
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Error al validar cierre de edición:", error);
+    return res.status(500).json({
+      message: "Error al validar cierre de edición.",
+      error: error.message,
+    });
+  }
+};
+
+export const closeCourseEdition = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { force = false } = req.body;
+
+    const course = await Course.findByPk(id, {
+      include: [
+        {
+          model: Detail,
+          include: [{ model: Instructor }, { model: Modality, through: { attributes: [] } }],
+        },
+        {
+          model: Participant,
+        },
+      ],
+    });
+
+    if (!course) {
+      return res.status(404).json({ message: "Curso no encontrado." });
+    }
+
+    if (course.status === "Finalizado") {
+      return res.status(400).json({ message: "La edición ya se encuentra finalizada y sellada." });
+    }
+
+    const participants = course.Participants || [];
+    const pending = participants.filter((p) => {
+      const cp = p.CourseParticipant || {};
+      return cp.grade_final === null && cp.status_code !== "P" && cp.status_code !== "F";
+    });
+
+    if (pending.length > 0 && !force) {
+      return res.status(400).json({
+        message: `No se puede cerrar la edición: existen ${pending.length} estudiante(s) sin calificación definitiva (P/F).`,
+        pending_count: pending.length,
+      });
+    }
+
+    course.status = "Finalizado";
+    course.updated_at = new Date();
+    await course.save();
+
+    return res.status(200).json({
+      message: "Edición del curso formalmente finalizada y auditada. El expediente ha pasado a modo solo lectura.",
+      course,
+      closed_at: new Date(),
+    });
+  } catch (error) {
+    console.error("Error al cerrar edición del curso:", error);
+    return res.status(500).json({
+      message: "Error al cerrar edición del curso.",
+      error: error.message,
+    });
+  }
+};
+
+export const reopenCourseEdition = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const course = await Course.findByPk(id);
+    if (!course) {
+      return res.status(404).json({ message: "Curso no encontrado." });
+    }
+
+    course.status = "En ejecución";
+    course.updated_at = new Date();
+    await course.save();
+
+    return res.status(200).json({
+      message: "Edición reabierta para modificaciones académicas.",
+      course,
+    });
+  } catch (error) {
+    console.error("Error al reabrir edición:", error);
+    return res.status(500).json({
+      message: "Error al reabrir edición.",
+      error: error.message,
+    });
+  }
+};
+
 export const getCertificates = async (req, res) => {
   try {
     const { id } = req.params;
