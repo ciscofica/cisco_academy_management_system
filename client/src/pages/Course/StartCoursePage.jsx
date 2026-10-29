@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Swal from "sweetalert2";
 import {
   getCourseTemplatesRequest,
@@ -24,6 +24,7 @@ import {
 
 function StartCoursePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [templates, setTemplates] = useState([]);
   const [instructors, setInstructors] = useState([]);
   const [modalities, setModalities] = useState([]);
@@ -31,7 +32,7 @@ function StartCoursePage() {
   const [loading, setLoading] = useState(true);
 
   const [form, setForm] = useState({
-    template_course_id: "",
+    template_course_id: searchParams.get("templateId") || "",
     class_code: "",
     period: "",
     instructor_id: "",
@@ -69,6 +70,28 @@ function StartCoursePage() {
       setTemplates(tplList);
       setInstructors(insList);
       setModalities(modList);
+
+      const urlTplId = searchParams.get("templateId");
+      if (urlTplId) {
+        const found = tplList.find((t) => String(t.course_id) === String(urlTplId));
+        if (found) {
+          setSelectedTemplate(found);
+          const shortName = found.course_name.includes("CCNA1")
+            ? "UTN_CCNA1"
+            : found.course_name.includes("CCNA2")
+            ? "UTN_CCNA2"
+            : found.course_name.includes("Python")
+            ? "UTN_PYTHON"
+            : found.course_name.includes("Linux")
+            ? "UTN_LINUX"
+            : `UTN_${found.course_name.substring(0, 8).toUpperCase().replace(/\s+/g, "_")}`;
+          setForm((prev) => ({
+            ...prev,
+            template_course_id: String(found.course_id),
+            class_code: shortName,
+          }));
+        }
+      }
     } catch (error) {
       console.error(error);
       Swal.fire({
@@ -282,7 +305,7 @@ function StartCoursePage() {
               className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 text-slate-800 focus:outline-none focus:border-[#6cc24a] focus:ring-2 focus:ring-[#6cc24a]/20 transition-all text-sm font-medium"
             >
               <option value="">— Seleccione un curso del catálogo —</option>
-              {templates.map((course) => (
+              {(Array.isArray(templates) ? templates : []).map((course) => (
                 <option key={course.course_id} value={course.course_id}>
                   {course.course_name}
                 </option>
@@ -391,7 +414,7 @@ function StartCoursePage() {
                   required
                 >
                   <option value="">— Seleccione el docente responsable * —</option>
-                  {instructors.map((ins) => (
+                  {(Array.isArray(instructors) ? instructors : []).map((ins) => (
                     <option key={ins.instructor_id} value={ins.instructor_id}>
                       {ins.name}
                     </option>
@@ -415,7 +438,7 @@ function StartCoursePage() {
                   required
                 >
                   <option value="">— Seleccione la modalidad de dictado * —</option>
-                  {modalities.map((mod) => (
+                  {(Array.isArray(modalities) ? modalities : []).map((mod) => (
                     <option key={mod.modality_id} value={mod.modality_id}>
                       {mod.name}
                     </option>

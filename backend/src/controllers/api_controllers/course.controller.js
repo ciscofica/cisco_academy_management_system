@@ -664,10 +664,27 @@ export const updateCourseEdition = async (req, res) => {
         {
           model: Detail,
           include: [
-            { model: Instructor },
+            { model: DetailValues },
+            {
+              model: Instructor,
+              include: [
+                { model: Certificate, through: { attributes: [] } },
+              ],
+            },
             { model: Modality, through: { attributes: [] } },
             { model: Schedule, through: { attributes: [] } },
             { model: Cost, through: { attributes: [] } },
+          ],
+        },
+        {
+          model: Participant,
+          include: [
+            { model: ParticipantType },
+            {
+              model: Payment,
+              through: { attributes: [] },
+              include: [{ model: PaymentType }],
+            },
           ],
         },
         {

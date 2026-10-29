@@ -143,7 +143,7 @@ function CourseExpedientPage() {
         modality_id: editForm.modality_id ? Number(editForm.modality_id) : null,
       };
       const res = await updateCourseEditionRequest(id, payload);
-      setCourse(res.data.course);
+      await loadExpedient();
       setIsEditModalOpen(false);
       Swal.fire({
         icon: "success",
@@ -727,7 +727,7 @@ function CourseExpedientPage() {
                       className="w-full px-3 py-2 rounded-xl border border-gray-300 bg-gray-50 text-slate-800 text-sm focus:outline-none focus:border-[#6cc24a]"
                     >
                       <option value="">— Sin docente asignado —</option>
-                      {instructorsList.map((ins) => (
+                      {(Array.isArray(instructorsList) ? instructorsList : []).map((ins) => (
                         <option key={ins.instructor_id} value={ins.instructor_id}>
                           {ins.name}
                         </option>
@@ -746,7 +746,7 @@ function CourseExpedientPage() {
                       className="w-full px-3 py-2 rounded-xl border border-gray-300 bg-gray-50 text-slate-800 text-sm focus:outline-none focus:border-[#6cc24a]"
                     >
                       <option value="">— Seleccionar modalidad —</option>
-                      {modalitiesList.map((mod) => (
+                      {(Array.isArray(modalitiesList) ? modalitiesList : []).map((mod) => (
                         <option key={mod.modality_id} value={mod.modality_id}>
                           {mod.name}
                         </option>
