@@ -14,6 +14,8 @@ import {
   getCourseExpedient,
   getCoursesReport,
   getCourseParticipantsReport,
+  enrollCourseParticipant,
+  removeCourseParticipant,
 } from "../../controllers/api_controllers/course.controller.js";
 
 const router = Router();
@@ -25,6 +27,8 @@ router.put("/course/:id/edition", updateCourseEdition);
 router.get("/courses/report", getCoursesReport);
 router.get("/course/:id/expedient", getCourseExpedient);
 router.get("/course/:id/participants-report", getCourseParticipantsReport);
+router.post("/course/:id/enroll-participant", enrollCourseParticipant);
+router.delete("/course/:id/participant/:participantId", removeCourseParticipant);
 router.get("/course/:id", getCourseById);
 router.get("/courses-dropdown", getCoursesDropdown);
 router.get("/courses-certificate/:id", getCertificates);

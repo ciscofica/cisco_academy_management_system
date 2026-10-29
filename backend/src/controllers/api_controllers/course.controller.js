@@ -27,6 +27,7 @@ import Certificate from "../../models/Certificate.js";
 import Modality from "../../models/Modality.js";
 import Schedule from "../../models/Schedule.js";
 import CourseChapter from "../../models/CourseChapter.js";
+import CourseParticipant from "../../models/CourseParticipant.js";
 import DetailModality from "../../models/DetailModality.js";
 import DetailSchedule from "../../models/DetailSchedule.js";
 import DetailCost from "../../models/DetailCost.js";
@@ -832,6 +833,134 @@ export const getCourseParticipantsReport = async (req, res) => {
   } catch (error) {
     console.error("Error al obtener reporte de participantes:", error);
     return res.status(500).json({ message: "Error al obtener reporte de participantes.", error: error.message });
+  }
+};
+
+export const enrollCourseParticipant = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      participant_id,
+      name,
+      cid,
+      phone,
+      address,
+      institution,
+      participant_type_id,
+      total_payment,
+      enrolled = true,
+      registered = true,
+    } = req.body;
+
+    const course = await Course.findByPk(id, {
+      include: [{ model: Detail }],
+    });
+    if (!course) {
+      return res.status(404).json({ message: "Curso no encontrado." });
+    }
+
+    let participant = null;
+
+    if (participant_id) {
+      participant = await Participant.findByPk(participant_id);
+      if (!participant) {
+        return res.status(404).json({ message: "Participante no encontrado." });
+      }
+    } else if (cid) {
+      participant = await Participant.findOne({ where: { cid } });
+      if (!participant) {
+        participant = await Participant.create({
+          name: name || "Nuevo Participante",
+          cid,
+          phone: phone || "",
+          address: address || "",
+          institution: institution || "",
+          participant_type_id: participant_type_id || 1,
+          enrolled: Boolean(enrolled),
+          registered: Boolean(registered),
+          approval: false,
+          total_payment: total_payment || 0.0,
+          active: true,
+          created_at: new Date(),
+          updated_at: new Date(),
+        });
+      }
+    } else {
+      return res.status(400).json({ message: "Debe proveer una cédula o ID de participante." });
+    }
+
+    const existing = await CourseParticipant.findOne({
+      where: {
+        course_id: id,
+        participant_id: participant.participant_id,
+      },
+    });
+
+    if (existing) {
+      return res.status(400).json({
+        message: "El estudiante ya se encuentra matriculado en esta edición del curso.",
+      });
+    }
+
+    await CourseParticipant.create({
+      course_id: id,
+      participant_id: participant.participant_id,
+      created_at: new Date(),
+      updated_at: new Date(),
+    });
+
+    if (course.Detail) {
+      const curEnrolled = course.Detail.num_enrolled || 0;
+      const curRegistered = course.Detail.num_registered || 0;
+      await course.Detail.update({
+        num_enrolled: curEnrolled + 1,
+        num_registered: curRegistered + 1,
+        updated_at: new Date(),
+      });
+    }
+
+    return res.status(200).json({
+      message: "Estudiante matriculado exitosamente en esta edición.",
+      participant,
+    });
+  } catch (error) {
+    console.error("Error al matricular participante:", error);
+    return res.status(500).json({
+      message: "Error al matricular estudiante.",
+      error: error.message,
+    });
+  }
+};
+
+export const removeCourseParticipant = async (req, res) => {
+  try {
+    const { id, participantId } = req.params;
+    const deleted = await CourseParticipant.destroy({
+      where: {
+        course_id: id,
+        participant_id: participantId,
+      },
+    });
+
+    if (!deleted) {
+      return res.status(404).json({ message: "Relación no encontrada." });
+    }
+
+    const course = await Course.findByPk(id, { include: [{ model: Detail }] });
+    if (course?.Detail) {
+      const curEnrolled = course.Detail.num_enrolled || 0;
+      const curRegistered = course.Detail.num_registered || 0;
+      await course.Detail.update({
+        num_enrolled: Math.max(0, curEnrolled - 1),
+        num_registered: Math.max(0, curRegistered - 1),
+        updated_at: new Date(),
+      });
+    }
+
+    return res.status(200).json({ message: "Participante retirado de esta edición." });
+  } catch (error) {
+    console.error("Error al retirar participante:", error);
+    return res.status(500).json({ message: "Error al retirar participante.", error: error.message });
   }
 };
 

@@ -1,9 +1,15 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import { getCourseExpedientRequest, updateCourseEditionRequest } from "../../api/course";
+import {
+  getCourseExpedientRequest,
+  updateCourseEditionRequest,
+  removeCourseParticipantRequest,
+} from "../../api/course";
 import { getInstructorsDropdownRequest } from "../../api/instructor";
 import { getModalitiesDropdownRequest } from "../../api/modality";
+import OfficialDocumentModal from "../../components/course/OfficialDocumentModal";
+import EnrollParticipantModal from "../../components/course/EnrollParticipantModal";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faArrowLeft,
@@ -21,6 +27,7 @@ import {
   faFileSignature,
   faChartBar,
   faCheckCircle,
+  faTimesCircle,
   faHourglassHalf,
   faSpinner,
   faGraduationCap,
@@ -30,6 +37,12 @@ import {
   faEdit,
   faTimes,
   faSave,
+  faSearch,
+  faUserPlus,
+  faTrashAlt,
+  faEye,
+  faMoneyBillWave,
+  faFilter,
 } from "@fortawesome/free-solid-svg-icons";
 
 function CourseExpedientPage() {
@@ -45,6 +58,15 @@ function CourseExpedientPage() {
   const [saving, setSaving] = useState(false);
   const [instructorsList, setInstructorsList] = useState([]);
   const [modalitiesList, setModalitiesList] = useState([]);
+
+  // Modales operativos Fase 3
+  const [selectedDocForPreview, setSelectedDocForPreview] = useState(null);
+  const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
+
+  // Filtros y búsquedas en pestañas
+  const [chapterSearchTerm, setChapterSearchTerm] = useState("");
+  const [participantSearchTerm, setParticipantSearchTerm] = useState("");
+  const [participantFilter, setParticipantFilter] = useState("all"); // 'all' | 'enrolled' | 'pending_payment' | 'approved'
   const [editForm, setEditForm] = useState({
     course_name: "",
     instructor_id: "",
@@ -160,6 +182,39 @@ function CourseExpedientPage() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleRemoveParticipant = async (participantId, participantName) => {
+    const result = await Swal.fire({
+      title: "¿Retirar estudiante?",
+      text: `¿Está seguro de retirar a "${participantName}" de esta convocatoria?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Sí, retirar",
+      cancelButtonText: "Cancelar",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await removeCourseParticipantRequest(id, participantId);
+        await loadExpedient();
+        Swal.fire({
+          icon: "success",
+          title: "Estudiante retirado",
+          text: "El estudiante ya no forma parte de esta edición.",
+          confirmButtonColor: "#6cc24a",
+        });
+      } catch (err) {
+        console.error(err);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: err.response?.data?.message || "No se pudo retirar al estudiante.",
+        });
+      }
     }
   };
 
@@ -472,7 +527,7 @@ function CourseExpedientPage() {
         {/* Tab 1: Chapters / Syllabus */}
         {activeTab === "chapters" && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100">
               <div>
                 <h2 className="text-base font-bold text-slate-900">
                   Temario Oficial y Capítulos Asignados
@@ -483,36 +538,61 @@ function CourseExpedientPage() {
                     : "No se encontraron capítulos asociados a esta edición."}
                 </p>
               </div>
-              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#edf7e6] text-[#3a8c25] border border-green-200">
-                {chapters.length} Capítulos
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#edf7e6] text-[#3a8c25] border border-green-200">
+                  {chapters.length} Capítulos Oficiales
+                </span>
+              </div>
             </div>
+
+            {/* Chapter Search Bar */}
+            {chapters.length > 0 && (
+              <div className="relative mb-4">
+                <FontAwesomeIcon
+                  icon={faSearch}
+                  className="absolute left-3.5 top-3 text-slate-400 text-xs"
+                />
+                <input
+                  type="text"
+                  placeholder="Buscar módulo por nombre o número en el temario..."
+                  value={chapterSearchTerm}
+                  onChange={(e) => setChapterSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-xs focus:outline-none focus:border-[#6cc24a] bg-slate-50 focus:bg-white transition-colors"
+                />
+              </div>
+            )}
 
             {chapters.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[500px] overflow-y-auto pr-2">
-                {chapters.map((ch, idx) => (
-                  <div
-                    key={ch.chapter_id || idx}
-                    className="flex items-center justify-between p-3.5 bg-slate-50 border border-gray-200 rounded-xl hover:bg-white hover:border-[#049fd9] hover:shadow-sm transition-all"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 text-slate-700 font-bold text-xs flex items-center justify-center flex-shrink-0">
-                        {idx + 1}
+                {chapters
+                  .filter((ch) =>
+                    (ch.chapter_name || "")
+                      .toLowerCase()
+                      .includes(chapterSearchTerm.toLowerCase())
+                  )
+                  .map((ch, idx) => (
+                    <div
+                      key={ch.chapter_id || idx}
+                      className="flex items-center justify-between p-3.5 bg-slate-50 border border-gray-200 rounded-xl hover:bg-white hover:border-[#049fd9] hover:shadow-sm transition-all"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 text-slate-700 font-bold text-xs flex items-center justify-center flex-shrink-0">
+                          {idx + 1}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800 line-clamp-1">
+                            {ch.chapter_name}
+                          </p>
+                          <p className="text-[11px] text-slate-500">
+                            {ch.hours ? `${ch.hours} horas` : "Carga estándar NetAcad"}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-semibold text-slate-800 line-clamp-1">
-                          {ch.chapter_name}
-                        </p>
-                        <p className="text-[11px] text-slate-500">
-                          {ch.hours ? `${ch.hours} horas` : "Carga estándar"}
-                        </p>
-                      </div>
+                      <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-blue-50 text-[#049fd9] border border-blue-100 flex-shrink-0">
+                        Módulo {idx + 1}
+                      </span>
                     </div>
-                    <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-blue-50 text-[#049fd9] border border-blue-100">
-                      Módulo {idx + 1}
-                    </span>
-                  </div>
-                ))}
+                  ))}
               </div>
             ) : (
               <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-gray-300">
@@ -530,7 +610,9 @@ function CourseExpedientPage() {
               {documents.map((doc, index) => (
                 <div
                   key={index}
+                  onClick={() => setSelectedDocForPreview(doc)}
                   className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 hover:shadow-md hover:border-[#6cc24a] transition-all group cursor-pointer flex flex-col justify-between"
+                  title="Haga clic para ver o imprimir el documento oficial"
                 >
                   <div>
                     <div className="flex items-start justify-between mb-3">
@@ -559,10 +641,11 @@ function CourseExpedientPage() {
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center text-xs">
-                    <span className="text-[#049fd9] font-medium group-hover:underline">
+                    <span className="text-[#049fd9] font-semibold group-hover:underline flex items-center gap-1.5">
+                      <FontAwesomeIcon icon={faEye} />
                       Ver documento
                     </span>
-                    <span className="text-slate-400">PDF / Form</span>
+                    <span className="text-slate-400 font-mono text-[11px]">UTN / NetAcad</span>
                   </div>
                 </div>
               ))}
@@ -573,84 +656,222 @@ function CourseExpedientPage() {
         {/* Tab 3: Participants */}
         {activeTab === "participants" && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
-            <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-100">
               <div>
                 <h2 className="text-base font-bold text-slate-900">
-                  Participantes y Estado de Matrícula
+                  Participantes y Control de Matrícula
                 </h2>
                 <p className="text-xs text-slate-500">
                   Estudiantes registrados en la convocatoria de esta edición
                 </p>
               </div>
 
-              <button
-                onClick={() => navigate(`/course/${id}/participants-report`)}
-                className="px-4 py-2 text-xs font-semibold text-white bg-[#005073] hover:bg-[#003d57] rounded-xl transition-all shadow-sm flex items-center gap-2"
-              >
-                <FontAwesomeIcon icon={faUsers} />
-                Abrir Reporte Detallado de Participantes
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setIsEnrollModalOpen(true)}
+                  className="px-4 py-2 text-xs font-semibold text-white bg-[#6cc24a] hover:bg-[#5aad3a] rounded-xl transition-all shadow-sm flex items-center gap-2"
+                >
+                  <FontAwesomeIcon icon={faUserPlus} />
+                  + Inscribir Estudiante
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            {/* KPI Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
               <div className="bg-slate-50 rounded-xl p-4 border border-gray-200">
                 <p className="text-xs text-slate-500 font-medium">Registrados</p>
                 <p className="text-xl font-bold text-slate-800 mt-1">
-                  {participants.length || detail.num_registered || 0}
+                  {participants.length}
                 </p>
               </div>
               <div className="bg-[#edf7e6] rounded-xl p-4 border border-green-200">
                 <p className="text-xs text-[#3a8c25] font-medium">Matriculados Oficiales</p>
                 <p className="text-xl font-bold text-[#3a8c25] mt-1">
-                  {detail.num_enrolled || 0}
+                  {participants.filter((p) => p.enrolled).length}
                 </p>
               </div>
-              <div className="bg-red-50 rounded-xl p-4 border border-red-200">
-                <p className="text-xs text-red-600 font-medium">Reprobados / Incompletos</p>
-                <p className="text-xl font-bold text-red-600 mt-1">
-                  {detail.num_failed || 0}
+              <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                <p className="text-xs text-[#005073] font-medium">Aprobados NetAcad</p>
+                <p className="text-xl font-bold text-[#005073] mt-1">
+                  {participants.filter((p) => p.approval).length}
+                </p>
+              </div>
+              <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200">
+                <p className="text-xs text-emerald-700 font-medium">Recaudación Cobros</p>
+                <p className="text-xl font-bold text-emerald-700 mt-1">
+                  $
+                  {participants
+                    .reduce((acc, p) => acc + (parseFloat(p.total_payment) || 0), 0)
+                    .toFixed(2)}{" "}
+                  <span className="text-xs font-normal">USD</span>
                 </p>
               </div>
             </div>
 
+            {/* Filters and Search Bar */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-4">
+              <div className="relative flex-1 w-full sm:max-w-xs">
+                <FontAwesomeIcon
+                  icon={faSearch}
+                  className="absolute left-3.5 top-3 text-slate-400 text-xs"
+                />
+                <input
+                  type="text"
+                  placeholder="Buscar estudiante por nombre o cédula..."
+                  value={participantSearchTerm}
+                  onChange={(e) => setParticipantSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-xs focus:outline-none focus:border-[#6cc24a] bg-slate-50"
+                />
+              </div>
+
+              <div className="flex items-center gap-1 text-xs self-start sm:self-auto overflow-x-auto">
+                <span className="text-slate-400 mr-1 flex items-center gap-1">
+                  <FontAwesomeIcon icon={faFilter} className="text-[10px]" />
+                  Filtrar:
+                </span>
+                <button
+                  onClick={() => setParticipantFilter("all")}
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+                    participantFilter === "all"
+                      ? "bg-slate-800 text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  Todos ({participants.length})
+                </button>
+                <button
+                  onClick={() => setParticipantFilter("enrolled")}
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+                    participantFilter === "enrolled"
+                      ? "bg-[#6cc24a] text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  Matriculados ({participants.filter((p) => p.enrolled).length})
+                </button>
+                <button
+                  onClick={() => setParticipantFilter("approved")}
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+                    participantFilter === "approved"
+                      ? "bg-[#049fd9] text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  Aprobados ({participants.filter((p) => p.approval).length})
+                </button>
+              </div>
+            </div>
+
+            {/* Participants Table */}
             {participants.length > 0 ? (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto border border-gray-200 rounded-xl">
                 <table className="w-full text-sm text-left text-slate-600">
                   <thead className="text-xs text-slate-500 uppercase bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-4 py-2.5">Participante</th>
-                      <th className="px-4 py-2.5">Identificación</th>
-                      <th className="px-4 py-2.5">Correo</th>
-                      <th className="px-4 py-2.5">Tipo</th>
+                      <th className="px-4 py-3">Estudiante</th>
+                      <th className="px-4 py-3">Cédula / DNI</th>
+                      <th className="px-4 py-3">Tipo</th>
+                      <th className="px-4 py-3 text-center">Matrícula</th>
+                      <th className="px-4 py-3 text-center">Pago Registrado</th>
+                      <th className="px-4 py-3 text-center">Rendimiento</th>
+                      <th className="px-4 py-3 text-right">Acción</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {participants.map((p) => (
-                      <tr key={p.participant_id} className="border-b border-gray-100 hover:bg-slate-50">
-                        <td className="px-4 py-3 font-medium text-slate-800">
-                          {p.name} {p.last_name}
-                        </td>
-                        <td className="px-4 py-3 text-slate-600">
-                          {p.dni || p.identification_number || "—"}
-                        </td>
-                        <td className="px-4 py-3 text-slate-600">{p.email || "—"}</td>
-                        <td className="px-4 py-3 text-slate-600">
-                          {p.ParticipantType?.name || "Particular"}
-                        </td>
-                      </tr>
-                    ))}
+                    {participants
+                      .filter((p) => {
+                        const term = participantSearchTerm.toLowerCase();
+                        const matchSearch =
+                          (p.name || "").toLowerCase().includes(term) ||
+                          String(p.cid || "").includes(term);
+                        if (!matchSearch) return false;
+                        if (participantFilter === "enrolled") return p.enrolled;
+                        if (participantFilter === "approved") return p.approval;
+                        return true;
+                      })
+                      .map((p) => (
+                        <tr
+                          key={p.participant_id}
+                          className="border-b border-gray-100 hover:bg-slate-50 transition-colors"
+                        >
+                          <td className="px-4 py-3 font-semibold text-slate-800">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-7 h-7 rounded-full bg-[#005073]/10 text-[#005073] font-bold text-xs flex items-center justify-center flex-shrink-0">
+                                {p.name ? p.name.charAt(0) : "E"}
+                              </div>
+                              <span className="line-clamp-1">{p.name}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-slate-600 font-mono text-xs">
+                            {p.cid || p.dni || "—"}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                              {p.ParticipantType?.name || "Particular"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                                p.enrolled
+                                  ? "bg-[#edf7e6] text-[#3a8c25] border-green-200"
+                                  : "bg-gray-100 text-slate-500 border-gray-200"
+                              }`}
+                            >
+                              <FontAwesomeIcon
+                                icon={p.enrolled ? faCheckCircle : faTimesCircle}
+                                className="text-[10px]"
+                              />
+                              {p.enrolled ? "Matriculado" : "Pendiente"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center font-semibold text-slate-700">
+                            ${Number(p.total_payment || 0).toFixed(2)} USD
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                                p.approval
+                                  ? "bg-emerald-100 text-emerald-800"
+                                  : "bg-blue-50 text-[#049fd9]"
+                              }`}
+                            >
+                              {p.approval ? "Aprobado" : "En curso"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <button
+                              onClick={() =>
+                                handleRemoveParticipant(p.participant_id, p.name)
+                              }
+                              title="Retirar de esta edición"
+                              className="text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                            >
+                              <FontAwesomeIcon icon={faTrashAlt} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>
             ) : (
-              <div className="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-gray-200">
-                <FontAwesomeIcon icon={faUsers} className="text-slate-300 text-2xl mb-2" />
-                <p className="text-sm text-slate-500">
-                  Aún no hay participantes matriculados en esta edición.
+              <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-gray-200">
+                <FontAwesomeIcon icon={faUsers} className="text-slate-300 text-3xl mb-2" />
+                <p className="text-sm font-semibold text-slate-600">
+                  Aún no hay estudiantes matriculados en esta convocatoria.
                 </p>
-                <p className="text-xs text-slate-400 mt-1">
-                  Los participantes se inscribirán mediante el formulario o carga de nómina.
+                <p className="text-xs text-slate-400 mt-1 mb-4">
+                  Puede matricular participantes de inmediato haciendo clic en el botón inferior.
                 </p>
+                <button
+                  onClick={() => setIsEnrollModalOpen(true)}
+                  className="px-4 py-2 bg-[#6cc24a] hover:bg-[#5aad3a] text-white rounded-xl text-xs font-semibold transition-all shadow-sm inline-flex items-center gap-2"
+                >
+                  <FontAwesomeIcon icon={faUserPlus} />
+                  + Inscribir Primer Estudiante
+                </button>
               </div>
             )}
           </div>
@@ -881,6 +1102,22 @@ function CourseExpedientPage() {
             </div>
           </div>
         )}
+
+        {/* Modal de Vista Previa Oficial de Documentos */}
+        <OfficialDocumentModal
+          isOpen={Boolean(selectedDocForPreview)}
+          onClose={() => setSelectedDocForPreview(null)}
+          documentType={selectedDocForPreview}
+          course={course}
+        />
+
+        {/* Modal para Matricular Estudiantes en esta Edición */}
+        <EnrollParticipantModal
+          isOpen={isEnrollModalOpen}
+          onClose={() => setIsEnrollModalOpen(false)}
+          courseId={id}
+          onEnrolled={loadExpedient}
+        />
       </div>
     </div>
   );

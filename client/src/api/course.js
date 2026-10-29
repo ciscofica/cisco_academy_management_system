@@ -26,3 +26,9 @@ export const getCoursesReportRequest = (status) =>
 
 export const getCourseParticipantsReportRequest = (id) =>
   axios.get(`/course/${id}/participants-report`);
+
+export const enrollCourseParticipantRequest = (id, data) =>
+  axios.post(`/course/${id}/enroll-participant`, data);
+
+export const removeCourseParticipantRequest = (id, participantId) =>
+  axios.delete(`/course/${id}/participant/${participantId}`);
