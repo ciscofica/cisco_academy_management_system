@@ -20,6 +20,10 @@ import {
   validateCourseClosure,
   closeCourseEdition,
   reopenCourseEdition,
+  addCourseChapter,
+  updateCourseChapter,
+  removeCourseChapter,
+  loadDefaultCourseChapters,
 } from "../../controllers/api_controllers/course.controller.js";
 
 const router = Router();
@@ -37,6 +41,10 @@ router.put("/course/:id/participant/:participantId/academic-record", updateParti
 router.get("/course/:id/validate-closure", validateCourseClosure);
 router.post("/course/:id/close-edition", closeCourseEdition);
 router.post("/course/:id/reopen-edition", reopenCourseEdition);
+router.post("/course/:id/chapter", addCourseChapter);
+router.put("/course/:id/chapter/:chapterId", updateCourseChapter);
+router.delete("/course/:id/chapter/:chapterId", removeCourseChapter);
+router.post("/course/:id/load-default-chapters", loadDefaultCourseChapters);
 router.get("/course/:id", getCourseById);
 router.get("/courses-dropdown", getCoursesDropdown);
 router.get("/courses-certificate/:id", getCertificates);

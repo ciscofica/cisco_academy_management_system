@@ -44,3 +44,15 @@ export const closeCourseEditionRequest = (id, data) =>
 
 export const reopenCourseEditionRequest = (id) =>
   axios.post(`/course/${id}/reopen-edition`);
+
+export const addCourseChapterRequest = (id, data) =>
+  axios.post(`/course/${id}/chapter`, data);
+
+export const updateCourseChapterRequest = (id, chapterId, data) =>
+  axios.put(`/course/${id}/chapter/${chapterId}`, data);
+
+export const removeCourseChapterRequest = (id, chapterId) =>
+  axios.delete(`/course/${id}/chapter/${chapterId}`);
+
+export const loadDefaultCourseChaptersRequest = (id) =>
+  axios.post(`/course/${id}/load-default-chapters`);

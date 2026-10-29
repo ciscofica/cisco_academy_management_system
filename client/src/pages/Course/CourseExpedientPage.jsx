@@ -6,6 +6,7 @@ import {
   updateCourseEditionRequest,
   removeCourseParticipantRequest,
   reopenCourseEditionRequest,
+  removeCourseChapterRequest,
 } from "../../api/course";
 import { getInstructorsDropdownRequest } from "../../api/instructor";
 import { getModalitiesDropdownRequest } from "../../api/modality";
@@ -13,6 +14,8 @@ import OfficialDocumentModal from "../../components/course/OfficialDocumentModal
 import EnrollParticipantModal from "../../components/course/EnrollParticipantModal";
 import EditAcademicRecordModal from "../../components/course/EditAcademicRecordModal";
 import CourseClosureValidationModal from "../../components/course/CourseClosureValidationModal";
+import EditParticipantProfileModal from "../../components/course/EditParticipantProfileModal";
+import EditChapterModal from "../../components/course/EditChapterModal";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faArrowLeft,
@@ -48,6 +51,11 @@ import {
   faFilter,
   faLock,
   faShieldAlt,
+  faFlask,
+  faPlus,
+  faUserEdit,
+  faCity,
+  faBuilding,
 } from "@fortawesome/free-solid-svg-icons";
 
 function CourseExpedientPage() {
@@ -64,11 +72,14 @@ function CourseExpedientPage() {
   const [instructorsList, setInstructorsList] = useState([]);
   const [modalitiesList, setModalitiesList] = useState([]);
 
-  // Modales operativos Fase 3, 4 y 5
+  // Modales operativos
   const [selectedDocForPreview, setSelectedDocForPreview] = useState(null);
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
   const [selectedParticipantForEdit, setSelectedParticipantForEdit] = useState(null);
+  const [selectedParticipantForProfileEdit, setSelectedParticipantForProfileEdit] = useState(null);
   const [isClosureModalOpen, setIsClosureModalOpen] = useState(false);
+  const [isChapterModalOpen, setIsChapterModalOpen] = useState(false);
+  const [selectedChapterForEdit, setSelectedChapterForEdit] = useState(null);
 
   // Filtros y búsquedas en pestañas
   const [chapterSearchTerm, setChapterSearchTerm] = useState("");
@@ -253,6 +264,49 @@ function CourseExpedientPage() {
           icon: "error",
           title: "Error",
           text: "No se pudo reabrir el expediente.",
+        });
+      }
+    }
+  };
+
+  const handleOpenAddChapter = () => {
+    setSelectedChapterForEdit(null);
+    setIsChapterModalOpen(true);
+  };
+
+  const handleOpenEditChapter = (ch) => {
+    setSelectedChapterForEdit(ch);
+    setIsChapterModalOpen(true);
+  };
+
+  const handleRemoveChapter = async (chapterId, chapterName) => {
+    const result = await Swal.fire({
+      title: "¿Retirar capítulo?",
+      text: `¿Está seguro de desvincular "${chapterName}" de esta edición?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Sí, retirar",
+      cancelButtonText: "Cancelar",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await removeCourseChapterRequest(id, chapterId);
+        Swal.fire({
+          icon: "success",
+          title: "Capítulo retirado",
+          text: `"${chapterName}" fue desvinculado del temario.`,
+          confirmButtonColor: "#6cc24a",
+        });
+        loadExpedient();
+      } catch (err) {
+        console.error("Error al retirar capítulo:", err);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: err.response?.data?.message || "No se pudo retirar el capítulo.",
         });
       }
     }
@@ -633,14 +687,26 @@ function CourseExpedientPage() {
                 </h2>
                 <p className="text-xs text-slate-500">
                   {chapters.length > 0
-                    ? `Esta edición heredó los ${chapters.length} módulos curriculares de su curso base en el catálogo.`
+                    ? `Esta edición cuenta con ${chapters.length} contenidos curriculares y sesiones de laboratorio asignadas.`
                     : "No se encontraron capítulos asociados a esta edición."}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#edf7e6] text-[#3a8c25] border border-green-200">
-                  {chapters.length} Capítulos Oficiales
+                  {chapters.length} Contenidos Oficiales
                 </span>
+                <span className="text-xs font-semibold px-3 py-1 rounded-full bg-blue-50 text-[#049fd9] border border-blue-200">
+                  {chapters.reduce((acc, c) => acc + (Number(c.hours) || 0), 0)}h Registradas
+                </span>
+                {course.status !== "Finalizado" && (
+                  <button
+                    onClick={handleOpenAddChapter}
+                    className="px-3 py-1.5 bg-[#6cc24a] hover:bg-[#5aad3a] text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+                  >
+                    <FontAwesomeIcon icon={faPlus} />
+                    Agregar Capítulo / Lab
+                  </button>
+                )}
               </div>
             </div>
 
@@ -669,34 +735,81 @@ function CourseExpedientPage() {
                       .toLowerCase()
                       .includes(chapterSearchTerm.toLowerCase())
                   )
-                  .map((ch, idx) => (
-                    <div
-                      key={ch.chapter_id || idx}
-                      className="flex items-center justify-between p-3.5 bg-slate-50 border border-gray-200 rounded-xl hover:bg-white hover:border-[#049fd9] hover:shadow-sm transition-all"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 text-slate-700 font-bold text-xs flex items-center justify-center flex-shrink-0">
-                          {idx + 1}
+                  .map((ch, idx) => {
+                    const isLab = (ch.chapter_name || "")
+                      .toLowerCase()
+                      .includes("laboratorio");
+                    return (
+                      <div
+                        key={ch.chapter_id || idx}
+                        className="flex items-center justify-between p-3.5 bg-slate-50 border border-gray-200 rounded-xl hover:bg-white hover:border-[#049fd9] hover:shadow-sm transition-all"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-9 h-9 rounded-xl border font-bold text-xs flex items-center justify-center flex-shrink-0 ${
+                              isLab
+                                ? "bg-[#edf7e6] text-[#3a8c25] border-green-200"
+                                : "bg-blue-50 text-[#005073] border-blue-200"
+                            }`}
+                          >
+                            <FontAwesomeIcon icon={isLab ? faFlask : faBookOpen} />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-slate-800 line-clamp-1">
+                              {ch.chapter_name}
+                            </p>
+                            <p className="text-[11px] text-slate-500 flex items-center gap-2">
+                              <span>{ch.hours ? `${ch.hours} horas` : "2 horas"}</span>
+                              <span>•</span>
+                              <span className={isLab ? "text-[#3a8c25] font-medium" : "text-[#005073] font-medium"}>
+                                {isLab ? "Práctica de Laboratorio" : "Módulo Teórico"}
+                              </span>
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-semibold text-slate-800 line-clamp-1">
-                            {ch.chapter_name}
-                          </p>
-                          <p className="text-[11px] text-slate-500">
-                            {ch.hours ? `${ch.hours} horas` : "Carga estándar NetAcad"}
-                          </p>
+
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {course.status !== "Finalizado" && (
+                            <>
+                              <button
+                                onClick={() => handleOpenEditChapter(ch)}
+                                title="Editar nombre u horas"
+                                className="text-slate-400 hover:text-[#049fd9] p-1.5 rounded-lg hover:bg-blue-50 transition-colors text-xs"
+                              >
+                                <FontAwesomeIcon icon={faEdit} />
+                              </button>
+                              <button
+                                onClick={() => handleRemoveChapter(ch.chapter_id, ch.chapter_name)}
+                                title="Retirar de esta edición"
+                                className="text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors text-xs"
+                              >
+                                <FontAwesomeIcon icon={faTrashAlt} />
+                              </button>
+                            </>
+                          )}
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-700">
+                            #{idx + 1}
+                          </span>
                         </div>
                       </div>
-                      <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-blue-50 text-[#049fd9] border border-blue-100 flex-shrink-0">
-                        Módulo {idx + 1}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
               </div>
             ) : (
               <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-gray-300">
                 <FontAwesomeIcon icon={faBookOpen} className="text-slate-300 text-3xl mb-2" />
-                <p className="text-sm text-slate-500">No hay capítulos registrados para este curso.</p>
+                <p className="text-sm text-slate-500">No hay capítulos registrados para esta edición.</p>
+                {course.status !== "Finalizado" && (
+                  <div className="mt-3 flex justify-center">
+                    <button
+                      onClick={handleOpenAddChapter}
+                      className="px-4 py-2 bg-[#6cc24a] hover:bg-[#5aad3a] text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2"
+                    >
+                      <FontAwesomeIcon icon={faPlus} />
+                      Agregar Primer Capítulo / Lab
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -904,10 +1017,11 @@ function CourseExpedientPage() {
                   <thead className="text-xs text-slate-500 uppercase bg-gray-50 border-b border-gray-200">
                     <tr>
                       <th className="px-4 py-3">Estudiante</th>
-                      <th className="px-4 py-3">Cédula / DNI</th>
-                      <th className="px-4 py-3">Tipo</th>
+                      <th className="px-4 py-3">Cédula</th>
+                      <th className="px-4 py-3">Carrera / Nivel</th>
+                      <th className="px-4 py-3">Tipo / Empresa</th>
                       <th className="px-4 py-3 text-center">Matrícula</th>
-                      <th className="px-4 py-3 text-center">Pago de esta Clase</th>
+                      <th className="px-4 py-3 text-center">Pago Convocatoria</th>
                       <th className="px-4 py-3 text-center">Rendimiento NetAcad</th>
                       <th className="px-4 py-3 text-right">Acciones</th>
                     </tr>
@@ -918,7 +1032,9 @@ function CourseExpedientPage() {
                         const term = participantSearchTerm.toLowerCase();
                         const matchSearch =
                           (p.name || "").toLowerCase().includes(term) ||
-                          String(p.cid || "").includes(term);
+                          String(p.cid || "").includes(term) ||
+                          (p.email || "").toLowerCase().includes(term) ||
+                          (p.degree || "").toLowerCase().includes(term);
                         if (!matchSearch) return false;
 
                         const isEnr =
@@ -955,19 +1071,41 @@ function CourseExpedientPage() {
                           >
                             <td className="px-4 py-3 font-semibold text-slate-800">
                               <div className="flex items-center gap-2.5">
-                                <div className="w-7 h-7 rounded-full bg-[#005073]/10 text-[#005073] font-bold text-xs flex items-center justify-center flex-shrink-0">
+                                <div className="w-8 h-8 rounded-full bg-[#005073]/10 text-[#005073] font-bold text-xs flex items-center justify-center flex-shrink-0">
                                   {p.name ? p.name.charAt(0) : "E"}
                                 </div>
-                                <span className="line-clamp-1">{p.name}</span>
+                                <div>
+                                  <p className="line-clamp-1 text-slate-900 font-semibold">{p.name}</p>
+                                  <p className="text-[11px] text-slate-400 font-normal">
+                                    {p.email || (p.phone && p.phone !== "sin registro" ? p.phone : "Sin correo registrado")}
+                                  </p>
+                                </div>
                               </div>
                             </td>
                             <td className="px-4 py-3 text-slate-600 font-mono text-xs">
                               {p.cid || p.dni || "—"}
                             </td>
-                            <td className="px-4 py-3">
-                              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                            <td className="px-4 py-3 text-xs">
+                              {p.degree ? (
+                                <div>
+                                  <span className="font-bold text-slate-700">{p.degree}</span>
+                                  {p.degree_level ? (
+                                    <span className="text-slate-400 ml-1">· Sem. {p.degree_level}</span>
+                                  ) : null}
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 italic">No especificada</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-xs">
+                              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 block w-fit mb-0.5">
                                 {p.ParticipantType?.name || "Particular"}
                               </span>
+                              {p.institution && p.institution !== "sin registro" && (
+                                <span className="text-[11px] text-slate-500 block truncate max-w-[140px]" title={p.institution}>
+                                  {p.institution}
+                                </span>
+                              )}
                             </td>
                             <td className="px-4 py-3 text-center">
                               <span
@@ -1015,14 +1153,23 @@ function CourseExpedientPage() {
                                 <FontAwesomeIcon icon={faEdit} />
                               </button>
                               <button
-                                onClick={() =>
-                                  handleRemoveParticipant(p.participant_id, p.name)
-                                }
-                                title="Retirar de esta edición"
-                                className="text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                                onClick={() => setSelectedParticipantForProfileEdit(p)}
+                                title="Editar ficha personal (carrera, correo, empresa)"
+                                className="text-slate-500 hover:text-[#3a8c25] p-1.5 rounded-lg hover:bg-green-50 transition-colors mr-1"
                               >
-                                <FontAwesomeIcon icon={faTrashAlt} />
+                                <FontAwesomeIcon icon={faUserEdit} />
                               </button>
+                              {course.status !== "Finalizado" && (
+                                <button
+                                  onClick={() =>
+                                    handleRemoveParticipant(p.participant_id, p.name)
+                                  }
+                                  title="Retirar de esta edición"
+                                  className="text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                                >
+                                  <FontAwesomeIcon icon={faTrashAlt} />
+                                </button>
+                              )}
                             </td>
                           </tr>
                         );
@@ -1312,6 +1459,23 @@ function CourseExpedientPage() {
           onOpenGradeModal={(student) => {
             setSelectedParticipantForEdit(student);
           }}
+        />
+
+        {/* Modal de Edición de Ficha Personal de Estudiante */}
+        <EditParticipantProfileModal
+          isOpen={Boolean(selectedParticipantForProfileEdit)}
+          onClose={() => setSelectedParticipantForProfileEdit(null)}
+          participant={selectedParticipantForProfileEdit}
+          onSaved={loadExpedient}
+        />
+
+        {/* Modal de Creación / Edición de Capítulo */}
+        <EditChapterModal
+          isOpen={isChapterModalOpen}
+          onClose={() => setIsChapterModalOpen(false)}
+          courseId={id}
+          chapter={selectedChapterForEdit}
+          onSaved={loadExpedient}
         />
       </div>
     </div>

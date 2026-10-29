@@ -10,6 +10,8 @@ import {
   faDollarSign,
   faGraduationCap,
   faSearch,
+  faCity,
+  faBuilding,
 } from "@fortawesome/free-solid-svg-icons";
 import { enrollCourseParticipantRequest } from "../../api/course";
 import { getAllParticipantsRequest } from "../../api/participant";
@@ -23,14 +25,17 @@ export default function EnrollParticipantModal({ isOpen, onClose, courseId, onEn
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // New participant form
+  // New participant form aligned to official Excel structure
   const [newForm, setNewForm] = useState({
     name: "",
     cid: "",
+    email: "",
     phone: "",
-    address: "",
+    address: "Ibarra",
     institution: "Universidad Técnica del Norte",
     participant_type_id: 1,
+    degree: "CITEL",
+    degree_level: 7,
     total_payment: 0.0,
     enrolled: true,
     registered: true,
@@ -63,7 +68,8 @@ export default function EnrollParticipantModal({ isOpen, onClose, courseId, onEn
     const term = searchTerm.toLowerCase();
     return (
       (p.name || "").toLowerCase().includes(term) ||
-      String(p.cid || "").includes(term)
+      String(p.cid || "").includes(term) ||
+      (p.email || "").toLowerCase().includes(term)
     );
   });
 
@@ -140,9 +146,9 @@ export default function EnrollParticipantModal({ isOpen, onClose, courseId, onEn
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 max-w-xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
+        <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-slate-50">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#edf7e6] text-[#3a8c25] border border-green-200 flex items-center justify-center">
               <FontAwesomeIcon icon={faUserPlus} />
@@ -152,7 +158,7 @@ export default function EnrollParticipantModal({ isOpen, onClose, courseId, onEn
                 Matricular en esta Edición
               </h2>
               <p className="text-xs text-slate-500">
-                Asignar un estudiante existente o registrar uno nuevo
+                Ficha oficial de estudiante y asignación a la convocatoria
               </p>
             </div>
           </div>
@@ -186,7 +192,7 @@ export default function EnrollParticipantModal({ isOpen, onClose, courseId, onEn
                 : "border-transparent text-slate-500 hover:text-slate-800"
             }`}
           >
-            + Registrar Nuevo Participante
+            + Registrar Nuevo Estudiante (Ficha Oficial)
           </button>
         </div>
 
@@ -195,7 +201,7 @@ export default function EnrollParticipantModal({ isOpen, onClose, courseId, onEn
           <form onSubmit={handleEnrollExisting} className="p-6 space-y-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Buscar estudiante por nombre o cédula
+                Buscar estudiante por nombre, cédula o correo
               </label>
               <div className="relative">
                 <FontAwesomeIcon
@@ -225,7 +231,7 @@ export default function EnrollParticipantModal({ isOpen, onClose, courseId, onEn
                 <option value="">— Seleccionar alumno de la lista —</option>
                 {filteredParticipants.map((p) => (
                   <option key={p.participant_id} value={p.participant_id}>
-                    {p.name} {p.cid ? `(CI: ${p.cid})` : ""}
+                    {p.name} {p.cid ? `(CI: ${p.cid})` : ""} {p.degree ? `[${p.degree}]` : ""}
                   </option>
                 ))}
               </select>
@@ -271,16 +277,16 @@ export default function EnrollParticipantModal({ isOpen, onClose, courseId, onEn
           </form>
         )}
 
-        {/* Form: New Mode */}
+        {/* Form: New Mode (Alineado al Excel Oficial) */}
         {mode === "new" && (
           <form onSubmit={handleCreateAndEnroll} className="p-6 space-y-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Nombres y Apellidos completos *
+                Apellidos y Nombres Completos *
               </label>
               <input
                 type="text"
-                placeholder="Ej: Pérez Juan Carlos"
+                placeholder="Ej: ATUPAÑA CEPEDA DYLAN ALEXANDER"
                 value={newForm.name}
                 onChange={(e) => setNewForm({ ...newForm, name: e.target.value })}
                 className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-[#6cc24a]"
@@ -291,11 +297,12 @@ export default function EnrollParticipantModal({ isOpen, onClose, courseId, onEn
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <FontAwesomeIcon icon={faIdCard} className="mr-1 text-slate-400" />
                   Cédula / DNI *
                 </label>
                 <input
                   type="text"
-                  placeholder="Ej: 1004123456"
+                  placeholder="Ej: 1004235634"
                   value={newForm.cid}
                   onChange={(e) => setNewForm({ ...newForm, cid: e.target.value })}
                   className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-[#6cc24a]"
@@ -305,13 +312,14 @@ export default function EnrollParticipantModal({ isOpen, onClose, courseId, onEn
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Teléfono de Contacto
+                  <FontAwesomeIcon icon={faEnvelope} className="mr-1 text-slate-400" />
+                  Correo Electrónico (E-mail)
                 </label>
                 <input
-                  type="text"
-                  placeholder="Ej: 0991234567"
-                  value={newForm.phone}
-                  onChange={(e) => setNewForm({ ...newForm, phone: e.target.value })}
+                  type="email"
+                  placeholder="Ej: dylanatupana05@gmail.com"
+                  value={newForm.email}
+                  onChange={(e) => setNewForm({ ...newForm, email: e.target.value })}
                   className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-[#6cc24a]"
                 />
               </div>
@@ -320,37 +328,112 @@ export default function EnrollParticipantModal({ isOpen, onClose, courseId, onEn
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Tipo de Participante
+                  <FontAwesomeIcon icon={faPhone} className="mr-1 text-slate-400" />
+                  Teléfono Celular
                 </label>
-                <select
-                  value={newForm.participant_type_id}
-                  onChange={(e) =>
-                    setNewForm({ ...newForm, participant_type_id: Number(e.target.value) })
-                  }
-                  className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-[#6cc24a] bg-gray-50"
-                >
-                  <option value={1}>Estudiante UTN</option>
-                  <option value={2}>Egresado UTN</option>
-                  <option value={3}>Docente / Administrativo UTN</option>
-                  <option value={4}>Público General / Particular</option>
-                </select>
+                <input
+                  type="text"
+                  placeholder="Ej: 0989928352"
+                  value={newForm.phone}
+                  onChange={(e) => setNewForm({ ...newForm, phone: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-[#6cc24a]"
+                />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Pago Registrado (USD)
+                  <FontAwesomeIcon icon={faCity} className="mr-1 text-slate-400" />
+                  Ciudad de Residencia
                 </label>
                 <input
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={newForm.total_payment}
-                  onChange={(e) =>
-                    setNewForm({ ...newForm, total_payment: parseFloat(e.target.value) || 0 })
-                  }
+                  type="text"
+                  placeholder="Ej: Ibarra, Tulcán, Cayambe"
+                  value={newForm.address}
+                  onChange={(e) => setNewForm({ ...newForm, address: e.target.value })}
                   className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-[#6cc24a]"
                 />
               </div>
+            </div>
+
+            <div className="border-t border-gray-100 pt-3">
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Tipo de Participante
+              </label>
+              <select
+                value={newForm.participant_type_id}
+                onChange={(e) =>
+                  setNewForm({ ...newForm, participant_type_id: Number(e.target.value) })
+                }
+                className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-[#6cc24a] bg-gray-50"
+              >
+                <option value={1}>Estudiante UTN</option>
+                <option value={2}>Graduado / Egresado UTN</option>
+                <option value={4}>Particular / Externo</option>
+                <option value={5}>Docente UTN</option>
+              </select>
+            </div>
+
+            {/* Datos Académicos y Laborales */}
+            <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-gray-200">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <FontAwesomeIcon icon={faGraduationCap} className="mr-1 text-[#049fd9]" />
+                  Carrera
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej: CITEL, CIELE, Software"
+                  value={newForm.degree}
+                  onChange={(e) => setNewForm({ ...newForm, degree: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-[#6cc24a] bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Nivel / Semestre
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="10"
+                  placeholder="Ej: 7 u 8"
+                  value={newForm.degree_level}
+                  onChange={(e) => setNewForm({ ...newForm, degree_level: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-[#6cc24a] bg-white"
+                />
+              </div>
+
+              <div className="col-span-2">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <FontAwesomeIcon icon={faBuilding} className="mr-1 text-slate-400" />
+                  Empresa / Institución Laboral
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej: Telconet Latam, Bridge Telecom (o UTN)"
+                  value={newForm.institution}
+                  onChange={(e) => setNewForm({ ...newForm, institution: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-[#6cc24a] bg-white"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <FontAwesomeIcon icon={faDollarSign} className="mr-1 text-[#3a8c25]" />
+                Pago Inicial Registrado (USD)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                value={newForm.total_payment}
+                onChange={(e) =>
+                  setNewForm({ ...newForm, total_payment: parseFloat(e.target.value) || 0 })
+                }
+                className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-[#6cc24a]"
+              />
             </div>
 
             <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">
@@ -364,10 +447,10 @@ export default function EnrollParticipantModal({ isOpen, onClose, courseId, onEn
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-5 py-2 bg-[#6cc24a] hover:bg-[#5aad3a] disabled:bg-gray-300 text-white rounded-xl text-xs font-semibold transition-all shadow-sm flex items-center gap-2"
+                className="px-5 py-2.5 bg-[#6cc24a] hover:bg-[#5aad3a] disabled:bg-gray-300 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2"
               >
                 <FontAwesomeIcon icon={faUserPlus} />
-                {submitting ? "Registrando..." : "Guardar y Matricular"}
+                {submitting ? "Registrando..." : "Guardar Ficha y Matricular"}
               </button>
             </div>
           </form>
@@ -376,4 +459,3 @@ export default function EnrollParticipantModal({ isOpen, onClose, courseId, onEn
     </div>
   );
 }
-

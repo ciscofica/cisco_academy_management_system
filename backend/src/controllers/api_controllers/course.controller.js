@@ -843,10 +843,13 @@ export const enrollCourseParticipant = async (req, res) => {
       participant_id,
       name,
       cid,
+      email,
       phone,
       address,
       institution,
       participant_type_id,
+      degree,
+      degree_level,
       total_payment,
       enrolled = true,
       registered = true,
@@ -866,16 +869,28 @@ export const enrollCourseParticipant = async (req, res) => {
       if (!participant) {
         return res.status(404).json({ message: "Participante no encontrado." });
       }
+      // Actualizar datos de contacto/carrera si fueron suministrados y no estaban establecidos
+      let needsSave = false;
+      if (email && !participant.email) { participant.email = email; needsSave = true; }
+      if (degree && !participant.degree) { participant.degree = degree; needsSave = true; }
+      if (degree_level && !participant.degree_level) { participant.degree_level = parseInt(degree_level); needsSave = true; }
+      if (phone && (!participant.phone || participant.phone === "sin registro")) { participant.phone = phone; needsSave = true; }
+      if (address && (!participant.address || participant.address === "sin registro")) { participant.address = address; needsSave = true; }
+      if (institution && (!participant.institution || participant.institution === "sin registro")) { participant.institution = institution; needsSave = true; }
+      if (needsSave) await participant.save();
     } else if (cid) {
       participant = await Participant.findOne({ where: { cid } });
       if (!participant) {
         participant = await Participant.create({
           name: name || "Nuevo Participante",
           cid,
+          email: email || null,
           phone: phone || "",
           address: address || "",
           institution: institution || "",
           participant_type_id: participant_type_id || 1,
+          degree: degree || null,
+          degree_level: degree_level ? parseInt(degree_level) : null,
           enrolled: Boolean(enrolled),
           registered: Boolean(registered),
           approval: false,
@@ -1443,5 +1458,145 @@ export const getCertificates = async (req, res) => {
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: notifications.principal.p1 });
+  }
+};
+
+export const addCourseChapter = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { chapter_name, hours = 2 } = req.body;
+
+    if (!chapter_name) {
+      return res.status(400).json({ message: "El nombre del capítulo es obligatorio." });
+    }
+
+    const course = await Course.findByPk(id);
+    if (!course) {
+      return res.status(404).json({ message: "Curso no encontrado." });
+    }
+
+    const chapter = await Chapter.create({
+      chapter_name,
+      hours: Number(hours) || 2,
+      created_at: new Date(),
+      updated_at: new Date(),
+    });
+
+    await CourseChapter.create({
+      course_id: id,
+      chapter_id: chapter.chapter_id,
+      created_at: new Date(),
+      updated_at: new Date(),
+    });
+
+    return res.status(201).json({
+      message: "Capítulo agregado exitosamente al temario de esta edición.",
+      chapter,
+    });
+  } catch (error) {
+    console.error("Error al agregar capítulo:", error);
+    return res.status(500).json({ message: "Error al agregar capítulo.", error: error.message });
+  }
+};
+
+export const updateCourseChapter = async (req, res) => {
+  try {
+    const { id, chapterId } = req.params;
+    const { chapter_name, hours } = req.body;
+
+    const chapter = await Chapter.findByPk(chapterId);
+    if (!chapter) {
+      return res.status(404).json({ message: "Capítulo no encontrado." });
+    }
+
+    if (chapter_name) chapter.chapter_name = chapter_name;
+    if (hours !== undefined) chapter.hours = Number(hours);
+    chapter.updated_at = new Date();
+    await chapter.save();
+
+    return res.status(200).json({
+      message: "Capítulo actualizado exitosamente.",
+      chapter,
+    });
+  } catch (error) {
+    console.error("Error al actualizar capítulo:", error);
+    return res.status(500).json({ message: "Error al actualizar capítulo.", error: error.message });
+  }
+};
+
+export const removeCourseChapter = async (req, res) => {
+  try {
+    const { id, chapterId } = req.params;
+
+    const relation = await CourseChapter.findOne({
+      where: {
+        course_id: id,
+        chapter_id: chapterId,
+      },
+    });
+
+    if (!relation) {
+      return res.status(404).json({ message: "El capítulo no pertenece a este curso." });
+    }
+
+    await relation.destroy();
+
+    return res.status(200).json({
+      message: "Capítulo desvinculado exitosamente de esta edición.",
+    });
+  } catch (error) {
+    console.error("Error al retirar capítulo:", error);
+    return res.status(500).json({ message: "Error al retirar capítulo.", error: error.message });
+  }
+};
+
+export const loadDefaultCourseChapters = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const targetCourse = await Course.findByPk(id, {
+      include: [
+        { model: Chapter },
+        { model: Course, as: "TemplateCourse", include: [{ model: Chapter }] },
+      ],
+    });
+
+    if (!targetCourse) {
+      return res.status(404).json({ message: "Curso no encontrado." });
+    }
+
+    if (targetCourse.Chapters && targetCourse.Chapters.length > 0) {
+      return res.status(400).json({
+        message: "Esta edición ya cuenta con capítulos asignados.",
+      });
+    }
+
+    // Buscar la plantilla base de este curso en particular
+    const templateCourse = targetCourse.TemplateCourse;
+    const chaptersToCopy = templateCourse?.Chapters || [];
+
+    if (chaptersToCopy.length === 0) {
+      const templateName = templateCourse ? templateCourse.course_name : "origen";
+      return res.status(400).json({
+        message: `El curso catálogo base "${templateName}" aún no tiene capítulos precargados en el sistema. Puede añadir los temas directamente con el botón "+ Agregar Capítulo / Lab".`,
+      });
+    }
+
+    for (const ch of chaptersToCopy) {
+      await CourseChapter.create({
+        course_id: id,
+        chapter_id: ch.chapter_id,
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+    }
+
+    return res.status(200).json({
+      message: `Se cargaron ${chaptersToCopy.length} capítulos oficiales de la plantilla "${templateCourse.course_name}".`,
+      count: chaptersToCopy.length,
+    });
+  } catch (error) {
+    console.error("Error al cargar capítulos base:", error);
+    return res.status(500).json({ message: "Error al cargar capítulos base.", error: error.message });
   }
 };
