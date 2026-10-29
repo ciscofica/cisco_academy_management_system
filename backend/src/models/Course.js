@@ -65,6 +65,15 @@ const Course = sequelize.define(
       },
       field: "detail_id",
     },
+    template_course_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: "course",
+        key: "course_id",
+      },
+      field: "template_course_id",
+    },
   },
   {
     tableName: "course",

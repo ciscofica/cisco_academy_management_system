@@ -48,6 +48,16 @@ export function associateModels() {
     through: CourseChapter,
     foreignKey: "chapter_id",
   });
+
+  // Relación curso edición -> plantilla base del catálogo
+  Course.belongsTo(Course, {
+    as: "TemplateCourse",
+    foreignKey: "template_course_id",
+  });
+  Course.hasMany(Course, {
+    as: "Editions",
+    foreignKey: "template_course_id",
+  });
   // ******************
 
   // * bloque 2

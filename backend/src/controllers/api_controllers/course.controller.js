@@ -26,6 +26,10 @@ import Instructor from "../../models/Instructor.js";
 import Certificate from "../../models/Certificate.js";
 import Modality from "../../models/Modality.js";
 import Schedule from "../../models/Schedule.js";
+import CourseChapter from "../../models/CourseChapter.js";
+import DetailModality from "../../models/DetailModality.js";
+import DetailSchedule from "../../models/DetailSchedule.js";
+import DetailCost from "../../models/DetailCost.js";
 
 export const getAllCourses = async (req, res) => {
   try {
@@ -47,6 +51,11 @@ export const getAllCourses = async (req, res) => {
         ],
       },
       include: [
+        {
+          model: Course,
+          as: "TemplateCourse",
+          attributes: ["course_id", "course_name"],
+        },
         {
           model: Chapter,
           through: { attributes: [] },
@@ -313,6 +322,10 @@ export const getCourseTemplates = async (req, res) => {
             { model: DetailValues },
           ],
         },
+        {
+          model: Chapter,
+          through: { attributes: [] },
+        },
       ],
       order: [["course_name", "ASC"]],
     });
@@ -322,6 +335,46 @@ export const getCourseTemplates = async (req, res) => {
     console.error("Error al obtener plantillas de cursos:", error);
     return res.status(500).json({
       message: "Error al obtener plantillas de cursos.",
+      error: error.message,
+    });
+  }
+};
+
+export const getCourseTemplateById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const template = await Course.findOne({
+      where: {
+        course_id: id,
+        status: "Plantilla",
+      },
+      include: [
+        {
+          model: Detail,
+          include: [
+            { model: Instructor },
+            { model: Modality, through: { attributes: [] } },
+            { model: Schedule, through: { attributes: [] } },
+            { model: Cost, through: { attributes: [] } },
+            { model: DetailValues },
+          ],
+        },
+        {
+          model: Chapter,
+          through: { attributes: [] },
+        },
+      ],
+    });
+
+    if (!template) {
+      return res.status(404).json({ message: "Plantilla de curso no encontrada." });
+    }
+
+    return res.status(200).json(template);
+  } catch (error) {
+    console.error("Error al obtener plantilla:", error);
+    return res.status(500).json({
+      message: "Error al obtener la plantilla del curso.",
       error: error.message,
     });
   }
@@ -339,57 +392,299 @@ export const startCourseFromTemplate = async (req, res) => {
       start_enrollment_date,
       end_enrollment_date,
       status,
+      instructor_id,
+      class_code,
+      modality_ids,
+      schedule_ids,
+      cost_ids,
     } = req.body;
 
     if (!template_course_id) {
       return res.status(400).json({
-        message: "Debe seleccionar un curso base.",
+        message: "Debe seleccionar un curso base del catálogo.",
       });
     }
 
     if (!period) {
       return res.status(400).json({
-        message: "Debe ingresar el periodo del curso.",
+        message: "Debe ingresar el periodo del curso (ej: ENE-MARZO2026).",
       });
     }
 
-    const templateCourse = await Course.findByPk(template_course_id);
+    const templateCourse = await Course.findOne({
+      where: {
+        course_id: template_course_id,
+        status: "Plantilla",
+      },
+      include: [
+        {
+          model: Detail,
+          include: [
+            { model: Modality },
+            { model: Schedule },
+            { model: Cost },
+            { model: DetailValues },
+          ],
+        },
+        {
+          model: Chapter,
+        },
+      ],
+    });
 
     if (!templateCourse) {
       return res.status(404).json({
-        message: "No se encontró el curso base seleccionado.",
+        message: "No se encontró el curso base seleccionado o no es una plantilla válida.",
       });
     }
 
-    if (templateCourse.status !== "Plantilla") {
-      return res.status(400).json({
-        message: "El curso seleccionado no es una plantilla.",
-      });
+    // 1. Clona/Crea una instancia de Detail específica para esta edición (SIEMPRE garantizado)
+    const tplDet = templateCourse.Detail;
+    const newDetail = await Detail.create({
+      instructor_id: instructor_id ? Number(instructor_id) : null,
+      course_description: tplDet?.course_description || `Curso oficial CISCO: ${templateCourse.course_name}`,
+      total_hours: tplDet?.total_hours || 70,
+      instructor_hours: tplDet?.instructor_hours || 50,
+      activities_hours: tplDet?.activities_hours || 20,
+      cost_per_hour: tplDet?.cost_per_hour || 13.0,
+      participant_requeriment: tplDet?.participant_requeriment || "",
+      num_registered: 0,
+      num_enrolled: 0,
+      num_failed: 0,
+      created_at: new Date(),
+      updated_at: new Date(),
+    });
+
+    // Asignar modalidades elegidas por el usuario
+    const finalModalityIds =
+      modality_ids && modality_ids.length > 0
+        ? modality_ids
+        : (tplDet?.Modalities || []).map((m) => m.modality_id);
+    if (finalModalityIds.length > 0) {
+      await DetailModality.bulkCreate(
+        finalModalityIds.map((mid) => ({
+          detail_id: newDetail.detail_id,
+          modality_id: Number(mid),
+          created_at: new Date(),
+          updated_at: new Date(),
+        }))
+      );
     }
 
+    // Horarios seleccionados por el usuario
+    if (schedule_ids && schedule_ids.length > 0) {
+      await DetailSchedule.bulkCreate(
+        schedule_ids.map((sid) => ({
+          detail_id: newDetail.detail_id,
+          schedule_id: Number(sid),
+          created_at: new Date(),
+          updated_at: new Date(),
+        }))
+      );
+    }
+
+    // Costos
+    const finalCostIds =
+      cost_ids && cost_ids.length > 0
+        ? cost_ids
+        : (tplDet?.Costs || []).map((c) => c.cost_id);
+    if (finalCostIds.length > 0) {
+      await DetailCost.bulkCreate(
+        finalCostIds.map((cid) => ({
+          detail_id: newDetail.detail_id,
+          cost_id: cid,
+          created_at: new Date(),
+          updated_at: new Date(),
+        }))
+      );
+    }
+
+    // 2. Determinar nombre o código oficial de la clase según estándar UTN
+    const courseName = class_code?.trim() || `${templateCourse.course_name} - ${period}`;
+
+    const cleanDate = (d) => {
+      if (!d || d === "" || d === "Invalid date" || d === "null" || d === "undefined") return null;
+      const parsed = new Date(d);
+      return isNaN(parsed.getTime()) ? null : parsed;
+    };
+
+    // 3. Crear el registro del Curso / Edición
     const newCourse = await Course.create({
-      course_name: `${templateCourse.course_name} - ${period}`,
-      start_date,
-      end_date,
+      course_name: courseName,
+      start_date: cleanDate(start_date),
+      end_date: cleanDate(end_date),
       status: status || "Planificado",
       created_at: new Date(),
       updated_at: new Date(),
-      created_by: templateCourse.created_by || null,
-      start_registration_date,
-      end_registration_date,
-      start_enrollment_date,
-      end_enrollment_date,
-      detail_id: templateCourse.detail_id,
+      created_by: req.user?.id || templateCourse.created_by || null,
+      start_registration_date: cleanDate(start_registration_date),
+      end_registration_date: cleanDate(end_registration_date),
+      start_enrollment_date: cleanDate(start_enrollment_date),
+      end_enrollment_date: cleanDate(end_enrollment_date),
+      detail_id: newDetail ? newDetail.detail_id : null,
+      template_course_id: templateCourse.course_id,
+    });
+
+    // 4. Copiar/Asociar todos los capítulos de la plantilla a la nueva edición
+    if (templateCourse.Chapters && templateCourse.Chapters.length > 0) {
+      await CourseChapter.bulkCreate(
+        templateCourse.Chapters.map((ch) => ({
+          course_id: newCourse.course_id,
+          chapter_id: ch.chapter_id,
+          created_at: new Date(),
+          updated_at: new Date(),
+        }))
+      );
+    }
+
+    // 5. Cargar la edición completa para responder
+    const createdEdition = await Course.findByPk(newCourse.course_id, {
+      include: [
+        {
+          model: Course,
+          as: "TemplateCourse",
+          attributes: ["course_id", "course_name"],
+        },
+        {
+          model: Detail,
+          include: [
+            { model: Instructor },
+            { model: Modality, through: { attributes: [] } },
+            { model: Schedule, through: { attributes: [] } },
+            { model: Cost, through: { attributes: [] } },
+          ],
+        },
+        {
+          model: Chapter,
+          through: { attributes: [] },
+        },
+      ],
     });
 
     return res.status(201).json({
-      message: "Curso iniciado correctamente desde plantilla.",
-      course: newCourse,
+      message: "Edición iniciada correctamente desde la plantilla de catálogo.",
+      course: createdEdition,
     });
   } catch (error) {
     console.error("Error al iniciar curso desde plantilla:", error);
     return res.status(500).json({
       message: "Error al iniciar curso desde plantilla.",
+      error: error.message,
+    });
+  }
+};
+
+export const updateCourseEdition = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      course_name,
+      instructor_id,
+      modality_id,
+      start_date,
+      end_date,
+      start_registration_date,
+      end_registration_date,
+      status,
+      total_hours,
+      instructor_hours,
+      activities_hours,
+      cost_per_hour,
+    } = req.body;
+
+    const course = await Course.findByPk(id);
+    if (!course) {
+      return res.status(404).json({ message: "Curso no encontrado." });
+    }
+
+    const cleanDate = (d) => {
+      if (!d || d === "" || d === "Invalid date" || d === "null" || d === "undefined") return null;
+      const parsed = new Date(d);
+      return isNaN(parsed.getTime()) ? null : parsed;
+    };
+
+    if (course_name) course.course_name = course_name;
+    if (start_date !== undefined) course.start_date = cleanDate(start_date);
+    if (end_date !== undefined) course.end_date = cleanDate(end_date);
+    if (start_registration_date !== undefined) course.start_registration_date = cleanDate(start_registration_date);
+    if (end_registration_date !== undefined) course.end_registration_date = cleanDate(end_registration_date);
+    if (status) course.status = status;
+    course.updated_at = new Date();
+    await course.save();
+
+    let detail = null;
+    if (course.detail_id) {
+      detail = await Detail.findByPk(course.detail_id);
+    }
+
+    if (!detail) {
+      detail = await Detail.create({
+        instructor_id: instructor_id ? Number(instructor_id) : null,
+        total_hours: total_hours || 70,
+        instructor_hours: instructor_hours || 50,
+        activities_hours: activities_hours || 20,
+        cost_per_hour: cost_per_hour || 13.0,
+        num_registered: 0,
+        num_enrolled: 0,
+        num_failed: 0,
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+      course.detail_id = detail.detail_id;
+      await course.save();
+    } else {
+      if (instructor_id !== undefined) {
+        detail.instructor_id = instructor_id ? Number(instructor_id) : null;
+      }
+      if (total_hours !== undefined) detail.total_hours = total_hours;
+      if (instructor_hours !== undefined) detail.instructor_hours = instructor_hours;
+      if (activities_hours !== undefined) detail.activities_hours = activities_hours;
+      if (cost_per_hour !== undefined) detail.cost_per_hour = cost_per_hour;
+      detail.updated_at = new Date();
+      await detail.save();
+    }
+
+    if (modality_id) {
+      await DetailModality.destroy({ where: { detail_id: detail.detail_id } });
+      await DetailModality.create({
+        detail_id: detail.detail_id,
+        modality_id: Number(modality_id),
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+    }
+
+    const updated = await Course.findByPk(id, {
+      include: [
+        {
+          model: Course,
+          as: "TemplateCourse",
+          attributes: ["course_id", "course_name"],
+        },
+        {
+          model: Detail,
+          include: [
+            { model: Instructor },
+            { model: Modality, through: { attributes: [] } },
+            { model: Schedule, through: { attributes: [] } },
+            { model: Cost, through: { attributes: [] } },
+          ],
+        },
+        {
+          model: Chapter,
+          through: { attributes: [] },
+        },
+      ],
+    });
+
+    return res.status(200).json({
+      message: "Edición del curso actualizada exitosamente.",
+      course: updated,
+    });
+  } catch (error) {
+    console.error("Error al actualizar edición del curso:", error);
+    return res.status(500).json({
+      message: "Error al actualizar edición del curso.",
       error: error.message,
     });
   }
@@ -401,6 +696,11 @@ export const getCourseExpedient = async (req, res) => {
     const course = await Course.findOne({
       where: { course_id: id, status: { [Op.ne]: 'Plantilla' } },
       include: [
+        {
+          model: Course,
+          as: "TemplateCourse",
+          attributes: ["course_id", "course_name"],
+        },
         {
           model: Detail,
           include: [
@@ -457,6 +757,11 @@ export const getCoursesReport = async (req, res) => {
     const courses = await Course.findAll({
       where: whereClause,
       include: [
+        {
+          model: Course,
+          as: "TemplateCourse",
+          attributes: ["course_id", "course_name"],
+        },
         {
           model: Detail,
           include: [

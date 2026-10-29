@@ -14,7 +14,9 @@ export const getCourseTemplatesRequest = () =>
 
 export const startCourseFromTemplateRequest = (course) =>
   axios.post("/course/start-from-template", course);
-// export const getCertificatesRequest = (id) => axios.get(`/courses-certificate/${id}`, {responseType: 'blob'});
+
+export const updateCourseEditionRequest = (id, data) =>
+  axios.put(`/course/${id}/edition`, data);
 
 export const getCourseExpedientRequest = (id) =>
   axios.get(`/course/${id}/expedient`);
@@ -23,4 +25,4 @@ export const getCoursesReportRequest = (status) =>
   axios.get(`/courses/report`, { params: { status } });
 
 export const getCourseParticipantsReportRequest = (id) =>
-  axios.get(`/course/${id}/participants-report`);
+  axios.get(`/course/${id}/participants-report`);
