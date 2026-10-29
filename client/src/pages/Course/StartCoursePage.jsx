@@ -11,7 +11,6 @@ import {
   faBookOpen,
   faCalendarAlt,
   faClipboardList,
-  faUserGraduate,
   faArrowLeft,
   faClock,
   faChalkboardTeacher,
@@ -100,7 +99,7 @@ function StartCoursePage() {
         icon: "success",
         title: "¡Curso iniciado!",
         text: res.data.message || "La edición del curso se creó correctamente.",
-        confirmButtonColor: "#b91c1c",
+        confirmButtonColor: "#6cc24a",
       });
       resetForm();
     } catch (error) {
@@ -113,35 +112,28 @@ function StartCoursePage() {
     }
   };
 
-  const statusColors = {
-    Planificado: "bg-blue-100 text-blue-800",
-    "En inscripción": "bg-yellow-100 text-yellow-800",
-    "En ejecución": "bg-green-100 text-green-800",
-    Finalizado: "bg-gray-100 text-gray-800",
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4">
+    <div className="min-h-screen bg-slate-50 py-8 px-4 text-slate-800">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <button
             onClick={() => navigate("/courses")}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-4 inline-flex items-center gap-2 text-sm transition-colors"
+            className="text-slate-500 hover:text-slate-800 mb-4 inline-flex items-center gap-2 text-sm font-medium transition-colors"
           >
             <FontAwesomeIcon icon={faArrowLeft} />
             Volver a cursos
           </button>
 
           <div className="flex items-center gap-4 mb-2">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center shadow-lg">
-              <FontAwesomeIcon icon={faPlayCircle} className="text-white text-xl" />
+            <div className="w-12 h-12 rounded-2xl bg-[#005073] flex items-center justify-center shadow-sm text-white">
+              <FontAwesomeIcon icon={faPlayCircle} className="text-xl" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
                 Iniciar nuevo curso
               </h1>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">
+              <p className="text-slate-500 text-sm">
                 Cree una nueva edición de curso a partir de una plantilla base de la Academia Cisco UTN
               </p>
             </div>
@@ -149,7 +141,7 @@ function StartCoursePage() {
 
           {!loading && (
             <div className="mt-3">
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-[#edf7e6] text-[#3a8c25] border border-green-200">
                 <FontAwesomeIcon icon={faBookOpen} className="text-[10px]" />
                 {templates.length} plantillas disponibles
               </span>
@@ -159,12 +151,12 @@ function StartCoursePage() {
 
         <form onSubmit={handleSubmit}>
           {/* Step 1: Select template */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                <span className="text-red-700 dark:text-red-400 font-bold text-sm">1</span>
+              <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#049fd9] border border-blue-200 flex items-center justify-center font-bold text-sm">
+                1
               </div>
-              <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+              <h2 className="text-base font-bold text-slate-800 uppercase tracking-wide">
                 Seleccionar curso base
               </h2>
             </div>
@@ -173,7 +165,7 @@ function StartCoursePage() {
               name="template_course_id"
               value={form.template_course_id}
               onChange={handleTemplateChange}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-sm"
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 text-slate-800 focus:outline-none focus:border-[#6cc24a] focus:ring-2 focus:ring-[#6cc24a]/20 transition-all text-sm"
             >
               <option value="">— Seleccione un curso base —</option>
               {templates.map((course) => (
@@ -185,40 +177,40 @@ function StartCoursePage() {
 
             {/* Template summary card */}
             {selectedTemplate && (
-              <div className="mt-4 bg-gradient-to-r from-gray-50 to-red-50/30 dark:from-gray-700 dark:to-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-5">
+              <div className="mt-4 bg-slate-50 rounded-xl border border-gray-200 p-5">
                 <div className="flex items-center gap-2 mb-3">
-                  <FontAwesomeIcon icon={faInfoCircle} className="text-red-600 dark:text-red-400" />
-                  <h3 className="font-semibold text-gray-800 dark:text-white text-sm">
+                  <FontAwesomeIcon icon={faInfoCircle} className="text-[#049fd9]" />
+                  <h3 className="font-bold text-slate-800 text-sm">
                     Resumen del curso seleccionado
                   </h3>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="flex items-start gap-3">
-                    <FontAwesomeIcon icon={faBookOpen} className="text-gray-400 mt-1 text-sm" />
+                    <FontAwesomeIcon icon={faBookOpen} className="text-slate-400 mt-1 text-sm" />
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Nombre del curso</p>
-                      <p className="text-sm font-medium text-gray-800 dark:text-white">{selectedTemplate.course_name}</p>
+                      <p className="text-xs text-slate-500">Nombre del curso</p>
+                      <p className="text-sm font-semibold text-slate-800">{selectedTemplate.course_name}</p>
                     </div>
                   </div>
 
                   {selectedTemplate.Detail && (
                     <>
                       <div className="flex items-start gap-3">
-                        <FontAwesomeIcon icon={faClipboardList} className="text-gray-400 mt-1 text-sm" />
+                        <FontAwesomeIcon icon={faClipboardList} className="text-slate-400 mt-1 text-sm" />
                         <div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Descripción</p>
-                          <p className="text-sm font-medium text-gray-800 dark:text-white">
+                          <p className="text-xs text-slate-500">Descripción</p>
+                          <p className="text-sm font-semibold text-slate-800">
                             {selectedTemplate.Detail.course_description || "Sin descripción"}
                           </p>
                         </div>
                       </div>
 
                       <div className="flex items-start gap-3">
-                        <FontAwesomeIcon icon={faClock} className="text-gray-400 mt-1 text-sm" />
+                        <FontAwesomeIcon icon={faClock} className="text-slate-400 mt-1 text-sm" />
                         <div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Total horas</p>
-                          <p className="text-sm font-medium text-gray-800 dark:text-white">
+                          <p className="text-xs text-slate-500">Total horas</p>
+                          <p className="text-sm font-semibold text-slate-800">
                             {selectedTemplate.Detail.total_hours || "—"} horas
                           </p>
                         </div>
@@ -226,10 +218,10 @@ function StartCoursePage() {
 
                       {selectedTemplate.Detail.Instructor && (
                         <div className="flex items-start gap-3">
-                          <FontAwesomeIcon icon={faChalkboardTeacher} className="text-gray-400 mt-1 text-sm" />
+                          <FontAwesomeIcon icon={faChalkboardTeacher} className="text-slate-400 mt-1 text-sm" />
                           <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Instructor</p>
-                            <p className="text-sm font-medium text-gray-800 dark:text-white">
+                            <p className="text-xs text-slate-500">Instructor</p>
+                            <p className="text-sm font-semibold text-slate-800">
                               {selectedTemplate.Detail.Instructor.name}
                             </p>
                           </div>
@@ -238,10 +230,10 @@ function StartCoursePage() {
 
                       {selectedTemplate.Detail.Modalities && selectedTemplate.Detail.Modalities.length > 0 && (
                         <div className="flex items-start gap-3">
-                          <FontAwesomeIcon icon={faLaptop} className="text-gray-400 mt-1 text-sm" />
+                          <FontAwesomeIcon icon={faLaptop} className="text-slate-400 mt-1 text-sm" />
                           <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Modalidad</p>
-                            <p className="text-sm font-medium text-gray-800 dark:text-white">
+                            <p className="text-xs text-slate-500">Modalidad</p>
+                            <p className="text-sm font-semibold text-slate-800">
                               {selectedTemplate.Detail.Modalities.map(m => m.name).join(", ")}
                             </p>
                           </div>
@@ -251,10 +243,10 @@ function StartCoursePage() {
                   )}
 
                   <div className="flex items-start gap-3">
-                    <FontAwesomeIcon icon={faClipboardList} className="text-gray-400 mt-1 text-sm" />
+                    <FontAwesomeIcon icon={faClipboardList} className="text-slate-400 mt-1 text-sm" />
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Detail ID</p>
-                      <p className="text-sm font-medium text-gray-800 dark:text-white">
+                      <p className="text-xs text-slate-500">ID Detalle</p>
+                      <p className="text-sm font-semibold text-slate-800">
                         {selectedTemplate.detail_id || "Sin detalle asignado"}
                       </p>
                     </div>
@@ -265,20 +257,19 @@ function StartCoursePage() {
           </div>
 
           {/* Step 2: Period and Status */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                <span className="text-red-700 dark:text-red-400 font-bold text-sm">2</span>
+              <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#049fd9] border border-blue-200 flex items-center justify-center font-bold text-sm">
+                2
               </div>
-              <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
-                <FontAwesomeIcon icon={faClipboardList} className="mr-2 text-gray-400" />
+              <h2 className="text-base font-bold text-slate-800 uppercase tracking-wide">
                 Periodo y estado
               </h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Periodo
                 </label>
                 <input
@@ -287,19 +278,19 @@ function StartCoursePage() {
                   value={form.period}
                   onChange={handleChange}
                   placeholder="Ej: MAY-JUL2026"
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 bg-gray-50 text-slate-800 focus:outline-none focus:border-[#6cc24a] focus:ring-2 focus:ring-[#6cc24a]/20 transition-all text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Estado inicial
                 </label>
                 <select
                   name="status"
                   value={form.status}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 bg-gray-50 text-slate-800 focus:outline-none focus:border-[#6cc24a] focus:ring-2 focus:ring-[#6cc24a]/20 transition-all text-sm"
                 >
                   <option value="Planificado">Planificado</option>
                   <option value="En inscripción">En inscripción</option>
@@ -311,20 +302,19 @@ function StartCoursePage() {
           </div>
 
           {/* Step 3: Course dates */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                <span className="text-red-700 dark:text-red-400 font-bold text-sm">3</span>
+              <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#049fd9] border border-blue-200 flex items-center justify-center font-bold text-sm">
+                3
               </div>
-              <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
-                <FontAwesomeIcon icon={faCalendarAlt} className="mr-2 text-gray-400" />
+              <h2 className="text-base font-bold text-slate-800 uppercase tracking-wide">
                 Fechas del curso
               </h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Fecha de inicio
                 </label>
                 <input
@@ -332,11 +322,11 @@ function StartCoursePage() {
                   name="start_date"
                   value={form.start_date}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 bg-gray-50 text-slate-800 focus:outline-none focus:border-[#6cc24a] focus:ring-2 focus:ring-[#6cc24a]/20 transition-all text-sm"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Fecha final
                 </label>
                 <input
@@ -344,28 +334,25 @@ function StartCoursePage() {
                   name="end_date"
                   value={form.end_date}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 bg-gray-50 text-slate-800 focus:outline-none focus:border-[#6cc24a] focus:ring-2 focus:ring-[#6cc24a]/20 transition-all text-sm"
                 />
               </div>
             </div>
           </div>
-
-          {/* Step 4: Registration dates */}
-
 
           {/* Actions */}
           <div className="flex items-center justify-between">
             <button
               type="button"
               onClick={resetForm}
-              className="px-5 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
+              className="px-5 py-2.5 text-sm font-medium text-slate-600 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
             >
               Limpiar formulario
             </button>
 
             <button
               type="submit"
-              className="px-8 py-3 text-sm font-semibold text-white bg-gradient-to-r from-red-700 to-red-600 rounded-lg hover:from-red-800 hover:to-red-700 shadow-lg shadow-red-500/25 transition-all flex items-center gap-2"
+              className="px-8 py-3 text-sm font-semibold text-white bg-[#6cc24a] hover:bg-[#5aad3a] rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-2"
             >
               <FontAwesomeIcon icon={faPlayCircle} />
               Iniciar curso

@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
-import { useCertificate } from "../../context/CertificateContext"; // Contexto para manejar capítulos
+import { useCertificate } from "../../context/CertificateContext";
 import { useInstructor } from "../../context/InstructorContext";
 
 function CertificateForm({ onClose, certificate }) {
@@ -8,14 +8,6 @@ function CertificateForm({ onClose, certificate }) {
     const { createCertificate, updateCertificate } = useCertificate();
     const { instructors, getInstructorsDropdown } = useInstructor();
     const [selectedInstructor, setSelectedInstructor] = useState("");
-
-    // Función para convertir la fecha de la base de datos al formato de 'datetime-local'
-    // const formatDateForInput = (dateString) => {
-    //     if (!dateString) return "";
-    //     const date = new Date(dateString);
-    //     // Formato: YYYY-MM-DDTHH:MM
-    //     return date.toISOString().slice(0, 16);
-    // };
 
     useEffect(() => {
         getInstructorsDropdown();
@@ -31,70 +23,96 @@ function CertificateForm({ onClose, certificate }) {
 
     const onSubmit = handleSubmit((data) => {
         if (certificate) {
-            // !! falta editar solo se deja agregar 
-            updateCertificate({ ...data, id: certificate.certificate_id, instructor_id : selectedInstructor});
+            updateCertificate({ ...data, id: certificate.certificate_id, instructor_id: selectedInstructor });
         } else {
             createCertificate({ ...data, instructor_id: selectedInstructor });
         }
-        onClose();
+        if (onClose) onClose();
     });
+
     const handleSelected = (id) => {
         setSelectedInstructor(id);
     };
 
     return (
-        <div className="bg-zinc-800 max-w-md w-full p-10 rounded-md">
-            <h2 className="text-center text-2xl text-white">Certificado</h2>
-            <form onSubmit={onSubmit}>
-                <input
-                    type="text"
-                    placeholder="Nombre del Certificado"
-                    {...register("name", { required: true })}
-                    className="w-full bg-zinc-700 text-white px-4 py-2 rounded-md my-2"
-                    autoFocus
-                />
-                <input
-                    type="number"
-                    placeholder="Año de Emisión"
-                    {...register("year_of_issue")}
-                    className="w-full bg-zinc-700 text-white px-4 py-2 rounded-md my-2"
-                />
-                <div className="flex flex-wrap gap-2 mt-2">
-                    <label className="text-white">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 max-w-md w-full p-8 relative">
+            {onClose && (
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="text-slate-400 hover:text-slate-700 hover:bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center absolute top-4 right-4 transition-colors font-semibold"
+                >
+                    ✕
+                </button>
+            )}
+
+            <h2 className="text-xl font-bold text-slate-800 text-center mb-6">
+                {certificate ? "Editar Certificado" : "Nuevo Certificado"}
+            </h2>
+
+            <form onSubmit={onSubmit} className="space-y-4">
+                <div>
+                    <label className="text-xs font-semibold text-slate-600 block mb-1">Nombre del Certificado</label>
+                    <input
+                        type="text"
+                        placeholder="Ej: CCNA: Introduction to Networks"
+                        {...register("name", { required: true })}
+                        className="w-full bg-gray-50 border border-gray-300 text-slate-800 text-sm px-4 py-2.5 rounded-xl placeholder-slate-400 focus:outline-none focus:border-[#6cc24a] focus:ring-2 focus:ring-[#6cc24a]/20 transition"
+                        autoFocus
+                    />
+                </div>
+
+                <div>
+                    <label className="text-xs font-semibold text-slate-600 block mb-1">Año de Emisión</label>
+                    <input
+                        type="number"
+                        placeholder="Ej: 2024"
+                        {...register("year_of_issue")}
+                        className="w-full bg-gray-50 border border-gray-300 text-slate-800 text-sm px-4 py-2.5 rounded-xl placeholder-slate-400 focus:outline-none focus:border-[#6cc24a] focus:ring-2 focus:ring-[#6cc24a]/20 transition"
+                    />
+                </div>
+
+                <div>
+                    <label className="text-xs font-semibold text-slate-600 block mb-1">Instructor Asignado</label>
+                    <select
+                        className="w-full bg-gray-50 border border-gray-300 text-slate-800 text-sm px-4 py-2.5 rounded-xl focus:outline-none focus:border-[#6cc24a] focus:ring-2 focus:ring-[#6cc24a]/20 transition"
+                        value={selectedInstructor}
+                        onChange={(e) => handleSelected(e.target.value)}
+                    >
+                        <option value="">Seleccionar Instructor</option>
+                        {instructors.map((instructor) => (
+                            <option key={instructor.instructor_id} value={instructor.instructor_id}>
+                                {instructor.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div>
+                    <label className="text-xs font-semibold text-slate-600 block mb-1">URL del Archivo</label>
+                    <input
+                        type="text"
+                        placeholder="https://..."
+                        {...register("file_url")}
+                        className="w-full bg-gray-50 border border-gray-300 text-slate-800 text-sm px-4 py-2.5 rounded-xl placeholder-slate-400 focus:outline-none focus:border-[#6cc24a] focus:ring-2 focus:ring-[#6cc24a]/20 transition"
+                    />
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <label className="text-xs font-medium text-slate-600 flex items-center gap-2 cursor-pointer bg-slate-50 border border-gray-200 p-2.5 rounded-xl w-full">
                         <input
                             type="checkbox"
                             value={true}
                             {...register("is_international")}
-                            className="mr-2"
+                            className="accent-[#6cc24a] w-4 h-4 rounded"
                         />
-                        Internacional
+                        Certificación Internacional
                     </label>
                 </div>
-                <input
-                    type="text"
-                    placeholder="Url Archivo"
-                    {...register("file_url")}
-                    className="w-full bg-zinc-700 text-white px-4 py-2 rounded-md my-2"
-                />
-                <select
-                    // {...register("course_name")}
-                    className="w-full bg-zinc-700 text-white px-4 py-2 rounded-md my-2"
-                    value={selectedInstructor}
-                    onChange={(e) => {
-                        console.log(e.target.value);
-                        handleSelected(e.target.value);
-                    }}
-                >
-                    <option value="">Seleccionar Instrutor</option>
-                    {instructors.map((instructor) => (
-                        <option key={instructor.instructor_id} value={instructor.instructor_id}>
-                            {instructor.name}
-                        </option>
-                    ))}
-                </select>
+
                 <button
                     type="submit"
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-md my-2 transition-colors"
+                    className="w-full bg-[#6cc24a] hover:bg-[#5aad3a] text-white font-semibold py-2.5 rounded-xl transition-colors shadow-sm mt-2"
                 >
                     Guardar
                 </button>

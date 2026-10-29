@@ -52,36 +52,35 @@ function CoursePage() {
     }
 
     return (
-        // <div className="p-6 bg-zinc-750 min-h-screen text-white overflow-hidden">
-        <div className="p-6 bg-gray-100 min-h-screen text-white overflow-hidden">
-            <div className="flex justify-start mb-6">
+        <div className="p-6 bg-slate-50 min-h-screen overflow-hidden">
+            <div className="flex justify-start mb-6 gap-3 items-center">
                 <input
                     type="text"
                     placeholder="Buscar cursos..."
                     value={searchTerm}
                     onChange={handleSearchChange}
-                    className="w-full md:w-1/3 p-2 rounded-lg border border-gray-300 bg-gray-300 text-gray-700 placeholder-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full md:w-1/3 p-2 rounded-xl border border-gray-300 bg-white text-slate-700 placeholder-slate-400 focus:outline-none focus:border-[#049fd9] focus:ring-2 focus:ring-[#049fd9]/20 transition text-sm"
                 />
-                <div className="flex space-x-4 ml-2">
+                <div className="flex space-x-3">
                     <button
                         onClick={() => {
                             setSelectedCourse(null);
                             setIsRegisterModalOpen(true);
                         }}
-                        className="px-4 py-2 rounded-lg text-gray-700 bg-gray-300 dark:bg-gray-700 dark:text-gray-400"
+                        className="px-4 py-2 rounded-xl text-white bg-[#6cc24a] hover:bg-[#5aad3a] text-sm font-medium transition-colors shadow-sm"
                     >
                         Registrar Curso
                     </button>
                     <button
                         onClick={() => navigate("/course/start")}
-                        className="px-4 py-2 rounded-lg text-white bg-gradient-to-r from-red-700 to-red-600 hover:from-red-800 hover:to-red-700 shadow-sm flex items-center gap-2 text-sm font-medium"
+                        className="px-4 py-2 rounded-xl text-white bg-[#005073] hover:bg-[#003d57] shadow-sm flex items-center gap-2 text-sm font-medium transition-colors"
                     >
                         <FontAwesomeIcon icon={faPlayCircle} />
                         Iniciar nuevo curso
                     </button>
                     <button
                         onClick={() => navigate("/courses/report")}
-                        className="px-4 py-2 rounded-lg text-gray-700 bg-gray-300 dark:bg-gray-700 dark:text-gray-400 flex items-center gap-2 text-sm"
+                        className="px-4 py-2 rounded-xl text-slate-600 bg-white border border-gray-300 hover:bg-gray-50 text-sm font-medium transition-colors flex items-center gap-2"
                     >
                         <FontAwesomeIcon icon={faChartBar} />
                         Reportes
@@ -89,13 +88,12 @@ function CoursePage() {
                 </div>
             </div>
 
-            <div className="scroll-hidden bg-white dark:bg-gray-800 relative overflow-x-auto shadow-md sm:rounded-lg max-h-[600px] min-h-[600px]">
-                <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-200 dark:bg-gray-700 dark:text-gray-400 sticky top-0">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm relative overflow-x-auto max-h-[600px] min-h-[600px]">
+                <table className="w-full text-sm text-left text-slate-600">
+                    <thead className="text-xs text-slate-500 uppercase bg-gray-50 border-b border-gray-200 sticky top-0">
                         <tr>
                             <th scope="col" className="px-6 py-3">ID</th>
                             <th scope="col" className="px-6 py-3">Nombre</th>
-
                             <th scope="col" className="px-6 py-3">Fecha Inicio Curso</th>
                             <th scope="col" className="px-6 py-3">Fecha Fin Curso</th>
                             <th scope="col" className="px-6 py-3">Estado</th>
@@ -104,54 +102,51 @@ function CoursePage() {
                     </thead>
                     <tbody>
                         {courses.map((course) => (
-                            <tr key={course.course_id} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:bg-gray-300">
-                                <th scope="row" className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                            <tr key={course.course_id} className="border-b border-gray-100 hover:bg-slate-50 transition-colors">
+                                <th scope="row" className="px-6 py-4 font-medium text-slate-800 whitespace-nowrap">
                                     {course.course_id}
                                 </th>
-                                <td className="px-6 py-4">{course.course_name}</td>
-
-                                <td className="px-6 py-4">{new Date(course.start_date).toLocaleDateString()}</td>
-                                <td className="px-6 py-4">{new Date(course.end_date).toLocaleDateString()}</td>
-                                <td className="px-6 py-4">{course.status}</td>
-
-                                <td className="px-6 py-4 flex space-x-4">
-                                    <button className="text-blue-500 hover:text-blue-700" onClick={() => handleViewDetails(course)}>
+                                <td className="px-6 py-4 text-slate-600">{course.course_name}</td>
+                                <td className="px-6 py-4 text-slate-600">{new Date(course.start_date).toLocaleDateString()}</td>
+                                <td className="px-6 py-4 text-slate-600">{new Date(course.end_date).toLocaleDateString()}</td>
+                                <td className="px-6 py-4 text-slate-600">{course.status}</td>
+                                <td className="px-6 py-4 flex space-x-3">
+                                    <button className="text-[#049fd9] hover:text-[#0380b0] transition-colors" onClick={() => handleViewDetails(course)}>
                                         <FontAwesomeIcon icon={faEye} />
                                     </button>
-                                    <button className="text-yellow-500 hover:text-yellow-700" onClick={() => handleEdit(course)}>
+                                    <button className="text-amber-500 hover:text-amber-600 transition-colors" onClick={() => handleEdit(course)}>
                                         <FontAwesomeIcon icon={faEdit} />
                                     </button>
-                                    <button className="text-green-500 hover:text-green-700" onClick={() => navigate(`/course/${course.course_id}/expedient`)} title="Ver expediente">
+                                    <button className="text-[#6cc24a] hover:text-[#5aad3a] transition-colors" onClick={() => navigate(`/course/${course.course_id}/expedient`)} title="Ver expediente">
                                         <FontAwesomeIcon icon={faFolderOpen} />
                                     </button>
-                                    {/* <button className="text-purple-500 hover:text-purple-700" onClick={() => handleDownloadCertificate(course.id)}> */}
-                                    <button className="text-purple-500 hover:text-purple-700" onClick={() => handleDownloadCertificate(course.course_id)}>
+                                    {/* <button className="text-purple-500 hover:text-purple-600 transition-colors" onClick={() => handleDownloadCertificate(course.id)}> */}
+                                    <button className="text-purple-500 hover:text-purple-600 transition-colors" onClick={() => handleDownloadCertificate(course.course_id)}>
                                         <FontAwesomeIcon icon={faCertificate} />
                                     </button>
-                                    <button className="text-red-500 hover:text-red-700" onClick={() => handleDelete(course.course_id)}>
+                                    <button className="text-red-500 hover:text-red-600 transition-colors" onClick={() => handleDelete(course.course_id)}>
                                         <FontAwesomeIcon icon={faTrash} />
                                     </button>
                                 </td>
                             </tr>
                         ))}
                     </tbody>
-
                 </table>
             </div>
 
-            <div className="flex justify-center items-center mt-6 space-x-4">
+            <div className="flex justify-center items-center mt-6 space-x-3">
                 <button
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className={`px-4 py-2 rounded-lg bg-gray-600 ${currentPage === 1 ? 'cursor-not-allowed opacity-50' : 'hover:bg-indigo-500'}`}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium border ${currentPage === 1 ? 'border-gray-200 text-gray-400 cursor-not-allowed opacity-50' : 'border-gray-300 text-slate-600 hover:bg-gray-50 transition-colors'}`}
                 >
                     Anterior
                 </button>
-                <span className="text-lg text-gray-400 dark:text-gray-700">Página {currentPage} de {totalPages}</span>
+                <span className="text-sm text-slate-500">Página {currentPage} de {totalPages}</span>
                 <button
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className={`px-4 py-2 rounded-lg bg-gray-600 ${currentPage === totalPages ? 'cursor-not-allowed opacity-50' : 'hover:bg-indigo-500'}`}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium border ${currentPage === totalPages ? 'border-gray-200 text-gray-400 cursor-not-allowed opacity-50' : 'border-gray-300 text-slate-600 hover:bg-gray-50 transition-colors'}`}
                 >
                     Siguiente
                 </button>
@@ -165,14 +160,3 @@ function CoursePage() {
 }
 
 export default CoursePage;
-
-
-
-
-
-
-
-
-
-
-

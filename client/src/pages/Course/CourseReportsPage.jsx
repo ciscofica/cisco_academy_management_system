@@ -37,10 +37,10 @@ function CourseReportsPage() {
   };
 
   const statusConfig = {
-    Planificado: "bg-blue-100 text-blue-700",
-    "En inscripción": "bg-yellow-100 text-yellow-700",
-    "En ejecución": "bg-green-100 text-green-700",
-    Finalizado: "bg-gray-200 text-gray-700",
+    Planificado: "bg-blue-50 text-[#049fd9] border border-blue-200",
+    "En inscripción": "bg-amber-50 text-amber-700 border border-amber-200",
+    "En ejecución": "bg-[#edf7e6] text-[#3a8c25] border border-green-200",
+    Finalizado: "bg-gray-100 text-slate-600 border border-gray-200",
   };
 
   const formatDate = (dateStr) => {
@@ -65,12 +65,12 @@ function CourseReportsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4">
+    <div className="min-h-screen bg-slate-50 py-8 px-4 text-slate-800">
       <div className="max-w-7xl mx-auto">
         {/* Navigation */}
         <button
           onClick={() => navigate("/courses")}
-          className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-6 inline-flex items-center gap-2 text-sm transition-colors"
+          className="text-slate-500 hover:text-slate-800 mb-6 inline-flex items-center gap-2 text-sm font-medium transition-colors"
         >
           <FontAwesomeIcon icon={faArrowLeft} />
           Volver a cursos
@@ -79,14 +79,14 @@ function CourseReportsPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center shadow-lg">
-              <FontAwesomeIcon icon={faChartBar} className="text-white text-xl" />
+            <div className="w-12 h-12 rounded-2xl bg-[#005073] flex items-center justify-center shadow-sm text-white">
+              <FontAwesomeIcon icon={faChartBar} className="text-xl" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
                 Reporte de cursos
               </h1>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">
+              <p className="text-slate-500 text-sm">
                 Vista administrativa de cursos de la Academia Cisco UTN
               </p>
             </div>
@@ -95,48 +95,48 @@ function CourseReportsPage() {
 
         {/* Stats cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total cursos</p>
-            <p className="text-2xl font-bold text-gray-800 dark:text-white">{stats.total}</p>
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+            <p className="text-xs text-slate-500 font-medium mb-1">Total cursos</p>
+            <p className="text-3xl font-extrabold text-slate-900">{stats.total}</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Planificados</p>
-            <p className="text-2xl font-bold text-blue-600">{stats.planificado}</p>
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+            <p className="text-xs text-slate-500 font-medium mb-1">Planificados</p>
+            <p className="text-3xl font-extrabold text-[#049fd9]">{stats.planificado}</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">En ejecución</p>
-            <p className="text-2xl font-bold text-green-600">{stats.ejecucion}</p>
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+            <p className="text-xs text-slate-500 font-medium mb-1">En ejecución</p>
+            <p className="text-3xl font-extrabold text-[#6cc24a]">{stats.ejecucion}</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Finalizados</p>
-            <p className="text-2xl font-bold text-gray-600">{stats.finalizado}</p>
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+            <p className="text-xs text-slate-500 font-medium mb-1">Finalizados</p>
+            <p className="text-3xl font-extrabold text-slate-600">{stats.finalizado}</p>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 mb-6">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
           <div className="flex flex-col md:flex-row md:items-center gap-4">
             <div className="flex items-center gap-2 flex-1">
-              <FontAwesomeIcon icon={faSearch} className="text-gray-400" />
+              <FontAwesomeIcon icon={faSearch} className="text-slate-400" />
               <input
                 type="text"
                 placeholder="Buscar cursos..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full px-3.5 py-2 rounded-xl border border-gray-300 bg-gray-50 text-slate-800 text-sm focus:outline-none focus:border-[#049fd9] focus:ring-2 focus:ring-[#049fd9]/20 transition"
               />
             </div>
             <div className="flex items-center gap-2">
-              <FontAwesomeIcon icon={faFilter} className="text-gray-400 text-sm" />
-              <div className="flex gap-1 flex-wrap">
+              <FontAwesomeIcon icon={faFilter} className="text-slate-400 text-sm" />
+              <div className="flex gap-1.5 flex-wrap">
                 {statusOptions.map((opt) => (
                   <button
                     key={opt}
                     onClick={() => setStatusFilter(opt)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                       statusFilter === opt
-                        ? "bg-red-600 text-white shadow-sm"
-                        : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                        ? "bg-[#049fd9] text-white shadow-sm"
+                        : "bg-gray-100 text-slate-600 hover:bg-gray-200"
                     }`}
                   >
                     {opt}
@@ -148,19 +148,19 @@ function CourseReportsPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <FontAwesomeIcon icon={faSpinner} className="text-red-600 text-2xl animate-spin" />
+              <FontAwesomeIcon icon={faSpinner} className="text-[#049fd9] text-2xl animate-spin" />
             </div>
           ) : filteredCourses.length === 0 ? (
             <div className="text-center py-20">
-              <p className="text-gray-400 dark:text-gray-500">No se encontraron cursos con los filtros seleccionados.</p>
+              <p className="text-slate-400 text-sm">No se encontraron cursos con los filtros seleccionados.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+              <table className="w-full text-sm text-left text-slate-600">
+                <thead className="text-xs text-slate-500 uppercase bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="px-5 py-3.5 font-semibold">Curso</th>
                     <th className="px-5 py-3.5 font-semibold">Fecha inicio</th>
@@ -174,7 +174,7 @@ function CourseReportsPage() {
                     <th className="px-5 py-3.5 font-semibold text-center">Acciones</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                <tbody className="divide-y divide-gray-100">
                   {filteredCourses.map((course) => {
                     const detail = course.Detail || {};
                     const instructor = detail.Instructor || null;
@@ -183,37 +183,37 @@ function CourseReportsPage() {
                     return (
                       <tr
                         key={course.course_id}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
+                        className="hover:bg-slate-50 transition-colors"
                       >
                         <td className="px-5 py-4">
-                          <p className="font-medium text-gray-800 dark:text-white text-sm">{course.course_name}</p>
+                          <p className="font-semibold text-slate-800 text-sm">{course.course_name}</p>
                         </td>
-                        <td className="px-5 py-4 text-gray-600 dark:text-gray-300">{formatDate(course.start_date)}</td>
-                        <td className="px-5 py-4 text-gray-600 dark:text-gray-300">{formatDate(course.end_date)}</td>
+                        <td className="px-5 py-4 text-slate-600">{formatDate(course.start_date)}</td>
+                        <td className="px-5 py-4 text-slate-600">{formatDate(course.end_date)}</td>
                         <td className="px-5 py-4">
-                          <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${statusConfig[course.status] || "bg-gray-100 text-gray-600"}`}>
+                          <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${statusConfig[course.status] || "bg-gray-100 text-slate-600"}`}>
                             {course.status}
                           </span>
                         </td>
-                        <td className="px-5 py-4 text-gray-600 dark:text-gray-300">
+                        <td className="px-5 py-4 text-slate-600">
                           {instructor ? instructor.name : "—"}
                         </td>
-                        <td className="px-5 py-4 text-gray-600 dark:text-gray-300">
+                        <td className="px-5 py-4 text-slate-600">
                           {modalities.length > 0 ? modalities[0].name : "—"}
                         </td>
-                        <td className="px-5 py-4 text-center text-gray-600 dark:text-gray-300">
+                        <td className="px-5 py-4 text-center font-medium text-slate-700">
                           {detail.num_registered || "—"}
                         </td>
-                        <td className="px-5 py-4 text-center text-gray-600 dark:text-gray-300">
+                        <td className="px-5 py-4 text-center font-medium text-slate-700">
                           {detail.num_enrolled || "—"}
                         </td>
-                        <td className="px-5 py-4 text-center text-gray-600 dark:text-gray-300">
+                        <td className="px-5 py-4 text-center font-medium text-slate-700">
                           {detail.num_failed || "—"}
                         </td>
                         <td className="px-5 py-4 text-center">
                           <button
                             onClick={() => navigate(`/course/${course.course_id}/expedient`)}
-                            className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                            className="text-[#6cc24a] hover:text-[#5aad3a] transition-colors"
                             title="Ver expediente"
                           >
                             <FontAwesomeIcon icon={faFolderOpen} />
