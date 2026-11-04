@@ -89,33 +89,29 @@ export default function OfficialDocumentModal({ isOpen, onClose, documentType, c
             className="bg-white mx-auto shadow-sm p-8 md:p-12 max-w-3xl border border-gray-200 rounded-lg text-slate-800 text-xs leading-relaxed"
             style={{ minHeight: "1050px" }}
           >
-            {/* Header / Institutional Letterhead */}
-            <div className="border-b-2 border-[#005073] pb-4 mb-6">
+            {/* Header / Institutional Letterhead (Alineado a la cabecera oficial UTN) */}
+            <div className="border-b-2 border-slate-900 pb-5 mb-6">
               <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-[#005073] text-white flex items-center justify-center font-black text-lg">
-                    UTN
-                  </div>
-                  <div>
-                    <h1 className="text-sm font-bold text-[#005073] uppercase tracking-wide">
-                      Universidad Técnica del Norte
-                    </h1>
-                    <p className="text-[11px] text-slate-600 font-semibold">
-                      Facultad de Ingeniería en Ciencias Aplicadas (FICA)
-                    </p>
-                    <p className="text-[10px] text-slate-500">
-                      Academia Local Cisco Networking Academy - NetAcad
-                    </p>
-                  </div>
+                <div className="w-20 flex-shrink-0">
+                  <img
+                    src="/logo_utn.png"
+                    alt="Universidad Técnica del Norte"
+                    className="w-20 h-20 object-contain mx-auto"
+                  />
                 </div>
-                <div className="text-right">
-                  <span className="inline-block px-2.5 py-1 rounded bg-[#049fd9]/10 text-[#005073] font-bold text-[10px] uppercase border border-[#049fd9]/20">
-                    Documento Oficial
-                  </span>
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    Ibarra - Ecuador
-                  </p>
+                <div className="flex-1 text-center">
+                  <h1 className="text-base font-extrabold text-slate-900 uppercase tracking-wide font-sans leading-snug">
+                    UNIVERSIDAD TÉCNICA DEL NORTE
+                  </h1>
+                  <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide font-sans leading-snug mt-0.5">
+                    FACULTAD DE INGENIERÍA EN CIENCIAS APLICADAS
+                  </h2>
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider font-sans leading-snug mt-0.5">
+                    ACADEMIA CISCO
+                  </h3>
                 </div>
+                {/* Balanceador derecho para centrado perfecto */}
+                <div className="w-20 hidden sm:block flex-shrink-0" />
               </div>
             </div>
 
