@@ -1,8 +1,8 @@
 import { DataTypes } from 'sequelize';
 import User from './User.js';
-import db from '../database/db.js';  // Importa todo el objeto
+import db from '../database/db.js';
 
-const { sequelize } = db;  // Extrae sequelize del objeto
+const { sequelize } = db;
 
 const Chapter = sequelize.define('Chapter', {
   chapter_id: {
@@ -17,6 +17,19 @@ const Chapter = sequelize.define('Chapter', {
   },
   hours: {
     type: DataTypes.INTEGER,
+  },
+  main_topics: {
+    type: DataTypes.TEXT,
+    field: 'main_topics',
+  },
+  modality: {
+    type: DataTypes.STRING(100),
+    defaultValue: 'Virtual',
+    field: 'modality',
+  },
+  activity: {
+    type: DataTypes.STRING(255),
+    field: 'activity',
   },
   start_date: {
     type: DataTypes.DATE,

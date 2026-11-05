@@ -104,6 +104,12 @@ export function associateModels() {
   Payment.belongsTo(PaymentType, { foreignKey: "payment_type_id" });
   PaymentType.hasMany(Payment, { foreignKey: "payment_type_id" });
 
+  Payment.belongsTo(Course, { foreignKey: "course_id" });
+  Course.hasMany(Payment, { foreignKey: "course_id" });
+
+  CourseParticipant.belongsTo(Payment, { foreignKey: "payment_id" });
+  Payment.hasOne(CourseParticipant, { foreignKey: "payment_id" });
+
   // ******************
 
   // * bloque 3

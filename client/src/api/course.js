@@ -57,5 +57,19 @@ export const updateCourseChapterRequest = (id, chapterId, data) =>
 export const removeCourseChapterRequest = (id, chapterId) =>
   axios.delete(`/course/${id}/chapter/${chapterId}`);
 
+export const getCoursePaymentsRequest = (id) =>
+  axios.get(`/course/${id}/payments`);
+
+export const validateParticipantPaymentRequest = (id, participantId, data) =>
+  axios.put(`/course/${id}/participant/${participantId}/validate-payment`, data);
+
+export const importInvoicesBulkRequest = (id, invoices) =>
+  axios.post(`/course/${id}/import-invoices`, { invoices });
+
 export const loadDefaultCourseChaptersRequest = (id) =>
   axios.post(`/course/${id}/load-default-chapters`);
+
+export const downloadCourseDocumentDocxRequest = (id, docType) =>
+  axios.get(`/course/${id}/document/${docType}/docx`, {
+    responseType: "blob",
+  });

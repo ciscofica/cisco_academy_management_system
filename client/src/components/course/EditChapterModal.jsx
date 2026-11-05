@@ -9,6 +9,7 @@ import {
   faSave,
   faPlus,
   faSpinner,
+  faCalendarAlt,
 } from "@fortawesome/free-solid-svg-icons";
 import {
   addCourseChapterRequest,
@@ -26,6 +27,10 @@ export default function EditChapterModal({
   const [formData, setFormData] = useState({
     chapter_name: "",
     hours: 2,
+    main_topics: "",
+    modality: "Virtual",
+    activity: "",
+    start_date: "",
     type: "teoria", // 'teoria' | 'lab'
   });
   const [saving, setSaving] = useState(false);
@@ -35,15 +40,31 @@ export default function EditChapterModal({
       const isLab = (chapter.chapter_name || "")
         .toLowerCase()
         .includes("laboratorio");
+      let dateVal = "";
+      if (chapter.start_date) {
+        try {
+          dateVal = new Date(chapter.start_date).toISOString().split("T")[0];
+        } catch {
+          dateVal = "";
+        }
+      }
       setFormData({
         chapter_name: chapter.chapter_name || "",
         hours: chapter.hours || 2,
+        main_topics: chapter.main_topics || "",
+        modality: chapter.modality || (isLab ? "Presencial con instructor" : "Virtual"),
+        activity: chapter.activity || "",
+        start_date: dateVal,
         type: isLab ? "lab" : "teoria",
       });
     } else {
       setFormData({
         chapter_name: "",
         hours: 2,
+        main_topics: "",
+        modality: "Virtual",
+        activity: "",
+        start_date: "",
         type: "teoria",
       });
     }
@@ -64,22 +85,25 @@ export default function EditChapterModal({
 
     try {
       setSaving(true);
+      const payload = {
+        chapter_name: formData.chapter_name.trim(),
+        hours: Number(formData.hours) || 2,
+        main_topics: formData.main_topics?.trim() || null,
+        modality: formData.modality || "Virtual",
+        activity: formData.activity?.trim() || null,
+        start_date: formData.start_date ? formData.start_date : null,
+      };
+
       if (isEdit) {
-        await updateCourseChapterRequest(courseId, chapter.chapter_id, {
-          chapter_name: formData.chapter_name.trim(),
-          hours: Number(formData.hours) || 2,
-        });
+        await updateCourseChapterRequest(courseId, chapter.chapter_id, payload);
         Swal.fire({
           icon: "success",
           title: "Capítulo Actualizado",
-          text: "El tema curricular ha sido actualizado en esta edición.",
+          text: "El tema curricular ha sido actualizado en la base de datos.",
           confirmButtonColor: "#6cc24a",
         });
       } else {
-        await addCourseChapterRequest(courseId, {
-          chapter_name: formData.chapter_name.trim(),
-          hours: Number(formData.hours) || 2,
-        });
+        await addCourseChapterRequest(courseId, payload);
         Swal.fire({
           icon: "success",
           title: "Capítulo Agregado",
@@ -192,24 +216,90 @@ export default function EditChapterModal({
             />
           </div>
 
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <FontAwesomeIcon icon={faClock} className="mr-1 text-slate-400" />
+                Horas *
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="50"
+                value={formData.hours}
+                onChange={(e) =>
+                  setFormData({ ...formData, hours: e.target.value })
+                }
+                className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-[#6cc24a]"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Modalidad
+              </label>
+              <select
+                value={formData.modality}
+                onChange={(e) =>
+                  setFormData({ ...formData, modality: e.target.value })
+                }
+                className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-[#6cc24a]"
+              >
+                <option value="Virtual">Virtual</option>
+                <option value="Presencial">Presencial</option>
+                <option value="Presencial con instructor">Presencial con instructor</option>
+                <option value="Híbrido">Híbrido</option>
+                <option value="On-line">On-line</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <FontAwesomeIcon icon={faCalendarAlt} className="mr-1 text-slate-400" />
+                Fecha Sesión
+              </label>
+              <input
+                type="date"
+                value={formData.start_date}
+                onChange={(e) =>
+                  setFormData({ ...formData, start_date: e.target.value })
+                }
+                className="w-full px-2 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:border-[#6cc24a]"
+              />
+            </div>
+          </div>
+
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
-              <FontAwesomeIcon icon={faClock} className="mr-1 text-slate-400" />
-              Carga Horaria Asignada (Horas Académicas) *
+              Actividad / Laboratorio / Evaluación
             </label>
             <input
-              type="number"
-              min="1"
-              max="20"
-              value={formData.hours}
+              type="text"
+              placeholder="Ej: Práctica Packet Tracer 1.1 o Examen de Módulo"
+              value={formData.activity}
               onChange={(e) =>
-                setFormData({ ...formData, hours: e.target.value })
+                setFormData({ ...formData, activity: e.target.value })
               }
               className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-[#6cc24a]"
-              required
             />
-            <span className="text-[11px] text-slate-400 mt-1 block">
-              Suma al cómputo total de horas presenciales o de laboratorio.
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Temas Principales / Subtemas del Módulo
+            </label>
+            <textarea
+              rows={4}
+              placeholder="Ingrese los subtemas desglosados (uno por línea o separados por salto de línea)..."
+              value={formData.main_topics}
+              onChange={(e) =>
+                setFormData({ ...formData, main_topics: e.target.value })
+              }
+              className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:border-[#6cc24a] leading-relaxed"
+            />
+            <span className="text-[11px] text-slate-400 mt-0.5 block">
+              Estos subtemas se reflejarán directamente en la tabla oficial de la Planificación del Curso.
             </span>
           </div>
 

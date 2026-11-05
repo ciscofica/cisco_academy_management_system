@@ -53,13 +53,14 @@ export function PaymentProvider({ children }) {
         }
     };
 
-    const getPayments = async ({ search = '', page = 1, limit = 15 }) => {
+    const getPayments = async ({ search = '', page = 1, limit = 15, course_id } = {}) => {
         try {
-            const res = await getPaymentsRequest({ search, page, limit });
-            setPayments(res.data.payments);
-            setTotalPages(res.data.totalPages);
+            const res = await getPaymentsRequest({ search, page, limit, course_id });
+            setPayments(res.data?.payments || []);
+            setTotalPages(res.data?.totalPages || 1);
         } catch (error) {
-            console.log(error);
+            console.log("Error al cargar pagos:", error);
+            setPayments([]);
         }
     };
 

@@ -4,6 +4,7 @@ import Chapter from "../../models/Chapter.js";
 
 import Participant from "../../models/Participant.js";
 import ParticipantType from "../../models/ParticipantType.js";
+import ParticipantPayment from "../../models/ParticipantPayment.js";
 import Payment from "../../models/Payment.js";
 import PaymentType from "../../models/PaymentType.js";
 import InfoUtn from "../../models/InfoUtn.js";
@@ -31,6 +32,11 @@ import CourseParticipant from "../../models/CourseParticipant.js";
 import DetailModality from "../../models/DetailModality.js";
 import DetailSchedule from "../../models/DetailSchedule.js";
 import DetailCost from "../../models/DetailCost.js";
+import {
+  generatePlanificacionDocx,
+  generateCronogramaDocx,
+  generateInformeFinalDocx,
+} from "../../services/courseDocxService.js";
 
 export const getAllCourses = async (req, res) => {
   try {
@@ -683,6 +689,8 @@ export const updateCourseEdition = async (req, res) => {
             { model: ParticipantType },
             {
               model: Payment,
+              where: { course_id: id },
+              required: false,
               through: { attributes: [] },
               include: [{ model: PaymentType }],
             },
@@ -740,6 +748,8 @@ export const getCourseExpedient = async (req, res) => {
             { model: ParticipantType },
             {
               model: Payment,
+              where: { course_id: id },
+              required: false,
               through: { attributes: [] },
               include: [{ model: PaymentType }],
             },
@@ -891,8 +901,8 @@ export const enrollCourseParticipant = async (req, res) => {
           participant_type_id: participant_type_id || 1,
           degree: degree || null,
           degree_level: degree_level ? parseInt(degree_level) : null,
-          enrolled: Boolean(enrolled),
-          registered: Boolean(registered),
+          enrolled: false,
+          registered: true,
           approval: false,
           total_payment: total_payment || 0.0,
           active: true,
@@ -913,15 +923,19 @@ export const enrollCourseParticipant = async (req, res) => {
 
     if (existing) {
       return res.status(400).json({
-        message: "El estudiante ya se encuentra matriculado en esta edición del curso.",
+        message: "El estudiante ya se encuentra registrado en esta edición del curso.",
       });
     }
+
+    const hasInvoice = Boolean(req.body.invoice_number && String(req.body.invoice_number).trim());
+    const isEnrolled = enrolled !== undefined ? Boolean(enrolled) : hasInvoice;
 
     await CourseParticipant.create({
       course_id: id,
       participant_id: participant.participant_id,
       total_payment: total_payment ? parseFloat(total_payment) : 0.0,
-      enrolled: enrolled !== undefined ? Boolean(enrolled) : true,
+      invoice_number: hasInvoice ? String(req.body.invoice_number).trim() : null,
+      enrolled: isEnrolled,
       approval: false,
       grade_final: null,
       status_code: "I",
@@ -933,7 +947,7 @@ export const enrollCourseParticipant = async (req, res) => {
       const curEnrolled = course.Detail.num_enrolled || 0;
       const curRegistered = course.Detail.num_registered || 0;
       await course.Detail.update({
-        num_enrolled: curEnrolled + 1,
+        num_enrolled: isEnrolled ? curEnrolled + 1 : curEnrolled,
         num_registered: curRegistered + 1,
         updated_at: new Date(),
       });
@@ -1019,7 +1033,7 @@ export const enrollCourseParticipantsBulk = async (req, res) => {
             participant_type_id: typeId,
             degree,
             degree_level: parsedLevel,
-            enrolled: true,
+            enrolled: false,
             registered: true,
             approval: false,
             total_payment: 0.0,
@@ -1039,7 +1053,7 @@ export const enrollCourseParticipantsBulk = async (req, res) => {
           if (updated) await participant.save();
         }
 
-        // 2. Comprobar si ya está matriculado en este curso
+        // 2. Comprobar si ya está registrado en este curso
         const existing = await CourseParticipant.findOne({
           where: {
             course_id: id,
@@ -1052,12 +1066,13 @@ export const enrollCourseParticipantsBulk = async (req, res) => {
           continue;
         }
 
-        // 3. Crear relación en esta edición
+        // 3. Crear relación en esta edición (por defecto Inscrito, NO matriculado hasta factura)
         await CourseParticipant.create({
           course_id: id,
           participant_id: participant.participant_id,
           total_payment: 0.0,
-          enrolled: true,
+          invoice_number: null,
+          enrolled: false,
           approval: false,
           grade_final: null,
           status_code: "I",
@@ -1071,12 +1086,10 @@ export const enrollCourseParticipantsBulk = async (req, res) => {
       }
     }
 
-    // 4. Actualizar contadores del curso
+    // 4. Actualizar contadores del curso: incrementa num_registered (pendientes de facturación)
     if (newlyEnrolledCount > 0 && course.Detail) {
-      const curEnrolled = course.Detail.num_enrolled || 0;
       const curRegistered = course.Detail.num_registered || 0;
       await course.Detail.update({
-        num_enrolled: curEnrolled + newlyEnrolledCount,
         num_registered: curRegistered + newlyEnrolledCount,
         updated_at: new Date(),
       });
@@ -1610,7 +1623,7 @@ export const getCertificates = async (req, res) => {
 export const addCourseChapter = async (req, res) => {
   try {
     const { id } = req.params;
-    const { chapter_name, hours = 2 } = req.body;
+    const { chapter_name, hours = 2, main_topics = null, modality = 'Virtual', activity = null, start_date = null } = req.body;
 
     if (!chapter_name) {
       return res.status(400).json({ message: "El nombre del capítulo es obligatorio." });
@@ -1624,6 +1637,10 @@ export const addCourseChapter = async (req, res) => {
     const chapter = await Chapter.create({
       chapter_name,
       hours: Number(hours) || 2,
+      main_topics: main_topics ? main_topics.trim() : null,
+      modality: modality || 'Virtual',
+      activity: activity ? activity.trim() : null,
+      start_date: start_date ? new Date(start_date) : null,
       created_at: new Date(),
       updated_at: new Date(),
     });
@@ -1648,7 +1665,7 @@ export const addCourseChapter = async (req, res) => {
 export const updateCourseChapter = async (req, res) => {
   try {
     const { id, chapterId } = req.params;
-    const { chapter_name, hours } = req.body;
+    const { chapter_name, hours, main_topics, modality, activity, start_date } = req.body;
 
     const chapter = await Chapter.findByPk(chapterId);
     if (!chapter) {
@@ -1657,6 +1674,10 @@ export const updateCourseChapter = async (req, res) => {
 
     if (chapter_name) chapter.chapter_name = chapter_name;
     if (hours !== undefined) chapter.hours = Number(hours);
+    if (main_topics !== undefined) chapter.main_topics = main_topics ? main_topics.trim() : null;
+    if (modality !== undefined) chapter.modality = modality;
+    if (activity !== undefined) chapter.activity = activity ? activity.trim() : null;
+    if (start_date !== undefined) chapter.start_date = start_date ? new Date(start_date) : null;
     chapter.updated_at = new Date();
     await chapter.save();
 
@@ -1744,5 +1765,383 @@ export const loadDefaultCourseChapters = async (req, res) => {
   } catch (error) {
     console.error("Error al cargar capítulos base:", error);
     return res.status(500).json({ message: "Error al cargar capítulos base.", error: error.message });
+  }
+};
+
+export const getCoursePayments = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const payments = await Payment.findAll({
+      where: { course_id: id },
+      include: [
+        { model: PaymentType },
+        {
+          model: CourseParticipant,
+          include: [{ model: Participant, attributes: ['participant_id', 'name', 'cid', 'email'] }],
+        },
+      ],
+      order: [["created_at", "DESC"]],
+    });
+
+    return res.status(200).json({ payments });
+  } catch (error) {
+    console.error("Error al obtener pagos del curso:", error);
+    return res.status(500).json({ message: "Error al obtener pagos.", error: error.message });
+  }
+};
+
+export const validateParticipantPayment = async (req, res) => {
+  try {
+    const { id, participantId } = req.params;
+    const {
+      invoice_number,
+      invoice_date,
+      payer_cid_ruc,
+      payer_name,
+      subtotal,
+      iva,
+      amount,
+      project_code = "0607",
+      payment_type_id = 1,
+      enrolled = true,
+    } = req.body;
+
+    const course = await Course.findByPk(id, { include: [{ model: Detail }] });
+    if (!course) {
+      return res.status(404).json({ message: "Curso no encontrado." });
+    }
+
+    const cp = await CourseParticipant.findOne({
+      where: { course_id: id, participant_id: participantId },
+    });
+    if (!cp) {
+      return res.status(404).json({ message: "El participante no está inscrito en este curso." });
+    }
+
+    const wasEnrolledBefore = Boolean(cp.enrolled);
+
+    if (!invoice_number || !String(invoice_number).trim()) {
+      return res.status(400).json({ message: "Debe ingresar el número de factura para registrar la matrícula." });
+    }
+
+    const cleanInvoice = String(invoice_number).trim();
+    const cleanDate = invoice_date || new Date().toISOString().split("T")[0];
+
+    // 1. Buscar si ya existe la factura en la base de datos de pagos
+    let payment = await Payment.findOne({
+      where: { invoice_number: cleanInvoice },
+    });
+
+    if (payment) {
+      // Si la factura ya existía en pagos, actualizamos datos si se proporcionaron y vinculamos al curso
+      const updates = {};
+      if (!payment.course_id) updates.course_id = id;
+      if (payer_name && payer_name.trim()) updates.payer_name = payer_name.trim();
+      if (payer_cid_ruc && payer_cid_ruc.trim()) updates.payer_cid_ruc = payer_cid_ruc.trim();
+      if (invoice_date) updates.invoice_date = invoice_date;
+      if (amount !== undefined && amount !== null && !isNaN(amount)) {
+        updates.amount = parseFloat(amount);
+        updates.subtotal = parseFloat((parseFloat(amount) / 1.15).toFixed(2));
+        updates.iva = parseFloat((parseFloat(amount) - updates.subtotal).toFixed(2));
+      }
+      if (Object.keys(updates).length > 0) {
+        await payment.update(updates);
+      }
+    } else {
+      // Si no existe previamente en pagos, creamos el registro de pago con los datos mínimos esenciales
+      const participant = await Participant.findByPk(participantId);
+      const finalAmount = amount !== undefined && amount !== null && !isNaN(amount) ? parseFloat(amount) : 69.0;
+      const finalSubtotal = subtotal !== undefined && subtotal !== null && !isNaN(subtotal)
+        ? parseFloat(subtotal)
+        : parseFloat((finalAmount / 1.15).toFixed(2));
+      const finalIva = iva !== undefined && iva !== null && !isNaN(iva)
+        ? parseFloat(iva)
+        : parseFloat((finalAmount - finalSubtotal).toFixed(2));
+
+      payment = await Payment.create({
+        invoice_number: cleanInvoice,
+        invoice_date: cleanDate,
+        payer_cid_ruc: payer_cid_ruc || participant?.cid || "",
+        payer_name: payer_name || participant?.name || "",
+        subtotal: finalSubtotal,
+        iva: finalIva,
+        amount: finalAmount,
+        project_code: project_code || "0607",
+        course_id: id,
+        payment_type_id: payment_type_id || 1,
+        description: `Pago matrícula - Factura ${cleanInvoice}`,
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+    }
+
+    // Vincular la relación en ParticipantPayment
+    await ParticipantPayment.findOrCreate({
+      where: { participant_id: participantId, payment_id: payment.payment_id },
+      defaults: { participant_id: participantId, payment_id: payment.payment_id },
+    });
+
+    // 2. Actualizar CourseParticipant formalizando la matrícula
+    const newEnrolledState = enrolled !== undefined ? Boolean(enrolled) : true;
+    await cp.update({
+      payment_id: newEnrolledState ? payment.payment_id : null,
+      invoice_number: newEnrolledState ? payment.invoice_number : null,
+      total_payment: newEnrolledState ? payment.amount : 0.0,
+      validation_date: newEnrolledState ? (payment.invoice_date || cleanDate) : null,
+      enrolled: newEnrolledState,
+      updated_at: new Date(),
+    });
+
+    // 3. Actualizar num_enrolled en Detail si cambió de Inscrito a Matriculado
+    if (course.Detail) {
+      if (!wasEnrolledBefore && newEnrolledState) {
+        await course.Detail.update({
+          num_enrolled: (course.Detail.num_enrolled || 0) + 1,
+          updated_at: new Date(),
+        });
+      } else if (wasEnrolledBefore && !newEnrolledState) {
+        await course.Detail.update({
+          num_enrolled: Math.max(0, (course.Detail.num_enrolled || 1) - 1),
+          updated_at: new Date(),
+        });
+      }
+    }
+
+    return res.status(200).json({
+      message: newEnrolledState
+        ? `Estudiante matriculado exitosamente con la factura N° ${payment.invoice_number}.`
+        : "Registro de pago actualizado.",
+      payment,
+      courseParticipant: cp,
+    });
+  } catch (error) {
+    console.error("Error al validar pago y matrícula:", error);
+    return res.status(500).json({ message: "Error al validar pago.", error: error.message });
+  }
+};
+
+export const importInvoicesBulk = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { invoices = [] } = req.body;
+
+    if (!Array.isArray(invoices) || invoices.length === 0) {
+      return res.status(400).json({ message: "No se proporcionaron registros de facturas." });
+    }
+
+    const course = await Course.findByPk(id, {
+      include: [{ model: Detail }, { model: Participant }],
+    });
+    if (!course) {
+      return res.status(404).json({ message: "Curso no encontrado." });
+    }
+
+    let newlyMatchedCount = 0;
+    let createdPaymentsCount = 0;
+    const unmatchedInvoices = [];
+
+    const existingParticipants = course.Participants || [];
+
+    for (const inv of invoices) {
+      const invoiceNumber = String(inv.factura || inv.invoice_number || "").trim();
+      if (!invoiceNumber) continue;
+
+      const rawDate = inv.fecha || inv.date;
+      let invoiceDate = null;
+      if (rawDate) {
+        const d = new Date(rawDate);
+        if (!isNaN(d.getTime())) invoiceDate = d.toISOString().split("T")[0];
+      }
+      if (!invoiceDate) invoiceDate = new Date().toISOString().split("T")[0];
+
+      const ruc = String(inv.ruc || inv.cedula || inv.ci || "").trim();
+      const payerName = String(inv.apellidos_empresa || inv.apellidos || inv.payer_name || "").trim() +
+        (inv.nombre ? " " + String(inv.nombre).trim() : "");
+      const subtotal = parseFloat(inv.v_total || inv.subtotal || 60.0);
+      const iva = parseFloat(inv.iva || 9.0);
+      const totalAmount = parseFloat(inv.total || inv.amount || (subtotal + iva));
+      const projectCode = String(inv.proyecto || "0607").trim();
+
+      // Guardar o actualizar registro de Pago
+      let [payment, created] = await Payment.findOrCreate({
+        where: { invoice_number: invoiceNumber, course_id: id },
+        defaults: {
+          invoice_date: invoiceDate,
+          payer_cid_ruc: ruc,
+          payer_name: payerName,
+          subtotal,
+          iva,
+          amount: totalAmount,
+          project_code: projectCode,
+          course_id: id,
+          payment_type_id: 1,
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+      });
+
+      if (!created) {
+        await payment.update({
+          invoice_date: invoiceDate,
+          payer_cid_ruc: ruc || payment.payer_cid_ruc,
+          payer_name: payerName || payment.payer_name,
+          subtotal,
+          iva,
+          amount: totalAmount,
+          project_code: projectCode,
+          updated_at: new Date(),
+        });
+      } else {
+        createdPaymentsCount++;
+      }
+
+      // Intentar vincular automáticamente con estudiante inscrito
+      // 1. Coincidencia por RUC/Cédula
+      let matchedParticipant = existingParticipants.find(
+        (p) => String(p.cid).trim() === ruc
+      );
+
+      // 2. Coincidencia por Apellidos/Nombres si no coincidió cédula (ej. pagó con RUC de empresa o padre pero el nombre contiene el apellido)
+      if (!matchedParticipant && payerName.length > 5) {
+        const words = payerName.toLowerCase().split(" ").filter((w) => w.length > 3);
+        matchedParticipant = existingParticipants.find((p) => {
+          const pName = (p.name || "").toLowerCase();
+          return words.filter((w) => pName.includes(w)).length >= 2;
+        });
+      }
+
+      if (matchedParticipant) {
+        const cp = await CourseParticipant.findOne({
+          where: { course_id: id, participant_id: matchedParticipant.participant_id },
+        });
+
+        if (cp) {
+          const wasEnrolled = Boolean(cp.enrolled);
+          await cp.update({
+            payment_id: payment.payment_id,
+            invoice_number: invoiceNumber,
+            total_payment: totalAmount,
+            validation_date: invoiceDate,
+            enrolled: true,
+            updated_at: new Date(),
+          });
+
+          if (!wasEnrolled && course.Detail) {
+            await course.Detail.update({
+              num_enrolled: (course.Detail.num_enrolled || 0) + 1,
+              updated_at: new Date(),
+            });
+          }
+          newlyMatchedCount++;
+        }
+      } else {
+        unmatchedInvoices.push({
+          invoice_number: invoiceNumber,
+          payer_name: payerName,
+          payer_cid_ruc: ruc,
+          amount: totalAmount,
+        });
+      }
+    }
+
+    return res.status(200).json({
+      message: `Procesadas ${invoices.length} facturas: ${newlyMatchedCount} estudiantes matriculados automáticamente.`,
+      createdPaymentsCount,
+      newlyMatchedCount,
+      unmatchedCount: unmatchedInvoices.length,
+      unmatchedInvoices,
+    });
+  } catch (error) {
+    console.error("Error al importar reporte de facturación:", error);
+    return res.status(500).json({ message: "Error al importar facturas.", error: error.message });
+  }
+};
+
+export const downloadCourseDocumentDocx = async (req, res) => {
+  try {
+    const { id, docType } = req.params;
+
+    const course = await Course.findOne({
+      where: { course_id: id },
+      include: [
+        {
+          model: Detail,
+          include: [
+            { model: DetailValues },
+            { model: Instructor },
+            { model: Modality, through: { attributes: [] } },
+            { model: Schedule, through: { attributes: [] } },
+            { model: Cost, through: { attributes: [] } },
+          ],
+        },
+        {
+          model: Participant,
+          include: [{ model: ParticipantType }],
+        },
+        {
+          model: Chapter,
+          through: { attributes: [] },
+        },
+        {
+          model: Payment,
+        },
+      ],
+      order: [[Chapter, "chapter_id", "ASC"]],
+    });
+
+    if (!course) {
+      return res.status(404).json({ message: "Edición de curso no encontrada." });
+    }
+
+    let buffer;
+    let filename;
+    const cleanCourseName = (course.course_name || "Curso").replace(/[^a-zA-Z0-9_-]/g, "_");
+    const normalizedDocType = (docType || "").toLowerCase();
+
+    if (
+      normalizedDocType === "planificacion" ||
+      normalizedDocType === "planificacion-de-curso" ||
+      normalizedDocType === "planificacion_curso" ||
+      normalizedDocType === "memo_planificacion"
+    ) {
+      buffer = await generatePlanificacionDocx(course);
+      filename = `Planificacion_${cleanCourseName}.docx`;
+    } else if (
+      normalizedDocType === "cronograma" ||
+      normalizedDocType === "cronograma-de-actividades" ||
+      normalizedDocType === "cronograma_actividades"
+    ) {
+      buffer = await generateCronogramaDocx(course);
+      filename = `Cronograma_${cleanCourseName}.docx`;
+    } else if (
+      normalizedDocType === "informe" ||
+      normalizedDocType === "informe-final" ||
+      normalizedDocType === "informe-final-del-curso" ||
+      normalizedDocType === "informe_final" ||
+      normalizedDocType === "memo_cierre"
+    ) {
+      buffer = await generateInformeFinalDocx(course);
+      filename = `InformeFinal_${cleanCourseName}.docx`;
+    } else {
+      return res.status(400).json({
+        message: `El tipo de documento '${docType}' no cuenta con plantilla de generación DOCX.`,
+      });
+    }
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${filename}"`
+    );
+    return res.send(buffer);
+  } catch (error) {
+    console.error("Error al exportar documento DOCX:", error);
+    return res
+      .status(500)
+      .json({ message: "Error al generar el documento DOCX.", error: error.message });
   }
 };

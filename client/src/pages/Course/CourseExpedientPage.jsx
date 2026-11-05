@@ -7,6 +7,7 @@ import {
   removeCourseParticipantRequest,
   reopenCourseEditionRequest,
   removeCourseChapterRequest,
+  downloadCourseDocumentDocxRequest,
 } from "../../api/course";
 import { getInstructorsDropdownRequest } from "../../api/instructor";
 import { getModalitiesDropdownRequest } from "../../api/modality";
@@ -16,6 +17,7 @@ import EditAcademicRecordModal from "../../components/course/EditAcademicRecordM
 import CourseClosureValidationModal from "../../components/course/CourseClosureValidationModal";
 import EditParticipantProfileModal from "../../components/course/EditParticipantProfileModal";
 import EditChapterModal from "../../components/course/EditChapterModal";
+import ValidatePaymentModal from "../../components/course/ValidatePaymentModal";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faArrowLeft,
@@ -56,6 +58,8 @@ import {
   faUserEdit,
   faCity,
   faBuilding,
+  faFileInvoiceDollar,
+  faFileWord,
 } from "@fortawesome/free-solid-svg-icons";
 
 function CourseExpedientPage() {
@@ -77,6 +81,7 @@ function CourseExpedientPage() {
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
   const [selectedParticipantForEdit, setSelectedParticipantForEdit] = useState(null);
   const [selectedParticipantForProfileEdit, setSelectedParticipantForProfileEdit] = useState(null);
+  const [selectedParticipantForPayment, setSelectedParticipantForPayment] = useState(null);
   const [isClosureModalOpen, setIsClosureModalOpen] = useState(false);
   const [isChapterModalOpen, setIsChapterModalOpen] = useState(false);
   const [selectedChapterForEdit, setSelectedChapterForEdit] = useState(null);
@@ -328,15 +333,106 @@ function CourseExpedientPage() {
     });
   };
 
+  const [downloadingDocxId, setDownloadingDocxId] = useState(null);
+
+  const handleDirectDownloadDocx = async (docId) => {
+    try {
+      setDownloadingDocxId(docId);
+      const response = await downloadCourseDocumentDocxRequest(id, docId);
+      const blob = new Blob([response.data], {
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const cleanName = (course?.course_name || "Curso").replace(/[^a-zA-Z0-9_-]/g, "_");
+      a.download = `${docId}_${cleanName}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      Swal.fire({
+        icon: "success",
+        title: "¡Documento Word Generado!",
+        text: "El archivo editable se ha descargado correctamente (.docx).",
+        confirmButtonColor: "#6cc24a",
+        timer: 3000,
+      });
+    } catch (err) {
+      console.error("Error al descargar DOCX:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Error al exportar",
+        text: err.response?.data?.message || "No se pudo generar el archivo DOCX.",
+      });
+    } finally {
+      setDownloadingDocxId(null);
+    }
+  };
+
   const documents = [
-    { name: "Planificación de Curso", desc: "Desglose horario, tarifas y honorarios docentes", icon: faClipboardCheck, status: "Disponible" },
-    { name: "Cronograma de Actividades", desc: "Calendario de sesiones presenciales/virtuales", icon: faCalendarAlt, status: "Disponible" },
-    { name: "Formulario de Inscripción", desc: "Ficha de datos y registro de participantes", icon: faFileAlt, status: "Disponible" },
-    { name: "Reporte de Facturación", desc: "Comprobantes y validación de cobros UTN", icon: faFileInvoice, status: "Pendiente" },
-    { name: "Tabulador de Calificaciones", desc: "Checkpoints, PTSA, examen práctico y final", icon: faChartBar, status: "Pendiente" },
-    { name: "Informe Final del Curso", desc: "Acta oficial firmada de aprobación y cumplimiento", icon: faFilePdf, status: "Pendiente" },
-    { name: "Memorando de Planificación", desc: "Documento oficial remitido a Decanato", icon: faFileContract, status: "Pendiente" },
-    { name: "Memorando de Cierre", desc: "Solicitud de pago de honorarios y entrega de certificados", icon: faFileSignature, status: "Pendiente" },
+    {
+      id: "planificacion",
+      name: "Planificación de Curso",
+      desc: "Estructura reglamentaria de 10 puntos, contenidos, honorarios y carga horaria oficial",
+      icon: faClipboardCheck,
+      status: "Disponible",
+      hasDocx: true,
+    },
+    {
+      id: "cronograma",
+      name: "Cronograma de Actividades",
+      desc: "Distribución de sesiones síncronas, prácticas en Lab #4 y evaluaciones NetAcad",
+      icon: faCalendarAlt,
+      status: "Disponible",
+      hasDocx: true,
+    },
+    {
+      id: "informe",
+      name: "Informe Final del Curso",
+      desc: "Memorando de cierre a Decanatura, nómina de participantes y balance financiero",
+      icon: faFilePdf,
+      status: "Disponible",
+      hasDocx: true,
+    },
+    {
+      id: "formulario",
+      name: "Formulario de Inscripción",
+      desc: "Ficha de datos y registro de participantes",
+      icon: faFileAlt,
+      status: "Disponible",
+    },
+    {
+      id: "facturacion",
+      name: "Reporte de Facturación",
+      desc: "Comprobantes y validación de cobros UTN",
+      icon: faFileInvoice,
+      status: "Disponible",
+    },
+    {
+      id: "calificaciones",
+      name: "Tabulador de Calificaciones",
+      desc: "Checkpoints, PTSA, examen práctico y final",
+      icon: faChartBar,
+      status: "Disponible",
+    },
+    {
+      id: "memo_planificacion",
+      name: "Memorando de Planificación",
+      desc: "Documento oficial remitido a Decanato para apertura de curso",
+      icon: faFileContract,
+      status: "Disponible",
+      hasDocx: true,
+    },
+    {
+      id: "memo_cierre",
+      name: "Memorando de Cierre",
+      desc: "Solicitud de pago de honorarios docentes y entrega de certificados",
+      icon: faFileSignature,
+      status: "Disponible",
+      hasDocx: true,
+    },
   ];
 
   if (loading) {
@@ -857,7 +953,23 @@ function CourseExpedientPage() {
                       <FontAwesomeIcon icon={faEye} />
                       Ver documento
                     </span>
-                    <span className="text-slate-400 font-mono text-[11px]">UTN / NetAcad</span>
+                    {doc.hasDocx && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDirectDownloadDocx(doc.id);
+                        }}
+                        disabled={downloadingDocxId === doc.id}
+                        className="px-2.5 py-1 text-[11px] font-bold bg-[#005073]/10 hover:bg-[#005073] text-[#005073] hover:text-white rounded-lg transition-colors flex items-center gap-1 shadow-xs"
+                        title="Descargar versión Microsoft Word (.docx) editable"
+                      >
+                        <FontAwesomeIcon
+                          icon={downloadingDocxId === doc.id ? faSpinner : faFileWord}
+                          className={downloadingDocxId === doc.id ? "animate-spin" : ""}
+                        />
+                        Word (.docx)
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -878,7 +990,7 @@ function CourseExpedientPage() {
                 </p>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => setIsEnrollModalOpen(true)}
                   className="px-4 py-2 text-xs font-semibold text-white bg-[#6cc24a] hover:bg-[#5aad3a] rounded-xl transition-all shadow-sm flex items-center gap-2"
@@ -902,9 +1014,7 @@ function CourseExpedientPage() {
                 <p className="text-xl font-bold text-[#3a8c25] mt-1">
                   {
                     participants.filter((p) =>
-                      p.CourseParticipant?.enrolled !== undefined
-                        ? p.CourseParticipant.enrolled
-                        : p.enrolled
+                      Boolean(p.CourseParticipant?.enrolled && p.CourseParticipant?.invoice_number)
                     ).length
                   }
                 </p>
@@ -982,9 +1092,23 @@ function CourseExpedientPage() {
                   Matriculados (
                   {
                     participants.filter((p) =>
-                      p.CourseParticipant?.enrolled !== undefined
-                        ? p.CourseParticipant.enrolled
-                        : p.enrolled
+                      Boolean(p.CourseParticipant?.enrolled && p.CourseParticipant?.invoice_number)
+                    ).length
+                  }
+                  )
+                </button>
+                <button
+                  onClick={() => setParticipantFilter("inscribed")}
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+                    participantFilter === "inscribed"
+                      ? "bg-amber-600 text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  Solo Inscritos (
+                  {
+                    participants.filter((p) =>
+                      !Boolean(p.CourseParticipant?.enrolled && p.CourseParticipant?.invoice_number)
                     ).length
                   }
                   )
@@ -1037,16 +1161,14 @@ function CourseExpedientPage() {
                           (p.degree || "").toLowerCase().includes(term);
                         if (!matchSearch) return false;
 
-                        const isEnr =
-                          p.CourseParticipant?.enrolled !== undefined
-                            ? p.CourseParticipant.enrolled
-                            : p.enrolled;
+                        const isEnr = Boolean(p.CourseParticipant?.enrolled && p.CourseParticipant?.invoice_number);
                         const isApp =
                           p.CourseParticipant?.approval !== undefined
                             ? p.CourseParticipant.approval
                             : p.approval;
 
                         if (participantFilter === "enrolled") return isEnr;
+                        if (participantFilter === "inscribed") return !isEnr;
                         if (participantFilter === "approved") return isApp;
                         return true;
                       })
@@ -1055,9 +1177,8 @@ function CourseExpedientPage() {
                         const pPayment =
                           cp.total_payment !== null && cp.total_payment !== undefined
                             ? cp.total_payment
-                            : p.total_payment || 0.0;
-                        const pEnrolled =
-                          cp.enrolled !== undefined ? cp.enrolled : p.enrolled;
+                            : 0.0;
+                        const pEnrolled = Boolean(cp.enrolled && cp.invoice_number);
                         const pApproved =
                           cp.approval !== undefined ? cp.approval : p.approval;
                         const pGrade = cp.grade_final;
@@ -1112,18 +1233,29 @@ function CourseExpedientPage() {
                                 className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
                                   pEnrolled
                                     ? "bg-[#edf7e6] text-[#3a8c25] border-green-200"
-                                    : "bg-gray-100 text-slate-500 border-gray-200"
+                                    : "bg-amber-50 text-amber-700 border-amber-200"
                                 }`}
                               >
                                 <FontAwesomeIcon
-                                  icon={pEnrolled ? faCheckCircle : faTimesCircle}
+                                  icon={pEnrolled ? faCheckCircle : faHourglassHalf}
                                   className="text-[10px]"
                                 />
-                                {pEnrolled ? "Matriculado" : "Pendiente"}
+                                {pEnrolled ? "Matriculado" : "Inscrito (Pendiente)"}
                               </span>
                             </td>
-                            <td className="px-4 py-3 text-center font-semibold text-slate-700">
-                              ${Number(pPayment).toFixed(2)} USD
+                            <td className="px-4 py-3 text-center">
+                              <p className="font-semibold text-slate-800 text-xs">
+                                ${Number(pPayment).toFixed(2)} USD
+                              </p>
+                              {cp.invoice_number ? (
+                                <span className="inline-block px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 font-mono text-[10px] mt-0.5" title={`Validado: ${cp.validation_date || 'S/F'}`}>
+                                  Fact: {cp.invoice_number}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-amber-600 font-medium block">
+                                  Sin Factura
+                                </span>
+                              )}
                             </td>
                             <td className="px-4 py-3 text-center">
                               {pGrade !== null && pGrade !== undefined ? (
@@ -1146,8 +1278,15 @@ function CourseExpedientPage() {
                             </td>
                             <td className="px-4 py-3 text-right">
                               <button
+                                onClick={() => setSelectedParticipantForPayment(p)}
+                                title="Validar factura de cobro y matricular"
+                                className="text-slate-500 hover:text-emerald-600 p-1.5 rounded-lg hover:bg-emerald-50 transition-colors mr-1"
+                              >
+                                <FontAwesomeIcon icon={faFileInvoiceDollar} />
+                              </button>
+                              <button
                                 onClick={() => setSelectedParticipantForEdit(p)}
-                                title="Calificar y registrar pago para esta edición"
+                                title="Calificar rendimiento NetAcad"
                                 className="text-slate-500 hover:text-[#049fd9] p-1.5 rounded-lg hover:bg-blue-50 transition-colors mr-1"
                               >
                                 <FontAwesomeIcon icon={faEdit} />
@@ -1476,6 +1615,15 @@ function CourseExpedientPage() {
           courseId={id}
           chapter={selectedChapterForEdit}
           onSaved={loadExpedient}
+        />
+
+        {/* Modal para Validar Factura y Promover a Matriculado */}
+        <ValidatePaymentModal
+          isOpen={Boolean(selectedParticipantForPayment)}
+          onClose={() => setSelectedParticipantForPayment(null)}
+          courseId={id}
+          participant={selectedParticipantForPayment}
+          onValidated={loadExpedient}
         />
       </div>
     </div>

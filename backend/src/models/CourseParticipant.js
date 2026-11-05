@@ -36,9 +36,24 @@ const CourseParticipant = sequelize.define(
       defaultValue: 0.0,
       field: "total_payment",
     },
+    invoice_number: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      field: "invoice_number",
+    },
+    payment_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: "payment_id",
+    },
+    validation_date: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+      field: "validation_date",
+    },
     enrolled: {
       type: DataTypes.BOOLEAN,
-      defaultValue: true,
+      defaultValue: false,
       field: "enrolled",
     },
     approval: {

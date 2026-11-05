@@ -25,6 +25,10 @@ import {
   updateCourseChapter,
   removeCourseChapter,
   loadDefaultCourseChapters,
+  getCoursePayments,
+  validateParticipantPayment,
+  importInvoicesBulk,
+  downloadCourseDocumentDocx,
 } from "../../controllers/api_controllers/course.controller.js";
 
 const router = Router();
@@ -47,6 +51,10 @@ router.post("/course/:id/chapter", addCourseChapter);
 router.put("/course/:id/chapter/:chapterId", updateCourseChapter);
 router.delete("/course/:id/chapter/:chapterId", removeCourseChapter);
 router.post("/course/:id/load-default-chapters", loadDefaultCourseChapters);
+router.get("/course/:id/payments", getCoursePayments);
+router.get("/course/:id/document/:docType/docx", downloadCourseDocumentDocx);
+router.put("/course/:id/participant/:participantId/validate-payment", validateParticipantPayment);
+router.post("/course/:id/import-invoices", importInvoicesBulk);
 router.get("/course/:id", getCourseById);
 router.get("/courses-dropdown", getCoursesDropdown);
 router.get("/courses-certificate/:id", getCertificates);
