@@ -33,6 +33,7 @@ import {
   faFileContract,
   faFilePdf,
   faFileSignature,
+  faAward,
   faChartBar,
   faCheckCircle,
   faTimesCircle,
@@ -391,8 +392,16 @@ function CourseExpedientPage() {
     {
       id: "informe",
       name: "Informe Final del Curso",
-      desc: "Memorando de cierre a Decanatura, nómina de participantes y balance financiero",
+      desc: "Informe técnico oficial de la Academia Cisco con cronograma, contenidos, evaluaciones y anexos",
       icon: faFilePdf,
+      status: "Disponible",
+      hasDocx: true,
+    },
+    {
+      id: "reporte_aprobados",
+      name: "Reporte de Estudiantes Aprobados",
+      desc: "Nómina oficial y acta de estudiantes aprobados con calificaciones finales y certificados",
+      icon: faAward,
       status: "Disponible",
       hasDocx: true,
     },
@@ -402,6 +411,7 @@ function CourseExpedientPage() {
       desc: "Ficha de datos y registro de participantes",
       icon: faFileAlt,
       status: "Disponible",
+      hidden: true,
     },
     {
       id: "facturacion",
@@ -409,6 +419,7 @@ function CourseExpedientPage() {
       desc: "Comprobantes y validación de cobros UTN",
       icon: faFileInvoice,
       status: "Disponible",
+      hidden: true,
     },
     {
       id: "calificaciones",
@@ -416,6 +427,7 @@ function CourseExpedientPage() {
       desc: "Checkpoints, PTSA, examen práctico y final",
       icon: faChartBar,
       status: "Disponible",
+      hidden: true,
     },
     {
       id: "memo_planificacion",
@@ -424,6 +436,7 @@ function CourseExpedientPage() {
       icon: faFileContract,
       status: "Disponible",
       hasDocx: true,
+      hidden: true,
     },
     {
       id: "memo_cierre",
@@ -432,6 +445,7 @@ function CourseExpedientPage() {
       icon: faFileSignature,
       status: "Disponible",
       hasDocx: true,
+      hidden: true,
     },
   ];
 
@@ -915,12 +929,20 @@ function CourseExpedientPage() {
         {activeTab === "documents" && (
           <div className="mb-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {documents.map((doc, index) => (
+              {documents
+                .filter((doc) => !doc.hidden)
+                .map((doc, index) => (
                 <div
                   key={index}
-                  onClick={() => setSelectedDocForPreview(doc)}
+                  onClick={() => {
+                    if (["planificacion", "cronograma", "informe"].includes(doc.id)) {
+                      handleDirectDownloadDocx(doc.id);
+                    } else {
+                      setSelectedDocForPreview(doc);
+                    }
+                  }}
                   className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 hover:shadow-md hover:border-[#6cc24a] transition-all group cursor-pointer flex flex-col justify-between"
-                  title="Haga clic para ver o imprimir el documento oficial"
+                  title={["planificacion", "cronograma", "informe"].includes(doc.id) ? "Haga clic para descargar el documento Word (.docx)" : "Haga clic para ver o imprimir el documento oficial"}
                 >
                   <div>
                     <div className="flex items-start justify-between mb-3">
@@ -949,10 +971,14 @@ function CourseExpedientPage() {
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center text-xs">
-                    <span className="text-[#049fd9] font-semibold group-hover:underline flex items-center gap-1.5">
-                      <FontAwesomeIcon icon={faEye} />
-                      Ver documento
-                    </span>
+                    {["planificacion", "cronograma", "informe"].includes(doc.id) ? (
+                      <div />
+                    ) : (
+                      <span className="text-[#049fd9] font-semibold group-hover:underline flex items-center gap-1.5">
+                        <FontAwesomeIcon icon={faEye} />
+                        Ver documento
+                      </span>
+                    )}
                     {doc.hasDocx && (
                       <button
                         onClick={(e) => {
@@ -1190,13 +1216,13 @@ function CourseExpedientPage() {
                             key={p.participant_id}
                             className="border-b border-gray-100 hover:bg-slate-50 transition-colors"
                           >
-                            <td className="px-4 py-3 font-semibold text-slate-800">
+                            <td className="px-4 py-3 font-semibold text-slate-800 min-w-[200px]">
                               <div className="flex items-center gap-2.5">
                                 <div className="w-8 h-8 rounded-full bg-[#005073]/10 text-[#005073] font-bold text-xs flex items-center justify-center flex-shrink-0">
                                   {p.name ? p.name.charAt(0) : "E"}
                                 </div>
                                 <div>
-                                  <p className="line-clamp-1 text-slate-900 font-semibold">{p.name}</p>
+                                  <p className="text-slate-900 font-semibold">{p.name}</p>
                                   <p className="text-[11px] text-slate-400 font-normal">
                                     {p.email || (p.phone && p.phone !== "sin registro" ? p.phone : "Sin correo registrado")}
                                   </p>

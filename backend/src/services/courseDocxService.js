@@ -611,7 +611,7 @@ export async function generatePlanificacionDocx(course) {
   const estimatedPay = (instructorHours * costPerHour).toFixed(2);
   const modalityStr = modalities.length > 0 ? modalities.map((m) => m.name).join(", ") : "híbrida";
 
-  let scheduleText = "15 clases virtuales con instructor martes y jueves de 19h00 a 22h00,\n1 clase presencial con instructor sábado de 8h00 a 13h00";
+  let scheduleText = "—";
   if (schedules.length > 0) {
     const formattedSchedules = schedules
       .map((s) => `${s.day_of_week || s.name || "Horario"}: ${s.start_time || ""} - ${s.end_time || ""}`.trim())
@@ -621,7 +621,7 @@ export async function generatePlanificacionDocx(course) {
     }
   }
 
-  let costText = "Estudiantes, egresados, graduados y funcionarios de la UTN: 60,00 USD más el IVA\nParticulares: 100,00 USD más el IVA";
+  let costText = "—";
   if (costs.length > 0) {
     costText = costs
       .map((c) => `${c.cost_type || c.name || "Matrícula"}: ${Number(c.cost || 0).toFixed(2)} USD más el IVA`)
@@ -629,16 +629,16 @@ export async function generatePlanificacionDocx(course) {
   }
 
   const generalInfoItems = [
-    ["Nombre del curso:", course.course_name || "Curso Oficial Cisco"],
-    ["Área temática:", "Redes"],
+    ["Nombre del curso:", course.course_name || "—"],
+    ["Área temática:", detail.subject_area || detail.area || "—"],
     ["Duración total:", `${totalHours} horas`],
-    ["Modalidad:", modalityStr.toLowerCase()],
+    ["Modalidad:", modalities.length > 0 ? modalityStr.toLowerCase() : "—"],
     ["Fecha de inicio y fin:", `${formatDate(course.start_date)} - ${formatDate(course.end_date)}`],
     ["Horario propuesto:", scheduleText],
-    ["Dirigido a:", "público general"],
-    ["Número de participantes:", "15-30"],
+    ["Dirigido a:", detail.target_audience || "—"],
+    ["Número de participantes:", String(course.Participants?.length || "—")],
     ["Costo:", costText],
-    ["Formas de pago:", "contado/dos pagos"],
+    ["Formas de pago:", detail.payment_methods || "—"],
     ["Responsable académico del curso:", "MSc. Ludmila Starodub"],
   ];
 
@@ -710,35 +710,14 @@ export async function generatePlanificacionDocx(course) {
 
           createSectionHeading("5. Metodología de Enseñanza-Aprendizaje"),
           createParagraph("Estrategias didácticas:", true),
-          createParagraph("Clases magistrales virtuales: Explicación teórica de conceptos clave mediante presentaciones interactivas y videos de Cisco."),
-          createParagraph("Talleres prácticos:"),
-          createBulletItem("Presenciales", "Configuración de equipos físicos (routers, switches, dispositivos inalámbricos) en el laboratorio #4 de la FICA."),
-          createBulletItem("Virtuales", "Simulaciones en Packet Tracer 8.0 (Modo Físico - PTPM) para prácticas remotas."),
-          createParagraph("Estudios de caso: Análisis de escenarios reales de redes empresariales para aplicar soluciones de switching y routing"),
-          createParagraph("Aprendizaje colaborativo: Trabajo en grupos para resolver problemas de configuración y troubleshooting."),
-
+          ...createBlankSpace(4),
           createParagraph("Recursos y herramientas:", true),
-          createParagraph("Tecnológicos:"),
-          createBulletItem("Plataforma", "Cisco NetAcad (www.netacad.com) para acceso a materiales, laboratorios y evaluaciones."),
-          createBulletItem("Simulador", "Packet Tracer 8.0 (64-bit) para simulaciones."),
-          createBulletItem("Videoconferencias", "Webex para clases virtuales síncronas."),
-          createParagraph("Pedagógicos:"),
-          createBulletItem("Guías", "Guías de laboratorio paso a paso."),
-          createBulletItem("Videos", "Videos demostrativos de Cisco."),
-          createBulletItem("Interactivas", "Actividades interactivas (ej. verificadores de sintaxis, VSCs)."),
-
+          ...createBlankSpace(4),
           createParagraph("Evaluación del aprendizaje:", true),
-          createParagraph("Formativa:"),
-          createBulletItem("VSC", "Verifique su Comprensión (VSC): Autoevaluaciones por módulo."),
-          createBulletItem("Laboratorios", "Laboratorios y Packet Tracer: Entregables semanales."),
-          createParagraph("Sumativa:"),
-          createBulletItem("Exámenes de módulo", "Exámenes por módulo (5 en total). Valoración 30%"),
-          createBulletItem("Habilidades y PT", "Practicas continuas PT o Equipos Fisicos y Examen de habiliadades - PTSA (Packet Tracer Skills Assessment). Valoración 40%"),
-          createBulletItem("Evaluación final", "Examen teórico-práctico. Valoración 30%"),
-          createParagraph("Puntaje total: 100%", true),
+          ...createBlankSpace(4),
 
           createSectionHeading("6. Perfil del Docente o Equipo Docente que dictará el curso"),
-          createParagraph(`Nombre: ${instructor.name || "Fabián Geovanny Cuzme Rodríguez"}`, true),
+          createParagraph(`Nombre: ${instructor.name || "—"}`, true),
           createParagraph("Formación académica:", true),
           ...createBlankSpace(3),
           createParagraph("Experiencia profesional y docente:", true),
@@ -748,28 +727,17 @@ export async function generatePlanificacionDocx(course) {
 
           createSectionHeading("7. Evaluación del Curso"),
           createParagraph("Criterios e instrumentos para la evaluación por participantes:", true),
-          createParagraph("Encuesta de fin de curso: Valoración de: Claridad del instructor; Utilidad de laboratorios/Packet Tracer; Cumplimiento de objetivos."),
-          createParagraph("Sesión de retroalimentación: Reunión virtual al finalizar para recoger sugerencias."),
+          ...createBlankSpace(4),
           createParagraph("Mecanismos de mejora continua:", true),
-          createParagraph("Ajustes basados en feedback: Modificación de horas prácticas si se reportan dificultades; Inclusión de casos adicionales para temas complejos (ej. STP, EtherChannel)."),
-          createParagraph("Actualización anual: Alineación con cambios en el examen CCNA 200-301."),
+          ...createBlankSpace(4),
 
           createSectionHeading("8. Requerimientos Logísticos"),
           createParagraph("Aulas/espacios:", true),
-          createBulletItem("Presencial", "Laboratorio #4 FICA (25 PCs con acceso a equipos Cisco)."),
-          createBulletItem("Virtual", "Aula Cisco NetAcad + Webex para sesiones síncronas."),
+          ...createBlankSpace(3),
           createParagraph("Materiales didácticos:", true),
-          createParagraph("Equipos físicos (según alcance del curso):"),
-          createBulletItem("Routers", "2 routers ISR4221/K9 (o equivalentes)."),
-          createBulletItem("Switches", "2 switches Catalyst 2960+."),
-          createBulletItem("Inalámbricos", "1 routers inalámbricos (WPA2/WPA3) – opcional."),
-          createParagraph("Software:"),
-          createBulletItem("Simulación", "Packet Tracer 8.0 (64-bit) instalado en todas las PCs."),
-          createBulletItem("Análisis", "Wireshark para análisis de tráfico."),
-          createParagraph("Plataformas tecnológicas:"),
-          createParagraph("Obligatorias: Cisco NetAcad (inscripción previa de estudiantes), Webex para videoconferencias."),
-          createParagraph("Opcionales: VirtualBox para emulación de servidores (ej. DHCP)."),
-          createParagraph("Conectividad: Internet estable."),
+          ...createBlankSpace(3),
+          createParagraph("Software:", true),
+          ...createBlankSpace(3),
 
           createSectionHeading("9. Presupuesto Estimado (si aplica)"),
           createDataTable(["Rubro", "Monto estimado", "Observaciones"], budgetRows, [30, 20, 50]),
@@ -846,8 +814,8 @@ export async function generateCronogramaDocx(course) {
     }
   });
 
-  if (!virtualSchedule) virtualSchedule = "19H00 - 22H00";
-  if (!presencialSchedule) presencialSchedule = "8H00 - 13H00";
+  if (!virtualSchedule) virtualSchedule = "—";
+  if (!presencialSchedule) presencialSchedule = "—";
 
   // 2. Período oficial del curso
   let period = "ENERO - MARZO 2026";
@@ -1112,43 +1080,18 @@ export async function generateCronogramaDocx(course) {
       );
     });
   } else {
-    // 16 clases base estándar de CCNA1 según modelo oficial
-    const defaultClasses = [
-      { date: "martes, 27 de enero de 2026", h: 3, m: "Virtual", cap: "1. Networking Today\n2. Basic Switch and End device configuration" },
-      { date: "jueves, 29 de enero de 2026", h: 3, m: "Virtual", cap: "3. Protocols and Models" },
-      { date: "martes, 3 de febrero de 2026", h: 3, m: "Virtual", cap: "4. Physical Layer" },
-      { date: "jueves, 5 de febrero de 2026", h: 3, m: "Virtual", cap: "5. Number Systems" },
-      { date: "martes, 10 de febrero de 2026", h: 3, m: "Virtual", cap: "6. Data Link Layer" },
-      { date: "jueves, 12 de febrero de 2026", h: 3, m: "Virtual", cap: "7. Ethernet Switching" },
-      { date: "jueves, 19 de febrero de 2026", h: 3, m: "Virtual", cap: "8. Network Layer" },
-      { date: "martes, 24 de febrero de 2026", h: 3, m: "Virtual", cap: "9. Address Resolution" },
-      { date: "jueves, 26 de febrero de 2026", h: 3, m: "Virtual", cap: "10. Basic Router Configuration" },
-      { date: "martes, 3 de marzo de 2026", h: 3, m: "Virtual", cap: "11. IPv4 Addressing & subnets" },
-      { date: "jueves, 5 de marzo de 2026", h: 3, m: "Virtual", cap: "12. IPv6 Addressing" },
-      { date: "martes, 10 de marzo de 2026", h: 3, m: "Virtual", cap: "13. ICMP" },
-      { date: "jueves, 12 de marzo de 2026", h: 3, m: "Virtual", cap: "14. Transport Layer 15. Application Layer" },
-      { date: "sábado, 14 de marzo de 2026", h: 5, m: "Presencial", cap: "Laboratorios equipos físicos" },
-      { date: "martes, 17 de marzo de 2026", h: 3, m: "Virtual", cap: "16. Network Security Fundamentals" },
-      { date: "jueves, 19 de marzo de 2026", h: 3, m: "Virtual", cap: "17. Build a Small Network" },
-    ];
-
-    defaultClasses.forEach((cl, idx) => {
-      instructorHoursSum += cl.h;
-      const isPresencial = cl.m === "Presencial";
-      const rowFill = isPresencial ? "FFFF00" : "FFFFFF";
-
-      tableRows.push(
-        new TableRow({
-          children: [
-            makeCronoCell({ text: String(idx + 1), align: AlignmentType.CENTER, fill: rowFill }),
-            makeCronoCell({ text: cl.date, align: AlignmentType.LEFT, fill: rowFill }),
-            makeCronoCell({ text: String(cl.h), align: AlignmentType.CENTER, fill: rowFill }),
-            makeCronoCell({ text: cl.m, align: AlignmentType.CENTER, fill: rowFill }),
-            makeCronoCell({ text: cl.cap, align: AlignmentType.LEFT, fill: rowFill }),
-          ],
-        })
-      );
-    });
+    // Sin capítulos registrados en la base de datos — fila placeholder
+    tableRows.push(
+      new TableRow({
+        children: [
+          makeCronoCell({ text: "—", align: AlignmentType.CENTER, fill: "FFFFFF" }),
+          makeCronoCell({ text: "—", align: AlignmentType.LEFT, fill: "FFFFFF" }),
+          makeCronoCell({ text: "—", align: AlignmentType.CENTER, fill: "FFFFFF" }),
+          makeCronoCell({ text: "—", align: AlignmentType.CENTER, fill: "FFFFFF" }),
+          makeCronoCell({ text: "[Sin capítulos registrados en la base de datos]", align: AlignmentType.LEFT, fill: "FFFFFF" }),
+        ],
+      })
+    );
   }
 
   // Fila Subtotal: Total horas clase-instructor (Verde suave)
@@ -1179,7 +1122,7 @@ export async function generateCronogramaDocx(course) {
     ? Number(detail.activities_hours) >= 3
       ? Number(detail.activities_hours) - 3
       : Number(detail.activities_hours)
-    : 17;
+    : (detail.activities_hours !== undefined && detail.activities_hours !== null ? Number(detail.activities_hours) : "—");
 
   tableRows.push(
     new TableRow({
@@ -1309,79 +1252,482 @@ export async function generateCronogramaDocx(course) {
 }
 
 // ============================================================================
-// 3. GENERADOR DE INFORME FINAL Y MEMORANDO DE CIERRE (DOCX)
+// 3. GENERADOR DE INFORME FINAL DEL CURSO DE LA ACADEMIA CISCO (DOCX)
 // ============================================================================
+function createEvidencePlaceholder(title, description) {
+  return [
+    new Paragraph({
+      spacing: { before: 240, after: 80 },
+      children: [
+        new TextRun({
+          text: title,
+          bold: true,
+          size: 21,
+          font: "Arial",
+          color: "1e293b",
+        }),
+      ],
+    }),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: {
+        top: { style: BorderStyle.DASHED, size: 6, color: "94a3b8" },
+        bottom: { style: BorderStyle.DASHED, size: 6, color: "94a3b8" },
+        left: { style: BorderStyle.DASHED, size: 6, color: "94a3b8" },
+        right: { style: BorderStyle.DASHED, size: 6, color: "94a3b8" },
+      },
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              shading: { type: ShadingType.CLEAR, fill: "F8FAFC" },
+              children: [
+                new Paragraph({
+                  alignment: AlignmentType.CENTER,
+                  spacing: { before: 500, after: 500 },
+                  children: [
+                    new TextRun({
+                      text: description,
+                      italics: true,
+                      size: 19,
+                      font: "Arial",
+                      color: "64748b",
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+      ],
+    }),
+  ];
+}
+
 export async function generateInformeFinalDocx(course) {
   const detail = course.Detail || {};
   const instructor = detail.Instructor || {};
   const participants = course.Participants || [];
-  const payments = course.Payments || [];
+  const chapters = course.Chapters || [];
+  const template = course.TemplateCourse || {};
 
   const totalHours = Number(detail.total_hours) || 70;
   const instructorHours = Number(detail.instructor_hours) || 50;
   const autonomousHours = Number(detail.activities_hours) || 20;
-  const costPerHour = Number(detail.cost_per_hour) || 13.0;
-  const teacherPay = (instructorHours * costPerHour).toFixed(2);
 
-  // Estadísticas académicas
+  // Participantes matriculados
   const enrolledParticipants = participants.filter((p) => {
-    return p.CourseParticipant?.enrolled !== undefined ? p.CourseParticipant.enrolled : p.enrolled;
+    return Boolean(p.CourseParticipant?.enrolled && p.CourseParticipant?.invoice_number);
   });
-  const matriculadosCount = enrolledParticipants.length;
-  const aprobadosCount = enrolledParticipants.filter((p) => {
-    return p.CourseParticipant?.approval !== undefined ? p.CourseParticipant.approval : p.approval;
-  }).length;
-  const reprobadosCount = matriculadosCount - aprobadosCount;
-  const approvalRate = matriculadosCount > 0 ? Math.round((aprobadosCount / matriculadosCount) * 100) : 0;
+  const matriculadosCount = enrolledParticipants.length || participants.length || "—";
 
-  // Estadísticas financieras
-  let totalRecaudado = 0;
-  if (payments && payments.length > 0) {
-    totalRecaudado = payments.reduce((acc, pay) => acc + (Number(pay.total) || 0), 0);
-  } else {
-    totalRecaudado = participants.reduce((acc, p) => {
-      const val =
-        p.CourseParticipant?.total_payment !== null && p.CourseParticipant?.total_payment !== undefined
-          ? p.CourseParticipant.total_payment
-          : p.total_payment || 0;
-      return acc + Number(val || 0);
-    }, 0);
+  // Fechas y semanas
+  const sDate = course.start_date ? new Date(course.start_date) : null;
+  const eDate = course.end_date ? new Date(course.end_date) : null;
+  const monthsEs = [
+    "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+  ];
+  const formatEsDate = (d) => {
+    if (!d || isNaN(d.getTime())) return "Por definir";
+    return `${d.getDate()}/${monthsEs[d.getMonth()]}/${d.getFullYear()}`;
+  };
+
+  const startDateFormatted = formatEsDate(sDate);
+  const endDateFormatted = formatEsDate(eDate);
+
+  let diffWeeks = 8;
+  if (sDate && eDate && !isNaN(sDate.getTime()) && !isNaN(eDate.getTime())) {
+    const diffTime = Math.abs(eDate - sDate);
+    diffWeeks = Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24 * 7))) || 8;
   }
 
-  const saldoAFavor = (totalRecaudado - Number(teacherPay)).toFixed(2);
+  // Tiempos y Cronograma: Presencial / Virtual
+  const schedules = detail.Schedules || [];
+  let presentialSchedule = "—";
+  let virtualSchedule = "—";
+  if (schedules.length > 0) {
+    if (schedules[0] && schedules[0].time_start && schedules[0].time_end) {
+      presentialSchedule = `${schedules[0].time_start}-${schedules[0].time_end}`;
+    }
+    if (schedules[1] && schedules[1].time_start && schedules[1].time_end) {
+      virtualSchedule = `${schedules[1].time_start}-${schedules[1].time_end}`;
+    }
+  }
 
-  // Tabla Anexo 2: Participantes
-  const participantRows =
-    enrolledParticipants.length > 0
-      ? enrolledParticipants.map((p, idx) => {
-          const cp = p.CourseParticipant || {};
-          const nota = cp.practical_exam !== undefined && cp.practical_exam !== null ? Number(cp.practical_exam).toFixed(1) : "—";
-          const isAprobado = cp.approval !== undefined ? cp.approval : p.approval;
-          return [
-            String(idx + 1),
-            p.cid || "—",
-            p.name || "Estudiante",
-            p.email || "—",
-            nota,
-            isAprobado ? "APROBADO" : "REPROBADO",
-          ];
-        })
-      : [["—", "—", "Sin participantes matriculados registrados en esta edición", "—", "—", "—"]];
+  const presencialHours = 5;
+  const virtualHours = Math.max(0, instructorHours - presencialHours);
 
-  // Tabla Anexo 3: Facturación
-  const billingRows =
-    payments.length > 0
-      ? payments.map((pay, idx) => [
-          String(idx + 1),
-          pay.invoice_number || `FAC-${idx + 1}`,
-          formatDateShort(pay.invoice_date || pay.payment_date),
-          pay.payer_cid_ruc || "—",
-          pay.payer_name || "Comprobante",
-          `$${Number(pay.subtotal || pay.total || 0).toFixed(2)}`,
-          `$${Number(pay.iva || 0).toFixed(2)}`,
-          `$${Number(pay.total || 0).toFixed(2)}`,
-        ])
-      : [["—", "—", "—", "—", "Sin comprobantes de recaudación registrados", "$0.00", "$0.00", "$0.00"]];
+  // Tabla Tiempos y Cronograma
+  const timelineTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: {
+      top: BORDER_LIGHT,
+      bottom: BORDER_LIGHT,
+      left: BORDER_LIGHT,
+      right: BORDER_LIGHT,
+      insideHorizontal: BORDER_LIGHT,
+      insideVertical: BORDER_LIGHT,
+    },
+    rows: [
+      new TableRow({
+        children: [
+          "FECHA INICIO",
+          "FECHA FINAL",
+          "DÍAS",
+          "HORARIO",
+          "NÚMERO DE ALUMNOS",
+          "TOTAL HORAS RELOJ (ACADÉMICAS)",
+          "DURACIÓN DEL CURSO EN SEMANAS",
+        ].map((h) =>
+          new TableCell({
+            width: { size: 14, type: WidthType.PERCENTAGE },
+            shading: { type: ShadingType.CLEAR, fill: "F1F5F9" },
+            borders: { top: BORDER_LIGHT, bottom: BORDER_LIGHT, left: BORDER_LIGHT, right: BORDER_LIGHT },
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 80, after: 80 },
+                children: [
+                  new TextRun({
+                    text: h,
+                    bold: true,
+                    size: 16,
+                    font: "Arial",
+                    color: "1e293b",
+                  }),
+                ],
+              }),
+            ],
+          })
+        ),
+      }),
+      // Fila Presencial
+      new TableRow({
+        children: [
+          startDateFormatted,
+          endDateFormatted,
+          "(Presencial)",
+          presentialSchedule,
+          String(matriculadosCount),
+          String(presencialHours),
+          String(diffWeeks),
+        ].map((val) =>
+          new TableCell({
+            width: { size: 14, type: WidthType.PERCENTAGE },
+            borders: { top: BORDER_LIGHT, bottom: BORDER_LIGHT, left: BORDER_LIGHT, right: BORDER_LIGHT },
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 60, after: 60 },
+                children: [
+                  new TextRun({
+                    text: String(val),
+                    size: 19,
+                    font: "Arial",
+                    color: "1f2937",
+                  }),
+                ],
+              }),
+            ],
+          })
+        ),
+      }),
+      // Fila Virtual
+      new TableRow({
+        children: [
+          "—",
+          "—",
+          "(Virtual)",
+          virtualSchedule,
+          "—",
+          String(virtualHours),
+          "—",
+        ].map((val) =>
+          new TableCell({
+            width: { size: 14, type: WidthType.PERCENTAGE },
+            borders: { top: BORDER_LIGHT, bottom: BORDER_LIGHT, left: BORDER_LIGHT, right: BORDER_LIGHT },
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 60, after: 60 },
+                children: [
+                  new TextRun({
+                    text: String(val),
+                    size: 19,
+                    font: "Arial",
+                    color: "1f2937",
+                  }),
+                ],
+              }),
+            ],
+          })
+        ),
+      }),
+      // Fila Total
+      new TableRow({
+        children: [
+          new TableCell({
+            width: { size: 70, type: WidthType.PERCENTAGE },
+            columnSpan: 5,
+            borders: { top: BORDER_LIGHT, bottom: BORDER_LIGHT, left: BORDER_LIGHT, right: BORDER_LIGHT },
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                spacing: { before: 60, after: 60 },
+                children: [
+                  new TextRun({
+                    text: "Total horas clase-instructor:",
+                    bold: true,
+                    size: 19,
+                    font: "Arial",
+                  }),
+                ],
+              }),
+            ],
+          }),
+          new TableCell({
+            width: { size: 14, type: WidthType.PERCENTAGE },
+            borders: { top: BORDER_LIGHT, bottom: BORDER_LIGHT, left: BORDER_LIGHT, right: BORDER_LIGHT },
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 60, after: 60 },
+                children: [
+                  new TextRun({
+                    text: String(instructorHours),
+                    bold: true,
+                    size: 20,
+                    font: "Arial",
+                  }),
+                ],
+              }),
+            ],
+          }),
+          new TableCell({
+            width: { size: 16, type: WidthType.PERCENTAGE },
+            borders: { top: BORDER_LIGHT, bottom: BORDER_LIGHT, left: BORDER_LIGHT, right: BORDER_LIGHT },
+            children: [new Paragraph({ children: [] })],
+          }),
+        ],
+      }),
+    ],
+  });
+
+  // Sección 4: Contenidos
+  const modulesList =
+    chapters && chapters.length > 0
+      ? chapters.map((ch, idx) => ({
+          name: ch.chapter_name?.toLowerCase().includes("módulo") || ch.chapter_name?.toLowerCase().includes("modulo")
+            ? ch.chapter_name
+            : `Módulo ${idx + 1}: ${ch.chapter_name}`,
+          hours: ch.hours || ch.total_hours || "—",
+        }))
+      : [{ name: "[Sin capítulos registrados en la base de datos]", hours: "—" }];
+
+  const contentRows = [
+    new TableRow({
+      children: [
+        new TableCell({
+          width: { size: 80, type: WidthType.PERCENTAGE },
+          shading: { type: ShadingType.CLEAR, fill: "F1F5F9" },
+          borders: { top: BORDER_LIGHT, bottom: BORDER_LIGHT, left: BORDER_LIGHT, right: BORDER_LIGHT },
+          children: [
+            new Paragraph({
+              spacing: { before: 80, after: 80 },
+              children: [new TextRun({ text: "TEMARIO", bold: true, size: 20, font: "Arial" })],
+            }),
+          ],
+        }),
+        new TableCell({
+          width: { size: 20, type: WidthType.PERCENTAGE },
+          shading: { type: ShadingType.CLEAR, fill: "F1F5F9" },
+          borders: { top: BORDER_LIGHT, bottom: BORDER_LIGHT, left: BORDER_LIGHT, right: BORDER_LIGHT },
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 80, after: 80 },
+              children: [new TextRun({ text: "HORAS CUMPLIDAS", bold: true, size: 20, font: "Arial" })],
+            }),
+          ],
+        }),
+      ],
+    }),
+    ...modulesList.map((m) =>
+      new TableRow({
+        children: [
+          new TableCell({
+            width: { size: 80, type: WidthType.PERCENTAGE },
+            borders: { top: BORDER_LIGHT, bottom: BORDER_LIGHT, left: BORDER_LIGHT, right: BORDER_LIGHT },
+            children: [
+              new Paragraph({
+                spacing: { before: 40, after: 40 },
+                children: [new TextRun({ text: m.name, size: 19, font: "Arial" })],
+              }),
+            ],
+          }),
+          new TableCell({
+            width: { size: 20, type: WidthType.PERCENTAGE },
+            borders: { top: BORDER_LIGHT, bottom: BORDER_LIGHT, left: BORDER_LIGHT, right: BORDER_LIGHT },
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 40, after: 40 },
+                children: [new TextRun({ text: String(m.hours), size: 19, font: "Arial" })],
+              }),
+            ],
+          }),
+        ],
+      })
+    ),
+    new TableRow({
+      children: [
+        new TableCell({
+          width: { size: 80, type: WidthType.PERCENTAGE },
+          borders: { top: BORDER_LIGHT, bottom: BORDER_LIGHT, left: BORDER_LIGHT, right: BORDER_LIGHT },
+          children: [
+            new Paragraph({
+              spacing: { before: 40, after: 40 },
+              children: [new TextRun({ text: "Laboratorios presenciales", size: 19, font: "Arial" })],
+            }),
+          ],
+        }),
+        new TableCell({
+          width: { size: 20, type: WidthType.PERCENTAGE },
+          borders: { top: BORDER_LIGHT, bottom: BORDER_LIGHT, left: BORDER_LIGHT, right: BORDER_LIGHT },
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 40, after: 40 },
+              children: [new TextRun({ text: String(detail.lab_hours || "—"), size: 19, font: "Arial" })],
+            }),
+          ],
+        }),
+      ],
+    }),
+    new TableRow({
+      children: [
+        new TableCell({
+          width: { size: 80, type: WidthType.PERCENTAGE },
+          borders: { top: BORDER_LIGHT, bottom: BORDER_LIGHT, left: BORDER_LIGHT, right: BORDER_LIGHT },
+          children: [
+            new Paragraph({
+              spacing: { before: 60, after: 60 },
+              children: [new TextRun({ text: "Total horas clase-instructor:", bold: true, size: 20, font: "Arial" })],
+            }),
+          ],
+        }),
+        new TableCell({
+          width: { size: 20, type: WidthType.PERCENTAGE },
+          borders: { top: BORDER_LIGHT, bottom: BORDER_LIGHT, left: BORDER_LIGHT, right: BORDER_LIGHT },
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 60, after: 60 },
+              children: [new TextRun({ text: String(instructorHours), bold: true, size: 20, font: "Arial" })],
+            }),
+          ],
+        }),
+      ],
+    }),
+    new TableRow({
+      children: [
+        new TableCell({
+          width: { size: 80, type: WidthType.PERCENTAGE },
+          borders: { top: BORDER_LIGHT, bottom: BORDER_LIGHT, left: BORDER_LIGHT, right: BORDER_LIGHT },
+          children: [
+            new Paragraph({
+              spacing: { before: 40, after: 40 },
+              children: [new TextRun({ text: "Actividades en la plataforma virtual (Estudiante)", size: 19, font: "Arial" })],
+            }),
+          ],
+        }),
+        new TableCell({
+          width: { size: 20, type: WidthType.PERCENTAGE },
+          borders: { top: BORDER_LIGHT, bottom: BORDER_LIGHT, left: BORDER_LIGHT, right: BORDER_LIGHT },
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 40, after: 40 },
+              children: [new TextRun({ text: String(detail.activities_hours || autonomousHours || "—"), size: 19, font: "Arial" })],
+            }),
+          ],
+        }),
+      ],
+    }),
+    new TableRow({
+      children: [
+        new TableCell({
+          width: { size: 80, type: WidthType.PERCENTAGE },
+          borders: { top: BORDER_LIGHT, bottom: BORDER_LIGHT, left: BORDER_LIGHT, right: BORDER_LIGHT },
+          children: [
+            new Paragraph({
+              spacing: { before: 40, after: 40 },
+              children: [new TextRun({ text: "Examen final del curso", size: 19, font: "Arial" })],
+            }),
+          ],
+        }),
+        new TableCell({
+          width: { size: 20, type: WidthType.PERCENTAGE },
+          borders: { top: BORDER_LIGHT, bottom: BORDER_LIGHT, left: BORDER_LIGHT, right: BORDER_LIGHT },
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 40, after: 40 },
+              children: [new TextRun({ text: "3", size: 19, font: "Arial" })],
+            }),
+          ],
+        }),
+      ],
+    }),
+    new TableRow({
+      children: [
+        new TableCell({
+          width: { size: 80, type: WidthType.PERCENTAGE },
+          borders: { top: BORDER_LIGHT, bottom: BORDER_LIGHT, left: BORDER_LIGHT, right: BORDER_LIGHT },
+          children: [
+            new Paragraph({
+              spacing: { before: 60, after: 60 },
+              children: [new TextRun({ text: `Total horas curso ${course.course_name}:`, bold: true, size: 20, font: "Arial" })],
+            }),
+          ],
+        }),
+        new TableCell({
+          width: { size: 20, type: WidthType.PERCENTAGE },
+          borders: { top: BORDER_LIGHT, bottom: BORDER_LIGHT, left: BORDER_LIGHT, right: BORDER_LIGHT },
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 60, after: 60 },
+              children: [new TextRun({ text: String(totalHours), bold: true, size: 20, font: "Arial" })],
+            }),
+          ],
+        }),
+      ],
+    }),
+  ];
+
+  const contentsTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: {
+      top: BORDER_LIGHT,
+      bottom: BORDER_LIGHT,
+      left: BORDER_LIGHT,
+      right: BORDER_LIGHT,
+      insideHorizontal: BORDER_LIGHT,
+      insideVertical: BORDER_LIGHT,
+    },
+    rows: contentRows,
+  });
+
+  const englishName =
+    template.course_name_en ||
+    course.course_name;
+
+  const className =
+    course.class_name ||
+    `UTN_${course.course_name.replace(/[^a-zA-Z0-9_-]/g, "_").toUpperCase()}_${course.course_id}`;
 
   const doc = new Document({
     sections: [
@@ -1392,176 +1738,571 @@ export async function generateInformeFinalDocx(course) {
           },
         },
         children: [
-          createInstitutionalHeader(),
-
-          // Bloque Memorando Oficial
+          // Título Centrado
           new Paragraph({
-            alignment: AlignmentType.RIGHT,
-            spacing: { before: 200, after: 120 },
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 100, after: 80 },
             children: [
               new TextRun({
-                text: `Memorando Nro. 004_AC_${new Date().getFullYear()}`,
+                text: "INFORME FINAL DEL CURSO DE LA ACADEMIA CISCO",
                 bold: true,
-                size: 20,
+                size: 24,
                 font: "Arial",
+                color: "111827",
               }),
             ],
           }),
           new Paragraph({
-            alignment: AlignmentType.RIGHT,
+            alignment: AlignmentType.CENTER,
             spacing: { after: 200 },
             children: [
               new TextRun({
-                text: `Ibarra, ${formatDate(new Date())}`,
-                size: 19,
+                text: `MÓDULO: ${course.course_name}`,
+                bold: true,
+                size: 22,
+                font: "Arial",
+                color: "1e293b",
+              }),
+            ],
+          }),
+
+          // 1. DATOS INFORMATIVOS
+          new Paragraph({
+            spacing: { before: 180, after: 100 },
+            children: [
+              new TextRun({
+                text: "1.   DATOS INFORMATIVOS.",
+                bold: true,
+                size: 22,
+                font: "Arial",
+                color: "111827",
+              }),
+            ],
+          }),
+
+          new Paragraph({
+            spacing: { after: 60 },
+            children: [
+              new TextRun({ text: "CURSO: ", bold: true, size: 20, font: "Arial" }),
+              new TextRun({ text: course.course_name, size: 20, font: "Arial" }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { after: 60 },
+            children: [
+              new TextRun({ text: "NOMBRE EN INGLÉS: ", bold: true, size: 20, font: "Arial" }),
+              new TextRun({ text: englishName, size: 20, font: "Arial" }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { after: 60 },
+            children: [
+              new TextRun({ text: "NOMBRE CLASE: ", bold: true, size: 20, font: "Arial" }),
+              new TextRun({ text: className, size: 20, font: "Arial" }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { after: 60 },
+            children: [
+              new TextRun({ text: "INSTRUCTOR: ", bold: true, size: 20, font: "Arial" }),
+              new TextRun({ text: instructor.name || "Ing. Docente Asignado", size: 20, font: "Arial" }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { after: 120 },
+            children: [
+              new TextRun({ text: "DURACIÓN: ", bold: true, size: 20, font: "Arial" }),
+              new TextRun({ text: `${instructorHours} horas`, size: 20, font: "Arial" }),
+            ],
+          }),
+
+          new Paragraph({
+            spacing: { before: 100, after: 80 },
+            children: [
+              new TextRun({
+                text: "TIEMPOS Y CRONOGRAMA:",
+                bold: true,
+                size: 20,
+                font: "Arial",
+                color: "334155",
+              }),
+            ],
+          }),
+
+          timelineTable,
+
+          // 2. OBJETIVO DEL CURSO
+          new Paragraph({
+            spacing: { before: 240, after: 80 },
+            children: [
+              new TextRun({
+                text: "2.   OBJETIVO DEL CURSO.",
+                bold: true,
+                size: 22,
+                font: "Arial",
+                color: "111827",
+              }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { after: 160, line: 260 },
+            children: [
+              new TextRun({
+                text:
+                  template.objective ||
+                  detail.objective ||
+                  "—",
+                size: 20,
+                font: "Arial",
+                color: "1f2937",
+              }),
+            ],
+          }),
+
+          // 3. DESCRIPCIÓN GENERAL DEL CURSO
+          new Paragraph({
+            spacing: { before: 200, after: 80 },
+            children: [
+              new TextRun({
+                text: "3.   DESCRIPCIÓN GENERAL DEL CURSO.",
+                bold: true,
+                size: 22,
+                font: "Arial",
+                color: "111827",
+              }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { after: 160, line: 260 },
+            children: [
+              new TextRun({
+                text:
+                  template.course_description ||
+                  detail.course_description ||
+                  "—",
+                size: 20,
+                font: "Arial",
+                color: "1f2937",
+              }),
+            ],
+          }),
+
+          // 4. CONTENIDOS
+          new Paragraph({
+            spacing: { before: 200, after: 100 },
+            children: [
+              new TextRun({
+                text: "4.   CONTENIDOS.",
+                bold: true,
+                size: 22,
+                font: "Arial",
+                color: "111827",
+              }),
+            ],
+          }),
+
+          contentsTable,
+
+          // 5. METODOLOGÍA USADA
+          new Paragraph({
+            spacing: { before: 240, after: 80 },
+            children: [
+              new TextRun({
+                text: "5.   METODOLOGÍA USADA.",
+                bold: true,
+                size: 22,
+                font: "Arial",
+                color: "111827",
+              }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { after: 100, line: 260 },
+            children: [
+              new TextRun({
+                text: `Este curso de ${totalHours} horas incluye prácticas de laboratorio y una amplia gama de herramientas y tipos de evaluaciones a lo largo de todo el currículo.`,
+                size: 20,
+                font: "Arial",
+                color: "1f2937",
+              }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { after: 160, line: 260 },
+            children: [
+              new TextRun({
+                text: `Son ${instructorHours} horas con instructor. Más ${autonomousHours} horas de actividades autónomas en la plataforma virtual.`,
+                size: 20,
+                font: "Arial",
+                color: "1f2937",
+              }),
+            ],
+          }),
+
+          // 6. RECURSOS
+          new Paragraph({
+            spacing: { before: 200, after: 80 },
+            children: [
+              new TextRun({
+                text: "6.   RECURSOS.",
+                bold: true,
+                size: 22,
+                font: "Arial",
+                color: "111827",
+              }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { after: 80, line: 260 },
+            children: [
+              new TextRun({ text: "HUMANOS:    ", bold: true, size: 20, font: "Arial" }),
+              new TextRun({ text: "Estudiantes, instructor, personal de apoyo.", size: 20, font: "Arial" }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { after: 160, line: 260 },
+            children: [
+              new TextRun({ text: "MATERIALES: ", bold: true, size: 20, font: "Arial" }),
+              new TextRun({
+                text: "—",
+                size: 20,
                 font: "Arial",
               }),
             ],
           }),
 
-          createKeyValueTable([
-            ["PARA:", "Magíster Catalina Ramírez - DECANA FICA"],
-            ["DE:", "MSc. Ludmila Vladimirovna Starodub Sauliak - COORDINADORA ACADEMIA CISCO FICA-UTN"],
-            ["ASUNTO:", `Informe final del curso ${course.course_name} y trámite de pago docente`],
+          // 7. RESULTADOS Y CONCLUSIONES
+          new Paragraph({
+            spacing: { before: 200, after: 80 },
+            children: [
+              new TextRun({
+                text: "7.   RESULTADOS Y CONCLUSIONES.",
+                bold: true,
+                size: 22,
+                font: "Arial",
+                color: "111827",
+              }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { after: 100, line: 260 },
+            children: [
+              new TextRun({
+                text: "El curso se desarrolló satisfactoriamente cumpliendo los tiempos y objetivos.",
+                size: 20,
+                font: "Arial",
+              }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { after: 100, line: 260 },
+            children: [
+              new TextRun({
+                text: `Los estudiantes que completaron con éxito el curso "${course.course_name}" son capaces de hacer lo siguiente:`,
+                size: 20,
+                font: "Arial",
+              }),
+            ],
+          }),
+          ...createBlankSpace(5),
+
+          // 8. BIBLIOGRAFIA
+          new Paragraph({
+            spacing: { before: 200, after: 80 },
+            children: [
+              new TextRun({
+                text: "8.   BIBLIOGRAFIA",
+                bold: true,
+                size: 22,
+                font: "Arial",
+                color: "111827",
+              }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { after: 160, line: 260 },
+            children: [
+              new TextRun({
+                text: "—",
+                size: 20,
+                font: "Arial",
+              }),
+            ],
+          }),
+
+          // 9. ASISTENCIA
+          new Paragraph({
+            spacing: { before: 180, after: 80 },
+            children: [
+              new TextRun({
+                text: "9.   ASISTENCIA",
+                bold: true,
+                size: 22,
+                font: "Arial",
+                color: "111827",
+              }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { after: 160, line: 260 },
+            children: [
+              new TextRun({
+                text: "Se aprueba la asistencia con un mínimo de 70%.",
+                size: 20,
+                font: "Arial",
+              }),
+            ],
+          }),
+
+          // 10. EVALUACIÓN
+          new Paragraph({
+            spacing: { before: 180, after: 80 },
+            children: [
+              new TextRun({
+                text: "10.  EVALUACIÓN",
+                bold: true,
+                size: 22,
+                font: "Arial",
+                color: "111827",
+              }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { after: 100, line: 260 },
+            children: [
+              new TextRun({
+                text: "Cada módulo se evalúa vía online por Internet, y tiene sus valoraciones cuantitativas y acumulativas:",
+                size: 20,
+                font: "Arial",
+              }),
+            ],
+          }),
+          ...[
+            "Exámenes de puntos de control de módulos 30 puntos",
+            "Práctica final 10 puntos",
+            "Examen de habilidades 30 puntos",
+            "Un examen final online sobre 30 puntos.",
+          ].map(
+            (point) =>
+              new Paragraph({
+                bullet: { level: 0 },
+                spacing: { after: 50 },
+                children: [new TextRun({ text: point, size: 20, font: "Arial" })],
+              })
+          ),
+          new Paragraph({
+            spacing: { before: 80, after: 50 },
+            children: [
+              new TextRun({ text: "Letra P (Pass) ", bold: true, size: 20, font: "Arial" }),
+              new TextRun({ text: 'en el campo "Result" significa que el curso es ', size: 20, font: "Arial" }),
+              new TextRun({ text: "Aprobado.", bold: true, size: 20, font: "Arial" }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { after: 50 },
+            children: [
+              new TextRun({ text: "Letra I – Incompleto.", size: 20, font: "Arial" }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { after: 80 },
+            children: [
+              new TextRun({ text: "Letra F – Fail (no aprobado).", size: 20, font: "Arial" }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { after: 180 },
+            children: [
+              new TextRun({ text: "Un estudiante aprueba con un acumulativo mínimo de 70 puntos.", bold: true, size: 20, font: "Arial" }),
+            ],
+          }),
+
+          // Despedida y Firma
+          new Paragraph({
+            spacing: { before: 160, after: 120 },
+            children: [
+              new TextRun({ text: "Atentamente.", size: 20, font: "Arial" }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { before: 200, after: 60 },
+            children: [
+              new TextRun({
+                text: "…………………………………………………………",
+                size: 20,
+                color: "64748b",
+                font: "Arial",
+              }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { after: 40 },
+            children: [
+              new TextRun({
+                text: instructor.name || "Ing. Docente Asignado",
+                bold: true,
+                size: 20,
+                font: "Arial",
+              }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { after: 40 },
+            children: [
+              new TextRun({ text: `CI: ${instructor.cid || instructor.dni || "—"}`, size: 19, font: "Arial" }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { after: 40 },
+            children: [
+              new TextRun({ text: `email: ${instructor.email || "—"}`, size: 19, font: "Arial" }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { after: 260 },
+            children: [
+              new TextRun({ text: `Cel: ${instructor.phone || "—"}`, size: 19, font: "Arial" }),
+            ],
+          }),
+
+          // 11. ANEXOS (Espacios rotulados para adjuntar evidencias)
+          new Paragraph({
+            spacing: { before: 300, after: 140 },
+            children: [
+              new TextRun({
+                text: "11.  ANEXOS",
+                bold: true,
+                size: 24,
+                font: "Arial",
+                color: "111827",
+              }),
+            ],
+          }),
+
+          ...createEvidencePlaceholder(
+            "Primera sesión virtual",
+            "[Espacio para adjuntar captura de pantalla de la 1ra sesión síncrona virtual con estudiantes e instructor en Teams]"
+          ),
+          ...createEvidencePlaceholder(
+            "Séptima sesión virtual",
+            "[Espacio para adjuntar captura de pantalla del desarrollo de sesiones virtuales intermedias]"
+          ),
+          ...createEvidencePlaceholder(
+            "Décima sesión virtual",
+            "[Espacio para adjuntar captura de pantalla de sesiones avanzadas del currículo en línea]"
+          ),
+          ...createEvidencePlaceholder(
+            "Décima tercera sesión virtual",
+            "[Espacio para adjuntar captura de pantalla de la sesión de cierre y preparación de evaluaciones]"
+          ),
+          ...createEvidencePlaceholder(
+            "Sesión presencial (Prácticas en Laboratorio FICA)",
+            "[Espacio para adjuntar fotografías de las sesiones presenciales y laboratorios prácticos en los racks de redes]"
+          ),
+          ...createEvidencePlaceholder(
+            "Calificaciones del Curso (Libro de Calificaciones NetAcad)",
+            "[Espacio para adjuntar captura de pantalla del libro de calificaciones de la plataforma Cisco Networking Academy]"
+          ),
+          ...createEvidencePlaceholder(
+            "Análisis del Curso y Encuesta de Satisfacción de Estudiantes",
+            "[Espacio para adjuntar capturas y gráficos de las encuestas de fin de curso generadas por los estudiantes]"
+          ),
+        ],
+      },
+    ],
+  });
+
+  return await Packer.toBuffer(doc);
+}
+
+export async function generateReporteAprobadosDocx(course) {
+  const detail = course.Detail || {};
+  const instructor = detail.Instructor || {};
+  const participants = course.Participants || [];
+
+  const enrolledParticipants = participants.filter((p) => {
+    return p.CourseParticipant?.enrolled && p.CourseParticipant?.invoice_number;
+  });
+
+  const approvedParticipants = participants.filter((p) => {
+    const cp = p.CourseParticipant || {};
+    return Boolean(cp.approval || (cp.grade_final !== null && parseFloat(cp.grade_final) >= 70.0) || cp.status_code === "P" || p.approval);
+  });
+
+  const totalAprobados = approvedParticipants.length;
+  const totalMatriculados = enrolledParticipants.length || participants.length;
+  const tasaAprobacion = totalMatriculados > 0 ? Math.round((totalAprobados / totalMatriculados) * 100) : 0;
+
+  const approvedRows = approvedParticipants.map((p, idx) => {
+    const cp = p.CourseParticipant || {};
+    const grade = cp.grade_final !== null && cp.grade_final !== undefined ? `${parseFloat(cp.grade_final).toFixed(1)}/100` : "70.0/100";
+    const invoice = cp.invoice_number || "—";
+    const degreeOrOrg = p.degree || p.institution || "FICA - UTN";
+
+    return [
+      String(idx + 1),
+      p.cid || "—",
+      p.name || "—",
+      degreeOrOrg,
+      grade,
+      "APROBADO (P)",
+      invoice,
+    ];
+  });
+
+  if (approvedRows.length === 0) {
+    approvedRows.push(["—", "—", "Sin estudiantes aprobados registrados aún", "—", "—", "—", "—"]);
+  }
+
+  const doc = new Document({
+    styles: defaultDocumentStyles,
+    sections: [
+      {
+        properties: defaultSectionProps,
+        headers: { default: createHeader() },
+        footers: { default: createFooter() },
+        children: [
+          createDocumentTitle(
+            "ACTA Y REPORTE DE ESTUDIANTES APROBADOS",
+            `EDICIÓN: ${course.course_name?.toUpperCase() || "CURSO CISCO"}`
+          ),
+
+          createSectionHeading("1. Datos Generales de la Convocatoria"),
+          createMetadataTable([
+            ["Programa / Curso:", course.course_name || "Curso Cisco"],
+            ["Docente / Instructor:", instructor.name || "Por designar"],
+            ["Periodo Académico:", getAcademicPeriod(course.start_date, course.end_date)],
+            ["Fechas de Ejecución:", `${formatDateDisplay(course.start_date)} al ${formatDateDisplay(course.end_date)}`],
+            ["Carga Horaria Oficial:", `${detail.total_hours || 70} Horas Académicas`],
+            ["Estado del Curso:", course.status || "En ejecución"],
           ]),
 
-          new Paragraph({
-            spacing: { before: 200, after: 120 },
-            children: [
-              new TextRun({
-                text: "De mi consideración:",
-                bold: true,
-                size: 20,
-                font: "Arial",
-              }),
-            ],
-          }),
-
-          createParagraph(
-            `Le informo que el curso "${course.course_name}" realizado en el período comprendido del ${formatDate(
-              course.start_date
-            )} al ${formatDate(
-              course.end_date
-            )}, finalizó satisfactoriamente cumpliendo con la planificación y carga académica oficial de ${totalHours} horas reglamentarias.`
-          ),
-
-          createParagraph(
-            `Adjunto la documentación de respaldo para que se autorice y proceda con el trámite del pago de $${teacherPay} USD ($${costPerHour.toFixed(
-              2
-            )} la hora incluido el IVA) a través de la empresa pública UEMPRENDE E.P. de la Universidad Técnica del Norte, al docente ${
-              instructor.name || "designado"
-            } por ${instructorHours} horas de clases dictadas con los fondos recaudados del curso.`
-          ),
-
-          new Paragraph({
-            spacing: { before: 160, after: 300 },
-            children: [
-              new TextRun({
-                text: "Por la gentil atención que se digne dar a la presente, le expreso mis sinceros agradecimientos.",
-                size: 20,
-                font: "Arial",
-              }),
-            ],
-          }),
-
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 240, after: 40 },
-            children: [
-              new TextRun({
-                text: "Atentamente,",
-                bold: true,
-                size: 20,
-                font: "Arial",
-              }),
-            ],
-          }),
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 300, after: 30 },
-            children: [
-              new TextRun({
-                text: "Ing. Ludmila Vladimirovna Starodub Sauliak, MSc.",
-                bold: true,
-                size: 20,
-                font: "Arial",
-              }),
-            ],
-          }),
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            children: [
-              new TextRun({
-                text: "COORDINADORA ACADEMIA CISCO FICA-UTN",
-                bold: true,
-                size: 19,
-                color: COLOR_PRIMARY,
-                font: "Arial",
-              }),
-            ],
-          }),
-
-          // ================= ANEXO 1 =================
-          createSectionHeading("Anexo 1: Resumen Ejecutivo del Curso"),
-          createKeyValueTable([
-            ["Nombre del curso:", course.course_name],
-            ["Período de ejecución:", `${formatDate(course.start_date)} al ${formatDate(course.end_date)}`],
-            ["Modalidad:", "Híbrido (Clases virtuales síncronas + Prácticas presenciales Lab #4 FICA + NetAcad)"],
-            ["Instructor responsable:", instructor.name || "Por designar"],
-            ["Duración total del curso:", `${totalHours} horas académicas`],
-            ["Horas dictadas por el instructor:", `${instructorHours} horas sincrónicas`],
-            ["Horas de trabajo autónomo NetAcad:", `${autonomousHours} horas`],
-            ["Costo hora clase instructor:", `$${costPerHour.toFixed(2)} USD (incluido el IVA)`],
-            ["Número de participantes registrados:", String(participants.length)],
-            ["Número de estudiantes matriculados oficiales:", String(matriculadosCount)],
-            ["Número de estudiantes aprobados:", `${aprobadosCount} (${approvalRate}% de aprobación)`],
-            ["Número de no aprobados / retirados:", String(reprobadosCount)],
-            ["Total recaudado por matrículas (Tesorería):", `$ ${totalRecaudado.toFixed(2)} USD`],
-            ["Total pago a docente instructor:", `$ ${teacherPay} USD`],
-            ["Saldo a favor de la Academia CISCO / UTN:", `$ ${saldoAFavor} USD`],
+          createSectionHeading("2. Balance y Rendimiento de Aprobación"),
+          createMetadataTable([
+            ["Total Estudiantes Inscritos:", `${participants.length} participantes`],
+            ["Total Estudiantes Matriculados:", `${totalMatriculados} estudiantes oficiales`],
+            ["Total Estudiantes Aprobados:", `${totalAprobados} estudiantes`],
+            ["Tasa de Aprobación:", `${tasaAprobacion} %`],
+            ["Criterio de Certificación:", "Calificación mínima de 70.0/100 y 80% de asistencia/cumplimiento NetAcad"],
           ]),
 
-          // ================= ANEXO 2 =================
-          createSectionHeading("Anexo 2: Nómina Oficial de Participantes y Rendimiento Académico"),
+          createSectionHeading("3. Nómina Oficial de Estudiantes Aprobados"),
           createDataTable(
-            ["N°", "Cédula / DNI", "Apellidos y Nombres", "Correo Electrónico", "Nota NetAcad", "Estado"],
-            participantRows,
-            [8, 16, 36, 22, 10, 8]
+            ["N°", "Cédula", "Nombres y Apellidos", "Carrera / Institución", "Nota Final", "Estado", "N° Factura"],
+            approvedRows,
+            [6, 14, 30, 20, 10, 10, 10]
           ),
 
-          // ================= ANEXO 3 =================
-          createSectionHeading("Anexo 3: Reporte de Recaudación y Facturación"),
-          createDataTable(
-            ["N°", "Factura", "Fecha", "Cédula/RUC", "Nombre / Razón Social", "Subtotal", "IVA", "Total"],
-            billingRows,
-            [6, 12, 12, 16, 26, 10, 8, 10]
-          ),
-
-          // ================= SECCIONES EDITABLES =================
-          createSectionHeading("Conclusiones y Recomendaciones del Curso"),
-          createParagraph("Conclusiones pedagógicas:", true),
-          createParagraph(
-            "[Espacio para redacción de conclusiones: Se cumplieron los objetivos curriculares previstos con una destacada participación del estudiantado en los laboratorios prácticos y un índice de aprobación satisfactorio conforme a los estándares de la plataforma Cisco Networking Academy.]",
-            false,
-            true
-          ),
-          createParagraph("Recomendaciones de mejora:", true),
-          createParagraph(
-            "[Espacio para redacción de recomendaciones: Se recomienda mantener la disponibilidad horaria del laboratorio de redes #4 y continuar promoviendo la capacitación continua en las siguientes cohortes técnicas.]",
-            false,
-            true
-          ),
-
-          createSectionHeading("Certificación de Cumplimiento"),
+          createSectionHeading("4. Firmas de Legalización y Acreditación"),
           createSignatureBlock(
             {
               name: instructor.name || "DOCENTE DEL CURSO",
-              title: "Instructor Cisco Networking Academy",
+              title: "Docente Instructor CISCO",
               institution: "Facultad de Ingeniería en Ciencias Aplicadas",
             },
             {
               name: "MSc. Ludmila Starodub",
-              title: "Coordinadora Academia CISCO",
+              title: "Jefe de Laboratorio / Coordinadora CISCO",
               institution: "Universidad Técnica del Norte",
             }
           ),

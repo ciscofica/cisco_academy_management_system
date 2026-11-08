@@ -80,23 +80,44 @@ function CertificatePage() {
                             <th scope="col" className="px-6 py-3">ID</th>
                             <th scope="col" className="px-6 py-3">Nombre</th>
                             <th scope="col" className="px-6 py-3">Año de Emisión</th>
+                            <th scope="col" className="px-6 py-3">Autoridad Firmante</th>
                             <th scope="col" className="px-6 py-3">Internacional</th>
                             <th scope="col" className="px-6 py-3">Archivo</th>
                             <th scope="col" className="px-6 py-3">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {certificates.map((certificate) => (
-                            <tr key={certificate.certificate_id} className="border-b border-gray-100 hover:bg-slate-50 transition-colors">
-                                <th scope="row" className="px-6 py-4 font-medium text-slate-800 whitespace-nowrap">
-                                    {certificate.certificate_id}
-                                </th>
-                                <td className="px-6 py-4 text-slate-600">{certificate.name}</td>
-                                <td className="px-6 py-4 text-slate-600">{certificate.year_of_issue}</td>
-                                <td className="px-6 py-4 text-slate-600">{certificate.is_international == false ? "NO" : "SI"}</td>
-                                <td className="px-6 py-4 text-slate-600">{certificate.file_url}</td>
-                                
-                                <td className="px-6 py-4 flex space-x-3">
+                        {certificates.map((certificate) => {
+                            const signerLabel =
+                                certificate.signatory_type === "lab_head"
+                                    ? "Jefe de Laboratorio"
+                                    : certificate.signatory_type === "both"
+                                    ? "Instructor y Jefe de Lab"
+                                    : "Instructor del Curso";
+                            const signerName =
+                                certificate.signatory_name ||
+                                certificate.Instructors?.[0]?.name ||
+                                "No especificado";
+
+                            return (
+                                <tr key={certificate.certificate_id} className="border-b border-gray-100 hover:bg-slate-50 transition-colors">
+                                    <th scope="row" className="px-6 py-4 font-medium text-slate-800 whitespace-nowrap">
+                                        #{certificate.certificate_id}
+                                    </th>
+                                    <td className="px-6 py-4 font-semibold text-slate-800">{certificate.name}</td>
+                                    <td className="px-6 py-4 text-slate-600">{certificate.year_of_issue}</td>
+                                    <td className="px-6 py-4 text-slate-600">
+                                        <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 block w-fit mb-0.5">
+                                            {signerLabel}
+                                        </span>
+                                        <span className="text-[11px] text-slate-400 block truncate max-w-xs" title={signerName}>
+                                            {signerName}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-slate-600">{certificate.is_international == false ? "NO" : "SI"}</td>
+                                    <td className="px-6 py-4 text-slate-600 font-mono text-xs truncate max-w-xs" title={certificate.file_url || ""}>{certificate.file_url || "—"}</td>
+                                    
+                                    <td className="px-6 py-4 flex space-x-3">
                                     <button className="text-[#049fd9] hover:text-[#0380b0] transition-colors">
                                         <FontAwesomeIcon icon={faUser} />
                                     </button>
@@ -108,7 +129,8 @@ function CertificatePage() {
                                     </button>
                                 </td>
                             </tr>
-                        ))}
+                        );
+                    })}
                     </tbody>
 
                 </table>

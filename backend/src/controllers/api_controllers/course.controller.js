@@ -36,6 +36,7 @@ import {
   generatePlanificacionDocx,
   generateCronogramaDocx,
   generateInformeFinalDocx,
+  generateReporteAprobadosDocx,
 } from "../../services/courseDocxService.js";
 
 export const getAllCourses = async (req, res) => {
@@ -82,6 +83,11 @@ export const getAllCourses = async (req, res) => {
               ],
             },
           ],
+        },
+        {
+          model: Course,
+          as: "TemplateCourse",
+          required: false,
         },
         {
           model: Detail,
@@ -207,6 +213,11 @@ export const getCourseById = async (req, res) => {
           ],
         },
         {
+          model: Course,
+          as: "TemplateCourse",
+          required: false,
+        },
+        {
           model: Detail,
           include: [
             { model: DetailValues },
@@ -320,6 +331,11 @@ export const getCourseTemplates = async (req, res) => {
       },
       include: [
         {
+          model: Course,
+          as: "TemplateCourse",
+          required: false,
+        },
+        {
           model: Detail,
           include: [
             { model: Instructor },
@@ -356,6 +372,11 @@ export const getCourseTemplateById = async (req, res) => {
         status: "Plantilla",
       },
       include: [
+        {
+          model: Course,
+          as: "TemplateCourse",
+          required: false,
+        },
         {
           model: Detail,
           include: [
@@ -424,6 +445,11 @@ export const startCourseFromTemplate = async (req, res) => {
         status: "Plantilla",
       },
       include: [
+        {
+          model: Course,
+          as: "TemplateCourse",
+          required: false,
+        },
         {
           model: Detail,
           include: [
@@ -1218,6 +1244,11 @@ export const validateCourseClosure = async (req, res) => {
     const course = await Course.findByPk(id, {
       include: [
         {
+          model: Course,
+          as: "TemplateCourse",
+          required: false,
+        },
+        {
           model: Detail,
           include: [{ model: Instructor }, { model: Modality, through: { attributes: [] } }],
         },
@@ -1340,6 +1371,11 @@ export const closeCourseEdition = async (req, res) => {
     const course = await Course.findByPk(id, {
       include: [
         {
+          model: Course,
+          as: "TemplateCourse",
+          required: false,
+        },
+        {
           model: Detail,
           include: [{ model: Instructor }, { model: Modality, through: { attributes: [] } }],
         },
@@ -1416,6 +1452,14 @@ export const reopenCourseEdition = async (req, res) => {
 export const getCertificates = async (req, res) => {
   try {
     const { id } = req.params;
+    const {
+      instructor_name,
+      instructor_role,
+      coordinator_name,
+      coordinator_role,
+      dean_name,
+      dean_role,
+    } = req.query;
 
     const course = await Course.findOne({
       where: { course_id: id },
@@ -1437,9 +1481,17 @@ export const getCertificates = async (req, res) => {
           ],
         },
         {
+          model: Course,
+          as: "TemplateCourse",
+          required: false,
+        },
+        {
           model: Detail,
           include: [
             { model: DetailValues },
+            {
+              model: Instructor,
+            },
             {
               model: Modality,
               through: { attributes: [] },
@@ -1580,37 +1632,97 @@ export const getCertificates = async (req, res) => {
         });
 
       const signatureY = doc.page.height - 120;
-      const signatureMargin = 50;
+      const colWidth = 220;
+      const col1X = 50;
+      const col2X = 311;
+      const col3X = 572;
 
-      doc.moveDown(2);
+      const finalInstructorName =
+        (instructor_name && instructor_name.trim()) ||
+        course.Detail?.Instructor?.name ||
+        "Docente Instructor";
+      const finalInstructorRole =
+        (instructor_role && instructor_role.trim()) || "Docente Instructor";
 
+      const finalCoordName =
+        (coordinator_name && coordinator_name.trim()) || "MSc. Ludmila Starodub";
+      const finalCoordRole =
+        (coordinator_role && coordinator_role.trim()) ||
+        "Analista de sistemas – Coordinadora Academia CISCO";
+
+      const finalDeanName =
+        (dean_name && dean_name.trim()) || "Magíster Catalina Ramírez";
+      const finalDeanRole =
+        (dean_role && dean_role.trim()) || "Decana FICA - UTN";
+
+      // 1. Instructor
       doc
         .font("Helvetica")
-        .fontSize(11)
-        .text("______________________", signatureMargin + 200, signatureY, {
-          align: "left",
-        })
-        .text(
-          "Coordinador/a Academia Cisco",
-          signatureMargin + 190,
-          signatureY + 20,
-          { align: "left" }
-        )
-        .moveDown(2);
-
+        .fontSize(10)
+        .text("____________________________", col1X, signatureY, {
+          width: colWidth,
+          align: "center",
+        });
       doc
-        .text(
-          "______________________",
-          doc.page.width - signatureMargin - 350,
-          signatureY,
-          { align: "left" }
-        )
-        .text(
-          "Decano/a FICA",
-          doc.page.width - signatureMargin - 320,
-          signatureY + 20,
-          { align: "left" }
-        );
+        .font("Helvetica-Bold")
+        .fontSize(10)
+        .text(finalInstructorName, col1X, signatureY + 16, {
+          width: colWidth,
+          align: "center",
+        });
+      doc
+        .font("Helvetica")
+        .fontSize(8.5)
+        .text(finalInstructorRole, col1X, signatureY + 30, {
+          width: colWidth,
+          align: "center",
+        });
+
+      // 2. Coordinadora
+      doc
+        .font("Helvetica")
+        .fontSize(10)
+        .text("____________________________", col2X, signatureY, {
+          width: colWidth,
+          align: "center",
+        });
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(10)
+        .text(finalCoordName, col2X, signatureY + 16, {
+          width: colWidth,
+          align: "center",
+        });
+      doc
+        .font("Helvetica")
+        .fontSize(8.5)
+        .text(finalCoordRole, col2X, signatureY + 30, {
+          width: colWidth,
+          align: "center",
+        });
+
+      // 3. Decana
+      doc
+        .font("Helvetica")
+        .fontSize(10)
+        .text("____________________________", col3X, signatureY, {
+          width: colWidth,
+          align: "center",
+        });
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(10)
+        .text(finalDeanName, col3X, signatureY + 16, {
+          width: colWidth,
+          align: "center",
+        });
+      doc
+        .font("Helvetica")
+        .fontSize(8.5)
+        .text(finalDeanRole, col3X, signatureY + 30, {
+          width: colWidth,
+          align: "center",
+        });
     });
 
     doc.end();
@@ -2066,6 +2178,11 @@ export const downloadCourseDocumentDocx = async (req, res) => {
       where: { course_id: id },
       include: [
         {
+          model: Course,
+          as: "TemplateCourse",
+          required: false,
+        },
+        {
           model: Detail,
           include: [
             { model: DetailValues },
@@ -2123,6 +2240,13 @@ export const downloadCourseDocumentDocx = async (req, res) => {
     ) {
       buffer = await generateInformeFinalDocx(course);
       filename = `InformeFinal_${cleanCourseName}.docx`;
+    } else if (
+      normalizedDocType === "reporte_aprobados" ||
+      normalizedDocType === "nomina_aprobados" ||
+      normalizedDocType === "aprobados"
+    ) {
+      buffer = await generateReporteAprobadosDocx(course);
+      filename = `Nomina_Aprobados_${cleanCourseName}.docx`;
     } else {
       return res.status(400).json({
         message: `El tipo de documento '${docType}' no cuenta con plantilla de generación DOCX.`,

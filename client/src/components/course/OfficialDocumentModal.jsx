@@ -157,6 +157,12 @@ export default function OfficialDocumentModal({ isOpen, onClose, documentType, c
     modalities.length > 0 ? modalities.map((m) => m.name).join(", ") : "Presencial / Virtual";
 
   const isCronograma = docKey.includes("crono");
+  const isReporteAprobados = docKey.includes("aprob") || docKey.includes("reporte_aprobados");
+
+  const approvedParticipants = participants.filter((p) => {
+    const cp = p.CourseParticipant || {};
+    return Boolean(cp.approval || (cp.grade_final !== null && parseFloat(cp.grade_final) >= 70.0) || cp.status_code === "P" || p.approval);
+  });
 
   // Horarios para cronograma
   const schedules = detail.Schedules || [];
@@ -279,13 +285,19 @@ export default function OfficialDocumentModal({ isOpen, onClose, documentType, c
                 {downloadingDocx ? "Generando..." : "Descargar Word (.docx)"}
               </button>
             )}
-            <button
-              onClick={handlePrint}
-              className="px-4 py-2 bg-[#6cc24a] hover:bg-[#5aad3a] text-white rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm transition-all"
-            >
-              <FontAwesomeIcon icon={faPrint} />
-              Imprimir / PDF
-            </button>
+            {/* Botón Imprimir/PDF solo para documentos que no sean los 3 Word exclusivos */}
+            {!["planificacion", "cronograma", "informe"].includes(documentType?.id) &&
+             !docKey.includes("planifi") &&
+             !docKey.includes("crono") &&
+             !docKey.includes("informe") && (
+              <button
+                onClick={handlePrint}
+                className="px-4 py-2 bg-[#6cc24a] hover:bg-[#5aad3a] text-white rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm transition-all"
+              >
+                <FontAwesomeIcon icon={faPrint} />
+                Imprimir / PDF
+              </button>
+            )}
             <button
               onClick={onClose}
               className="text-slate-400 hover:text-slate-600 p-2 rounded-xl"
@@ -546,6 +558,90 @@ export default function OfficialDocumentModal({ isOpen, onClose, documentType, c
                     NetAcad conforme a los estatutos de la Universidad Técnica del Norte.
                   </p>
                 </div>
+              </div>
+            )}
+
+            {/* Reporte de Estudiantes Aprobados */}
+            {isReporteAprobados && (
+              <div className="mb-6 space-y-4">
+                <div className="bg-[#eef7ec] border border-[#b7dfad] p-3 rounded-xl text-center">
+                  <h3 className="text-xs font-bold text-[#1b4317] uppercase tracking-wide">
+                    Acta y Nómina Oficial de Estudiantes Aprobados
+                  </h3>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Estudiantes que alcanzaron la calificación mínima de 70.0/100 y cumplieron los requerimientos NetAcad
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-4 gap-3 p-3 bg-slate-50 border border-gray-200 rounded-xl text-center text-xs">
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">Inscritos</span>
+                    <span className="font-bold text-slate-700">{participants.length}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">Matriculados</span>
+                    <span className="font-bold text-slate-800">
+                      {participants.filter((p) => p.CourseParticipant?.enrolled && p.CourseParticipant?.invoice_number).length}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">Aprobados</span>
+                    <span className="font-bold text-[#3a8c25] text-sm">{approvedParticipants.length}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">% Aprobación</span>
+                    <span className="font-bold text-[#3a8c25] text-sm">
+                      {participants.length > 0
+                        ? `${Math.round((approvedParticipants.length / participants.length) * 100)}%`
+                        : "0%"}
+                    </span>
+                  </div>
+                </div>
+
+                {approvedParticipants.length > 0 ? (
+                  <div className="overflow-x-auto border border-gray-300 rounded-xl">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead className="bg-[#eef7ec] border-b border-[#b7dfad] font-bold text-[#1b4317]">
+                        <tr>
+                          <th className="px-3 py-2 text-center w-10">N°</th>
+                          <th className="px-3 py-2">Estudiante</th>
+                          <th className="px-3 py-2">Cédula</th>
+                          <th className="px-3 py-2">Carrera / Empresa</th>
+                          <th className="px-3 py-2 text-center">Nota Final</th>
+                          <th className="px-3 py-2 text-center">Estado</th>
+                          <th className="px-3 py-2 text-center">N° Factura</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {approvedParticipants.map((p, idx) => {
+                          const cp = p.CourseParticipant || {};
+                          const grade = cp.grade_final !== null && cp.grade_final !== undefined ? `${parseFloat(cp.grade_final).toFixed(1)}/100` : "70.0/100";
+                          return (
+                            <tr key={p.participant_id || idx} className="hover:bg-slate-50">
+                              <td className="px-3 py-2 text-center font-bold text-slate-500">{idx + 1}</td>
+                              <td className="px-3 py-2 font-semibold text-slate-900">{p.name}</td>
+                              <td className="px-3 py-2 font-mono text-slate-600">{p.cid || "—"}</td>
+                              <td className="px-3 py-2 text-slate-600">{p.degree || p.institution || "UTN"}</td>
+                              <td className="px-3 py-2 text-center font-bold text-[#005073]">{grade}</td>
+                              <td className="px-3 py-2 text-center">
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#edf7e6] text-[#3a8c25] border border-green-200">
+                                  APROBADO
+                                </span>
+                              </td>
+                              <td className="px-3 py-2 text-center font-mono text-slate-600 text-[11px]">
+                                {cp.invoice_number || "—"}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-slate-400 bg-slate-50 rounded-xl border border-dashed border-gray-300 text-xs">
+                    No se registran estudiantes aprobados para esta convocatoria aún (calificación mínima de 70.0).
+                  </div>
+                )}
               </div>
             )}
 

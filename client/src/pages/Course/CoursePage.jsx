@@ -29,6 +29,7 @@ import { getCourseTemplatesRequest } from "../../api/course";
 import RegisterCourseModal from "../Course/RegisterCourseModal";
 import ReportsModalityModal from "../Reports/ReportsModalityModal";
 import CoursePreviewModal from "./CoursePreviewModal";
+import CertificateDownloadModal from "../../components/course/CertificateDownloadModal";
 
 function CoursePage() {
   const {
@@ -52,6 +53,8 @@ function CoursePage() {
   const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
+  const [courseForCertificates, setCourseForCertificates] = useState(null);
 
   // State for Catalog
   const [templates, setTemplates] = useState([]);
@@ -108,8 +111,9 @@ function CoursePage() {
     setIsDetailsModalOpen(true);
   };
 
-  const handleDownloadCertificate = (courseId) => {
-    downloadCertificates(courseId);
+  const handleDownloadCertificate = (course) => {
+    setCourseForCertificates(course);
+    setIsCertificateModalOpen(true);
   };
 
   const handleOpenChapterModal = (template) => {
@@ -353,7 +357,7 @@ function CoursePage() {
                               </button>
                               <button
                                 className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white transition-all flex items-center justify-center"
-                                onClick={() => handleDownloadCertificate(course.course_id)}
+                                onClick={() => handleDownloadCertificate(course)}
                                 title="Certificados"
                               >
                                 <FontAwesomeIcon icon={faCertificate} className="text-xs" />
@@ -638,6 +642,12 @@ function CoursePage() {
           isOpen={isDetailsModalOpen}
           onClose={() => setIsDetailsModalOpen(false)}
           course={selectedCourse}
+        />
+        <CertificateDownloadModal
+          isOpen={isCertificateModalOpen}
+          onClose={() => setIsCertificateModalOpen(false)}
+          course={courseForCertificates}
+          onDownload={downloadCertificates}
         />
       </div>
     </div>
