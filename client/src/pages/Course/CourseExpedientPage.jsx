@@ -7,7 +7,10 @@ import {
   removeCourseParticipantRequest,
   reopenCourseEditionRequest,
   removeCourseChapterRequest,
+  reorderCourseChaptersRequest,
   downloadCourseDocumentDocxRequest,
+  exportCoursePaymentsExcelRequest,
+  exportCourseParticipantsExcelRequest,
 } from "../../api/course";
 import { getInstructorsDropdownRequest } from "../../api/instructor";
 import { getModalitiesDropdownRequest } from "../../api/modality";
@@ -93,6 +96,7 @@ function CourseExpedientPage() {
   const [participantFilter, setParticipantFilter] = useState("all"); // 'all' | 'enrolled' | 'pending_payment' | 'approved'
   const [editForm, setEditForm] = useState({
     course_name: "",
+    class_code: "",
     instructor_id: "",
     modality_id: "",
     status: "Planificado",
@@ -148,6 +152,7 @@ function CourseExpedientPage() {
 
       setEditForm({
         course_name: course.course_name || "",
+        class_code: course.class_code || "",
         instructor_id: detail.instructor_id ? String(detail.instructor_id) : "",
         modality_id: currentModality,
         status: course.status || "Planificado",
@@ -159,14 +164,41 @@ function CourseExpedientPage() {
         end_registration_date: course.end_registration_date
           ? course.end_registration_date.split("T")[0]
           : "",
-        total_hours: detail.total_hours || 70,
-        instructor_hours: detail.instructor_hours || 50,
-        activities_hours: detail.activities_hours || 20,
-        cost_per_hour: detail.cost_per_hour || "13.00",
+        total_hours: detail.total_hours ?? "",
+        instructor_hours: detail.instructor_hours ?? "",
+        activities_hours: detail.activities_hours ?? "",
+        cost_per_hour: detail.cost_per_hour ?? "",
       });
       setIsEditModalOpen(true);
     } catch (err) {
       console.error("Error al cargar datos para edición:", err);
+    }
+  };
+
+  const handleDownloadPaymentsExcel = async () => {
+    try {
+      const response = await exportCoursePaymentsExcelRequest(id);
+      const url = URL.createObjectURL(response.data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Facturacion_${id}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      Swal.fire({ icon: "error", title: "No se pudo descargar el Excel", text: err.response?.data?.message || "Intente nuevamente." });
+    }
+  };
+  const handleDownloadParticipantsExcel = async () => {
+    try {
+      const response = await exportCourseParticipantsExcelRequest(id);
+      const url = URL.createObjectURL(response.data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Participantes_${id}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      Swal.fire({ icon: "error", title: "No se pudo descargar el Excel", text: err.response?.data?.message || "Intente nuevamente." });
     }
   };
 
@@ -181,6 +213,10 @@ function CourseExpedientPage() {
       setSaving(true);
       const payload = {
         ...editForm,
+        total_hours: editForm.total_hours === "" ? null : Number(editForm.total_hours),
+        instructor_hours: editForm.instructor_hours === "" ? null : Number(editForm.instructor_hours),
+        activities_hours: editForm.activities_hours === "" ? null : Number(editForm.activities_hours),
+        cost_per_hour: editForm.cost_per_hour === "" ? null : Number(editForm.cost_per_hour),
         start_date: editForm.start_date || null,
         end_date: editForm.end_date || null,
         start_registration_date: editForm.start_registration_date || null,
@@ -283,6 +319,20 @@ function CourseExpedientPage() {
   const handleOpenEditChapter = (ch) => {
     setSelectedChapterForEdit(ch);
     setIsChapterModalOpen(true);
+  };
+
+  const moveChapter = async (chapterId, offset) => {
+    const index = chapters.findIndex((chapter) => Number(chapter.chapter_id) === Number(chapterId));
+    const nextIndex = index + offset;
+    if (index < 0 || nextIndex < 0 || nextIndex >= chapters.length) return;
+    const reordered = [...chapters];
+    [reordered[index], reordered[nextIndex]] = [reordered[nextIndex], reordered[index]];
+    try {
+      await reorderCourseChaptersRequest(id, reordered.map((chapter) => chapter.chapter_id));
+      await loadExpedient();
+    } catch (error) {
+      Swal.fire({ icon: "error", title: "No se pudo ordenar el cronograma", text: error.response?.data?.message || "Intente nuevamente." });
+    }
   };
 
   const handleRemoveChapter = async (chapterId, chapterName) => {
@@ -541,6 +591,12 @@ function CourseExpedientPage() {
                 className={course.status === "Finalizado" ? "text-gray-400" : "text-[#049fd9]"}
               />
               Editar configuración
+            </button>
+            <button onClick={handleDownloadPaymentsExcel} className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-sm font-semibold flex items-center gap-2">
+              <FontAwesomeIcon icon={faFileInvoiceDollar} /> Facturación Excel
+            </button>
+            <button onClick={handleDownloadParticipantsExcel} className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-sm font-semibold flex items-center gap-2">
+              Nómina Excel
             </button>
           </div>
         </div>
@@ -845,7 +901,8 @@ function CourseExpedientPage() {
                       .toLowerCase()
                       .includes(chapterSearchTerm.toLowerCase())
                   )
-                  .map((ch, idx) => {
+                  .map((ch) => {
+                    const idx = chapters.findIndex((item) => item.chapter_id === ch.chapter_id);
                     const isLab = (ch.chapter_name || "")
                       .toLowerCase()
                       .includes("laboratorio");
@@ -869,7 +926,7 @@ function CourseExpedientPage() {
                               {ch.chapter_name}
                             </p>
                             <p className="text-[11px] text-slate-500 flex items-center gap-2">
-                              <span>{ch.hours ? `${ch.hours} horas` : "2 horas"}</span>
+                              <span>{ch.hours ? `${ch.hours} horas` : "Horas sin definir"}</span>
                               <span>•</span>
                               <span className={isLab ? "text-[#3a8c25] font-medium" : "text-[#005073] font-medium"}>
                                 {isLab ? "Práctica de Laboratorio" : "Módulo Teórico"}
@@ -881,6 +938,8 @@ function CourseExpedientPage() {
                         <div className="flex items-center gap-1.5 flex-shrink-0">
                           {course.status !== "Finalizado" && (
                             <>
+                              <button onClick={() => moveChapter(ch.chapter_id, -1)} disabled={idx === 0} title="Mover arriba" className="text-slate-500 disabled:opacity-30 p-1 rounded hover:bg-slate-100">↑</button>
+                              <button onClick={() => moveChapter(ch.chapter_id, 1)} disabled={idx === chapters.length - 1} title="Mover abajo" className="text-slate-500 disabled:opacity-30 p-1 rounded hover:bg-slate-100">↓</button>
                               <button
                                 onClick={() => handleOpenEditChapter(ch)}
                                 title="Editar nombre u horas"
@@ -1410,7 +1469,7 @@ function CourseExpedientPage() {
               <form onSubmit={handleSaveEdition} className="p-6 space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Nombre o código oficial de la clase
+                    Nombre de la edición
                   </label>
                   <input
                     type="text"
@@ -1420,6 +1479,10 @@ function CourseExpedientPage() {
                     className="w-full px-3 py-2 rounded-xl border border-gray-300 bg-gray-50 text-slate-800 text-sm focus:outline-none focus:border-[#6cc24a]"
                     required
                   />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Código oficial de la clase NetAcad</label>
+                  <input type="text" name="class_code" value={editForm.class_code} onChange={handleEditChange} className="w-full px-3 py-2 rounded-xl border border-gray-300 bg-gray-50 text-slate-800 text-sm focus:outline-none focus:border-[#6cc24a]" />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

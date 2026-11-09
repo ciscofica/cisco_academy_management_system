@@ -147,9 +147,10 @@ export const updateParticipantType = async (req, res) => {
 
 export const getParticipantTypesDropdown = async (req, res) => {
   try {
-    const participant_types = await ParticipantType.findAll({
-      attributes: ["participant_type_id", "name"],
-    });
+    const participant_types = (await ParticipantType.findAll({
+      attributes: ["participant_type_id", "name", "status"],
+      order: [["name", "ASC"]],
+    })).filter((item) => String(item.status || "").toLowerCase() !== "inactivo");
     res.json({ participant_types: participant_types });
   } catch (error) {
     res.status(500).json({ message: notifications.principal.p1 });

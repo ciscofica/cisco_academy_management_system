@@ -20,7 +20,7 @@ import {
   faTable,
 } from "@fortawesome/free-solid-svg-icons";
 import { usePayment } from "../../context/PaymentContext";
-import { getAllCoursesRequest, getCourseExpedientRequest } from "../../api/course";
+import { getAllCoursesRequest, getCourseExpedientRequest, exportCoursePaymentsExcelRequest } from "../../api/course";
 import RegisterPaymentModal from "../Payment/RegisterPaymentModal";
 import ReportsModalityModal from "../Reports/ReportsModalityModal";
 import ValidatePaymentModal from "../../components/course/ValidatePaymentModal";
@@ -56,6 +56,20 @@ export default function PaymentPage() {
 
   // Búsqueda de facturas generales en Tab de Facturación (CRUD)
   const [paymentSearch, setPaymentSearch] = useState("");
+
+  const downloadPaymentsExcel = async () => {
+    try {
+      const response = await exportCoursePaymentsExcelRequest(selectedEdition.course_id);
+      const url = URL.createObjectURL(response.data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Facturacion_${selectedEdition.course_id}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("No se pudo exportar el reporte de facturación:", error);
+    }
+  };
 
   // Cargar ediciones operativas (status != 'Plantilla')
   useEffect(() => {
@@ -459,6 +473,10 @@ export default function PaymentPage() {
                   >
                     <FontAwesomeIcon icon={faPlus} />
                     <span>Agregar Factura</span>
+                  </button>
+                  <button onClick={downloadPaymentsExcel} className="px-3.5 py-1.5 rounded-xl text-white bg-emerald-700 hover:bg-emerald-800 text-xs font-bold transition-all shadow-xs flex items-center gap-1.5">
+                    <FontAwesomeIcon icon={faFileInvoiceDollar} />
+                    <span>Descargar Excel</span>
                   </button>
                 </div>
               </div>

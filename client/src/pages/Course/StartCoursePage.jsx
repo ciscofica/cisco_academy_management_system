@@ -341,11 +341,11 @@ function StartCoursePage() {
                     <div>
                       <p className="text-xs text-slate-500 font-medium">Carga horaria</p>
                       <p className="text-sm font-bold text-slate-800">
-                        {detail?.total_hours || 70} horas totales
+                        {detail?.total_hours ?? "Sin definir"}{detail?.total_hours ? " horas totales" : ""}
                       </p>
                       {detail?.instructor_hours && (
                         <p className="text-[11px] text-slate-500">
-                          ({detail.instructor_hours}h con docente + {detail.activities_hours || 20}h autónomas)
+                          ({detail.instructor_hours || "Sin definir"}h con docente + {detail.activities_hours ?? "Sin definir"}h autónomas)
                         </p>
                       )}
                     </div>

@@ -25,11 +25,13 @@ import {
   faLayerGroup,
 } from "@fortawesome/free-solid-svg-icons";
 import { useCourse } from "../../context/CourseContext";
-import { getCourseTemplatesRequest } from "../../api/course";
+import { getCourseTemplatesRequest, saveCourseTemplateRequest, reorderCourseChaptersRequest } from "../../api/course";
 import RegisterCourseModal from "../Course/RegisterCourseModal";
 import ReportsModalityModal from "../Reports/ReportsModalityModal";
 import CoursePreviewModal from "./CoursePreviewModal";
 import CertificateDownloadModal from "../../components/course/CertificateDownloadModal";
+import EditChapterModal from "../../components/course/EditChapterModal";
+import { getPaymentTypesDropdownRequest } from "../../api/payment_type";
 
 function CoursePage() {
   const {
@@ -58,10 +60,18 @@ function CoursePage() {
 
   // State for Catalog
   const [templates, setTemplates] = useState([]);
+  const [paymentTypes, setPaymentTypes] = useState([]);
   const [catalogSearch, setCatalogSearch] = useState("");
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState(null);
   const [isChapterModalOpen, setIsChapterModalOpen] = useState(false);
+  const [catalogChapterToEdit, setCatalogChapterToEdit] = useState(null);
+  const [isCatalogChapterEditorOpen, setIsCatalogChapterEditorOpen] = useState(false);
+  const emptyTemplate = { course_name: "", course_description: "", course_name_en: "", course_code: "", total_hours: "", instructor_hours: "", activities_hours: "", subject_area: "", target_audience: "", participant_requeriment: "", prerequisites: "", objective: "", specific_objectives: "", justification: "", methodology: "", evaluation_criteria: "", resources_materials: "", bibliography: "", payment_methods: "", academic_responsible: "", academic_responsible_charge: "" };
+  const [templateForm, setTemplateForm] = useState(emptyTemplate);
+  const [editingTemplateId, setEditingTemplateId] = useState(null);
+  const [templateFormOpen, setTemplateFormOpen] = useState(false);
+  const [templateSaving, setTemplateSaving] = useState(false);
 
   useEffect(() => {
     getCourses({ search: searchTerm, page: currentPage });
@@ -69,6 +79,9 @@ function CoursePage() {
 
   useEffect(() => {
     loadTemplates();
+    getPaymentTypesDropdownRequest()
+      .then((res) => setPaymentTypes(res.data?.payment_types || []))
+      .catch((error) => console.error("Error al cargar tipos de pago:", error));
   }, []);
 
   const loadTemplates = async () => {
@@ -119,6 +132,54 @@ function CoursePage() {
   const handleOpenChapterModal = (template) => {
     setPreviewTemplate(template);
     setIsChapterModalOpen(true);
+  };
+
+  const openTemplateForm = (template = null) => {
+    const d = template?.Detail || {};
+    setTemplateForm({ ...emptyTemplate, course_name: template?.course_name || "", ...Object.fromEntries(Object.keys(emptyTemplate).filter((k) => k !== "course_name").map((k) => [k, d[k] ?? ""])) });
+    setEditingTemplateId(template?.course_id || null);
+    setTemplateFormOpen(true);
+  };
+  const getSelectedPaymentMethods = () => {
+    const raw = templateForm.payment_methods || "";
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    } catch { /* Valores guardados anteriormente como texto separado por coma. */ }
+    return raw.split(",").map((item) => item.trim()).filter(Boolean);
+  };
+  const togglePaymentMethod = (name) => {
+    const selected = getSelectedPaymentMethods();
+    const next = selected.includes(name) ? selected.filter((item) => item !== name) : [...selected, name];
+    setTemplateForm((form) => ({ ...form, payment_methods: next.join(", ") }));
+  };
+  const saveTemplate = async (e) => {
+    e.preventDefault();
+    try {
+      setTemplateSaving(true);
+      await saveCourseTemplateRequest({ ...templateForm, total_hours: templateForm.total_hours || null, instructor_hours: templateForm.instructor_hours || null, activities_hours: templateForm.activities_hours || null }, editingTemplateId);
+      await loadTemplates();
+      setTemplateFormOpen(false);
+    } catch (err) {
+      window.alert(err.response?.data?.message || "No se pudo guardar la ficha del catálogo.");
+    } finally { setTemplateSaving(false); }
+  };
+  const moveCatalogChapter = async (chapterId, offset) => {
+    const chapters = previewTemplate?.Chapters || [];
+    const index = chapters.findIndex((chapter) => Number(chapter.chapter_id) === Number(chapterId));
+    const nextIndex = index + offset;
+    if (index < 0 || nextIndex < 0 || nextIndex >= chapters.length) return;
+    const reordered = [...chapters];
+    [reordered[index], reordered[nextIndex]] = [reordered[nextIndex], reordered[index]];
+    try {
+      await reorderCourseChaptersRequest(previewTemplate.course_id, reordered.map((chapter) => chapter.chapter_id));
+      const response = await getCourseTemplatesRequest();
+      const list = Array.isArray(response.data) ? response.data : response.data?.templates || [];
+      setTemplates(list);
+      setPreviewTemplate(list.find((item) => item.course_id === previewTemplate.course_id) || previewTemplate);
+    } catch (error) {
+      window.alert(error.response?.data?.message || "No se pudo guardar el orden del temario.");
+    }
   };
 
   // Helper para asignar categorías e iconos estilo Cisco NetAcad
@@ -438,8 +499,9 @@ function CoursePage() {
               </div>
 
               <div className="text-xs text-slate-500 font-medium">
-                Mostrando {filteredTemplates.length} de {templates.length} cursos oficiales disponibles
+                Mostrando {filteredTemplates.length} de {templates.length} cursos disponibles
               </div>
+              <button onClick={() => openTemplateForm()} className="px-4 py-2.5 rounded-xl bg-[#005073] text-white text-sm font-semibold">Crear curso en catálogo</button>
             </div>
 
             {/* Grid de Tarjetas Estilo Cisco NetAcad */}
@@ -447,7 +509,7 @@ function CoursePage() {
               {filteredTemplates.map((template) => {
                 const category = getCourseCategory(template.course_name);
                 const detail = template.Detail || null;
-                const totalHours = detail?.total_hours || 70;
+                const totalHours = detail?.total_hours || "Sin definir";
                 const chaptersCount = template.Chapters?.length || 0;
 
                 return (
@@ -475,8 +537,7 @@ function CoursePage() {
                       </h3>
 
                       <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-4">
-                        {detail?.course_description ||
-                          "Curso oficial del catálogo curricular de Cisco Networking Academy para la Universidad Técnica del Norte."}
+                        {detail?.course_description || "Sin descripción registrada."}
                       </p>
 
                       {/* Métricas del Plan Curricular */}
@@ -485,7 +546,7 @@ function CoursePage() {
                           <FontAwesomeIcon icon={faClock} className="text-[#049fd9]" />
                           <div>
                             <p className="text-[10px] text-slate-400 font-medium">Carga horaria</p>
-                            <p className="font-bold text-slate-800">{totalHours} Horas</p>
+                              <p className="font-bold text-slate-800">{totalHours}{typeof totalHours === "number" ? " Horas" : ""}</p>
                           </div>
                         </div>
 
@@ -510,6 +571,7 @@ function CoursePage() {
                         <FontAwesomeIcon icon={faListOl} />
                         Ver Temario ({chaptersCount})
                       </button>
+                      <button onClick={() => openTemplateForm(template)} className="text-xs font-semibold text-amber-700 hover:text-amber-900">Editar ficha</button>
 
                       <button
                         onClick={() => navigate(`/course/start?templateId=${template.course_id}`)}
@@ -536,6 +598,20 @@ function CoursePage() {
           </div>
         )}
 
+        {templateFormOpen && (
+          <div className="fixed inset-0 z-[70] bg-slate-900/60 flex items-center justify-center p-4">
+            <form onSubmit={saveTemplate} className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 space-y-4">
+              <div className="flex justify-between"><h2 className="text-xl font-bold">{editingTemplateId ? "Editar ficha de catálogo" : "Crear curso en catálogo"}</h2><button type="button" onClick={() => setTemplateFormOpen(false)}>Cerrar</button></div>
+              <div className="grid md:grid-cols-2 gap-3">
+                {[["course_name","Nombre del curso"],["subject_area","Área temática"],["total_hours","Horas totales"],["instructor_hours","Horas con instructor"],["activities_hours","Horas autónomas"],["target_audience","Público destinatario"],["participant_requeriment","Requisitos de participantes"],["prerequisites","Prerrequisitos"],["course_description","Descripción"],["objective","Objetivo general"],["specific_objectives","Objetivos específicos"],["justification","Justificación"],["methodology","Metodología"],["evaluation_criteria","Criterios de evaluación"],["resources_materials","Recursos y materiales"],["bibliography","Bibliografía"]].map(([key,label]) => <label key={key} className="text-sm font-medium text-slate-700">{label}<textarea required={key === "course_name"} rows={key === "course_name" || key.includes("hours") ? 1 : 2} value={templateForm[key]} onChange={(e) => setTemplateForm((f) => ({ ...f, [key]: e.target.value }))} className="mt-1 w-full rounded-lg border border-slate-300 p-2" /></label>)}
+              </div>
+              <div className="grid md:grid-cols-2 gap-3">{[["course_name_en","Nombre en inglés"],["course_code","Código del curso"],["academic_responsible","Responsable académico"],["academic_responsible_charge","Cargo del responsable"]].map(([key,label]) => <label key={key} className="text-sm font-medium text-slate-700">{label}<textarea rows={2} value={templateForm[key] || ""} onChange={(e) => setTemplateForm((f) => ({ ...f, [key]: e.target.value }))} className="mt-1 w-full rounded-lg border border-slate-300 p-2" /></label>)}</div>
+              <fieldset className="rounded-xl border border-slate-200 p-4"><legend className="px-1 text-sm font-semibold text-slate-700">Tipos de pago aceptados</legend>{paymentTypes.length ? <div className="grid sm:grid-cols-2 gap-2">{paymentTypes.map((type) => <label key={type.payment_type_id} className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={getSelectedPaymentMethods().includes(type.name)} onChange={() => togglePaymentMethod(type.name)} />{type.name}</label>)}</div> : <p className="text-xs text-slate-500">No hay tipos de pago registrados para seleccionar.</p>}</fieldset>
+              <div className="flex justify-end gap-3 border-t border-slate-100 pt-4"><button type="button" onClick={() => { setTemplateFormOpen(false); setTemplateForm(emptyTemplate); setEditingTemplateId(null); }} className="px-5 py-2 rounded-xl border border-slate-300 text-slate-600 font-semibold">Cancelar</button><button disabled={templateSaving} className="px-5 py-2 rounded-xl bg-[#6cc24a] text-white font-bold">{templateSaving ? "Guardando…" : "Guardar ficha"}</button></div>
+            </form>
+          </div>
+        )}
+
         {/* ═══════════════════════════════════════════════════════════════
             MODAL DE TEMARIO DEL CURSO DE CATÁLOGO
         ═══════════════════════════════════════════════════════════════ */}
@@ -547,10 +623,10 @@ function CoursePage() {
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 text-[#049fd9] border border-blue-200">
-                      Plan Curricular Oficial
+                      Temario del curso
                     </span>
                     <span className="text-[11px] font-semibold text-slate-500">
-                      {previewTemplate.Detail?.total_hours || 70} Horas
+                      {previewTemplate.Detail?.total_hours ? `${previewTemplate.Detail.total_hours} Horas` : "Horas sin definir"}
                     </span>
                   </div>
                   <h2 className="text-xl font-bold text-slate-900">
@@ -589,9 +665,7 @@ function CoursePage() {
                           </p>
                         </div>
                       </div>
-                      <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-blue-50 text-[#049fd9] border border-blue-100 flex-shrink-0">
-                        Módulo {idx + 1}
-                      </span>
+                      <div className="flex items-center gap-1"><button onClick={() => moveCatalogChapter(ch.chapter_id, -1)} disabled={idx === 0} title="Mover arriba" className="px-1 text-slate-500 disabled:opacity-30">↑</button><button onClick={() => moveCatalogChapter(ch.chapter_id, 1)} disabled={idx === previewTemplate.Chapters.length - 1} title="Mover abajo" className="px-1 text-slate-500 disabled:opacity-30">↓</button><button onClick={() => { setCatalogChapterToEdit(ch); setIsCatalogChapterEditorOpen(true); }} className="text-xs font-semibold text-amber-700 hover:text-amber-900">Editar</button></div>
                     </div>
                   ))
                 ) : (
@@ -606,6 +680,12 @@ function CoursePage() {
 
               {/* Footer con CTA */}
               <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                <button
+                  onClick={() => { setCatalogChapterToEdit(null); setIsCatalogChapterEditorOpen(true); }}
+                  className="px-4 py-2 text-xs font-semibold text-[#005073] hover:bg-blue-50 rounded-xl transition-colors"
+                >
+                  Agregar contenido
+                </button>
                 <button
                   onClick={() => setIsChapterModalOpen(false)}
                   className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-gray-100 rounded-xl transition-colors"
@@ -648,6 +728,21 @@ function CoursePage() {
           onClose={() => setIsCertificateModalOpen(false)}
           course={courseForCertificates}
           onDownload={downloadCertificates}
+        />
+        <EditChapterModal
+          isOpen={isCatalogChapterEditorOpen}
+          onClose={() => { setIsCatalogChapterEditorOpen(false); setCatalogChapterToEdit(null); }}
+          courseId={previewTemplate?.course_id}
+          chapter={catalogChapterToEdit}
+          isCatalogTemplate
+          onSaved={async () => {
+            await loadTemplates();
+            if (previewTemplate) {
+              const refreshed = await getCourseTemplatesRequest();
+              const list = Array.isArray(refreshed.data) ? refreshed.data : refreshed.data?.templates || [];
+              setPreviewTemplate(list.find((item) => item.course_id === previewTemplate.course_id) || previewTemplate);
+            }
+          }}
         />
       </div>
     </div>

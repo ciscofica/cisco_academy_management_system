@@ -14,6 +14,8 @@ import {
   faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
 import { updateParticipantRequest } from "../../api/participant";
+import { getParticipantTypesDropdownRequest } from "../../api/participant_type";
+import { getInfosUtnDropdownRequest } from "../../api/infoutn";
 
 export default function EditParticipantProfileModal({
   isOpen,
@@ -33,9 +35,21 @@ export default function EditParticipantProfileModal({
     degree_level: "",
   });
   const [saving, setSaving] = useState(false);
+  const [participantTypes, setParticipantTypes] = useState([]);
+  const [academicOptions, setAcademicOptions] = useState([]);
+  const [facultyFilter, setFacultyFilter] = useState("");
+  const [infoUtnId, setInfoUtnId] = useState("");
 
   useEffect(() => {
     if (participant) {
+      Promise.all([getParticipantTypesDropdownRequest(), getInfosUtnDropdownRequest()]).then(([types, academic]) => {
+        const typeList = types.data.participant_types || [];
+        const infoList = academic.data.infos_utn || [];
+        setParticipantTypes(typeList); setAcademicOptions(infoList);
+        const match = infoList.find((item) => item.degree === (participant.degree || ""));
+        setInfoUtnId(match ? String(match.info_utn_id) : "");
+        setFacultyFilter(match?.faculty || "");
+      }).catch(() => {});
       setFormData({
         name: participant.name || "",
         cid: participant.cid || "",
@@ -65,6 +79,7 @@ export default function EditParticipantProfileModal({
         address: formData.address || "sin registro",
         institution: formData.institution || "sin registro",
         participant_type_id: Number(formData.participant_type_id),
+        info_utn_id: infoUtnId || null,
         degree: formData.degree,
         degree_level: formData.degree_level ? parseInt(formData.degree_level) : null,
       });
@@ -90,7 +105,8 @@ export default function EditParticipantProfileModal({
     }
   };
 
-  const isUtn = [1, 2, 3, 5].includes(Number(formData.participant_type_id));
+  const selectedType = participantTypes.find((type) => Number(type.participant_type_id) === Number(formData.participant_type_id));
+  const isUtn = !selectedType || /UTN/i.test(selectedType.name);
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -199,63 +215,36 @@ export default function EditParticipantProfileModal({
             </label>
             <select
               value={formData.participant_type_id}
-              onChange={(e) =>
-                setFormData({ ...formData, participant_type_id: Number(e.target.value) })
-              }
+              onChange={(e) => { const typeId = Number(e.target.value); const type = participantTypes.find((item) => Number(item.participant_type_id) === typeId); setFormData({ ...formData, participant_type_id: typeId, ...(type && !/UTN/i.test(type.name) ? { degree: "", degree_level: "" } : {}) }); if (type && !/UTN/i.test(type.name)) { setInfoUtnId(""); setFacultyFilter(""); } }}
               className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-[#049fd9] bg-gray-50"
             >
-              <option value={1}>Estudiante Pregrado UTN</option>
-              <option value={2}>Graduado / Egresado UTN</option>
-              <option value={3}>Estudiante Postgrado UTN</option>
-              <option value={4}>Particular / Externo</option>
-              <option value={5}>Docente UTN</option>
+              {participantTypes.map((type) => <option key={type.participant_type_id} value={type.participant_type_id}>{type.name}</option>)}
             </select>
           </div>
 
           {/* Conditional fields based on participant type */}
           <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-gray-200">
+            {isUtn ? <>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 <FontAwesomeIcon icon={faGraduationCap} className="mr-1 text-[#049fd9]" />
                 Carrera
               </label>
-              <input
-                type="text"
-                placeholder="ej: CITEL, CIELE, Software"
-                value={formData.degree}
-                onChange={(e) => setFormData({ ...formData, degree: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-[#049fd9] bg-white"
-              />
+              <select value={facultyFilter} onChange={(e) => { setFacultyFilter(e.target.value); setInfoUtnId(""); setFormData({ ...formData, degree: "", degree_level: "" }); }} className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm bg-white"><option value="">Seleccionar facultad</option>{[...new Set(academicOptions.map((item) => item.faculty).filter(Boolean))].sort().map((faculty) => <option key={faculty} value={faculty}>{faculty}</option>)}</select>
+              <select value={infoUtnId} onChange={(e) => { const selected = academicOptions.find((item) => String(item.info_utn_id) === e.target.value); setInfoUtnId(e.target.value); setFormData({ ...formData, degree: selected?.degree || "", degree_level: selected?.degree_level || "" }); }} className="mt-2 w-full px-3 py-2 rounded-xl border border-gray-300 text-sm bg-white"><option value="">Seleccionar carrera</option>{academicOptions.filter((item) => !facultyFilter || item.faculty === facultyFilter).map((item) => <option key={item.info_utn_id} value={item.info_utn_id}>{item.degree}</option>)}</select>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Nivel / Semestre
+                Nivel académico
               </label>
-              <input
-                type="number"
-                min="1"
-                max="10"
-                placeholder="ej: 7 u 8"
-                value={formData.degree_level}
-                onChange={(e) => setFormData({ ...formData, degree_level: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-[#049fd9] bg-white"
-              />
+              <input type="text" readOnly placeholder="Nivel del catálogo" value={formData.degree_level} className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm bg-slate-100" />
             </div>
 
-            <div className="col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                <FontAwesomeIcon icon={faBuilding} className="mr-1 text-slate-400" />
-                Empresa / Institución Laboral
-              </label>
-              <input
-                type="text"
-                placeholder="ej: Telconet Latam, Bridge Telecom (o UTN)"
-                value={formData.institution}
-                onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-[#049fd9] bg-white"
-              />
-            </div>
+            </> : <div className="col-span-2">
+              <label className="block text-xs font-semibold text-slate-700 mb-1"><FontAwesomeIcon icon={faBuilding} className="mr-1 text-slate-400" />Empresa / Institución Laboral</label>
+              <input type="text" value={formData.institution} onChange={(e) => setFormData({ ...formData, institution: e.target.value })} className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm" />
+            </div>}
           </div>
 
           <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">

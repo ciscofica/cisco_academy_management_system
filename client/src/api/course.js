@@ -11,6 +11,13 @@ export const deleteCourseRequest = (id) => axios.delete(`/course/${id}`);
 export const getCoursesDropdownRequest = () => axios.get(`/courses-dropdown`);
 export const getCourseTemplatesRequest = () =>
   axios.get("/course/templates");
+export const saveCourseTemplateRequest = (data, id) => id
+  ? axios.put(`/course/templates/${id}`, data)
+  : axios.post("/course/templates", data);
+export const exportCoursePaymentsExcelRequest = (id) =>
+  axios.get(`/course/${id}/payments/export.xlsx`, { responseType: "blob" });
+export const exportCourseParticipantsExcelRequest = (id) =>
+  axios.get(`/course/${id}/participants/export.xlsx`, { responseType: "blob" });
 
 export const startCourseFromTemplateRequest = (course) =>
   axios.post("/course/start-from-template", course);
@@ -56,6 +63,8 @@ export const updateCourseChapterRequest = (id, chapterId, data) =>
 
 export const removeCourseChapterRequest = (id, chapterId) =>
   axios.delete(`/course/${id}/chapter/${chapterId}`);
+export const reorderCourseChaptersRequest = (id, chapterIds) =>
+  axios.put(`/course/${id}/chapters/reorder`, { chapter_ids: chapterIds });
 
 export const getCoursePaymentsRequest = (id) =>
   axios.get(`/course/${id}/payments`);

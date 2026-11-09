@@ -17,6 +17,7 @@ const Course = sequelize.define(
       type: DataTypes.STRING(255),
       allowNull: false,
     },
+    class_code: { type: DataTypes.STRING(255), allowNull: true, field: "class_code" },
     start_registration_date: {
       type: DataTypes.DATE,
     },

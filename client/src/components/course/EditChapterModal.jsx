@@ -21,16 +21,20 @@ export default function EditChapterModal({
   onClose,
   courseId,
   chapter, // if null, create mode; if object, edit mode
+  isCatalogTemplate = false,
   onSaved,
 }) {
   const isEdit = Boolean(chapter);
   const [formData, setFormData] = useState({
     chapter_name: "",
-    hours: 2,
+    hours: "",
     main_topics: "",
-    modality: "Virtual",
+    modality: "",
     activity: "",
     start_date: "",
+    end_date: "",
+    session_start_time: "",
+    session_end_time: "",
     type: "teoria", // 'teoria' | 'lab'
   });
   const [saving, setSaving] = useState(false);
@@ -48,23 +52,31 @@ export default function EditChapterModal({
           dateVal = "";
         }
       }
+      let endDateVal = "";
+      if (chapter.end_date) { try { endDateVal = new Date(chapter.end_date).toISOString().split("T")[0]; } catch { endDateVal = ""; } }
       setFormData({
         chapter_name: chapter.chapter_name || "",
-        hours: chapter.hours || 2,
+        hours: chapter.hours ?? "",
         main_topics: chapter.main_topics || "",
-        modality: chapter.modality || (isLab ? "Presencial con instructor" : "Virtual"),
+        modality: chapter.modality || "",
         activity: chapter.activity || "",
         start_date: dateVal,
+        end_date: endDateVal,
+        session_start_time: chapter.session_start_time?.slice(0, 5) || "",
+        session_end_time: chapter.session_end_time?.slice(0, 5) || "",
         type: isLab ? "lab" : "teoria",
       });
     } else {
       setFormData({
         chapter_name: "",
-        hours: 2,
+        hours: "",
         main_topics: "",
-        modality: "Virtual",
+        modality: "",
         activity: "",
         start_date: "",
+        end_date: "",
+        session_start_time: "",
+        session_end_time: "",
         type: "teoria",
       });
     }
@@ -87,11 +99,14 @@ export default function EditChapterModal({
       setSaving(true);
       const payload = {
         chapter_name: formData.chapter_name.trim(),
-        hours: Number(formData.hours) || 2,
+        hours: formData.hours === "" ? null : Number(formData.hours),
         main_topics: formData.main_topics?.trim() || null,
         modality: formData.modality || "Virtual",
         activity: formData.activity?.trim() || null,
-        start_date: formData.start_date ? formData.start_date : null,
+        start_date: isCatalogTemplate ? null : (formData.start_date || null),
+        end_date: isCatalogTemplate ? null : (formData.end_date || null),
+        session_start_time: isCatalogTemplate ? null : (formData.session_start_time || null),
+        session_end_time: isCatalogTemplate ? null : (formData.session_end_time || null),
       };
 
       if (isEdit) {
@@ -154,7 +169,7 @@ export default function EditChapterModal({
                 {isEdit ? "Editar Módulo / Capítulo" : "Agregar Nuevo Capítulo"}
               </h2>
               <p className="text-xs text-slate-500">
-                Temario oficial de la convocatoria NetAcad
+                {isCatalogTemplate ? "Temario base; fechas y horarios se definen en cada edición" : "Temario y calendario de esta edición NetAcad"}
               </p>
             </div>
           </div>
@@ -216,22 +231,21 @@ export default function EditChapterModal({
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className={`grid ${isCatalogTemplate ? "grid-cols-2" : "grid-cols-3"} gap-3`}>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 <FontAwesomeIcon icon={faClock} className="mr-1 text-slate-400" />
-                Horas *
+                Horas
               </label>
               <input
                 type="number"
-                min="1"
+                min="0"
                 max="50"
                 value={formData.hours}
                 onChange={(e) =>
                   setFormData({ ...formData, hours: e.target.value })
                 }
                 className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-[#6cc24a]"
-                required
               />
             </div>
 
@@ -246,6 +260,7 @@ export default function EditChapterModal({
                 }
                 className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-[#6cc24a]"
               >
+                <option value="">Seleccionar modalidad</option>
                 <option value="Virtual">Virtual</option>
                 <option value="Presencial">Presencial</option>
                 <option value="Presencial con instructor">Presencial con instructor</option>
@@ -254,10 +269,10 @@ export default function EditChapterModal({
               </select>
             </div>
 
-            <div>
+            {!isCatalogTemplate && <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 <FontAwesomeIcon icon={faCalendarAlt} className="mr-1 text-slate-400" />
-                Fecha Sesión
+                Fecha de la sesión
               </label>
               <input
                 type="date"
@@ -267,8 +282,17 @@ export default function EditChapterModal({
                 }
                 className="w-full px-2 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:border-[#6cc24a]"
               />
-            </div>
+            </div>}
           </div>
+
+          {!isCatalogTemplate && <>
+          <p className="-mt-2 text-[11px] text-slate-500">La fecha de la sesión es el día que aparecerá en el cronograma. Use fecha final solo si el módulo ocupa varios días; déjela vacía para una sesión de un día.</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <label className="text-xs font-semibold text-slate-700">Fecha final (si aplica)<input type="date" value={formData.end_date} onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} className="mt-1 w-full px-2 py-2 rounded-xl border border-gray-300 text-xs" /></label>
+            <label className="text-xs font-semibold text-slate-700">Hora inicio<input type="time" value={formData.session_start_time} onChange={(e) => setFormData({ ...formData, session_start_time: e.target.value })} className="mt-1 w-full px-2 py-2 rounded-xl border border-gray-300 text-xs" /></label>
+            <label className="text-xs font-semibold text-slate-700">Hora fin<input type="time" value={formData.session_end_time} onChange={(e) => setFormData({ ...formData, session_end_time: e.target.value })} className="mt-1 w-full px-2 py-2 rounded-xl border border-gray-300 text-xs" /></label>
+          </div>
+          </>}
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">

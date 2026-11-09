@@ -25,6 +25,8 @@ import {
   enrollCourseParticipantsBulkRequest,
 } from "../../api/course";
 import { getAllParticipantsRequest } from "../../api/participant";
+import { getParticipantTypesDropdownRequest } from "../../api/participant_type";
+import { getInfosUtnDropdownRequest } from "../../api/infoutn";
 
 export default function EnrollParticipantModal({ isOpen, onClose, courseId, onEnrolled }) {
   const [mode, setMode] = useState("existing"); // 'existing' | 'new' | 'excel'
@@ -41,11 +43,11 @@ export default function EnrollParticipantModal({ isOpen, onClose, courseId, onEn
     cid: "",
     email: "",
     phone: "",
-    address: "Ibarra",
-    institution: "Universidad Técnica del Norte",
+    address: "",
+    institution: "",
     participant_type_id: 1,
-    degree: "CITEL",
-    degree_level: 7,
+    degree: "",
+    degree_level: "",
     total_payment: 0.0,
     enrolled: true,
     registered: true,
@@ -54,11 +56,19 @@ export default function EnrollParticipantModal({ isOpen, onClose, courseId, onEn
   // Excel Bulk Upload State
   const [excelData, setExcelData] = useState([]);
   const [excelFileName, setExcelFileName] = useState("");
+  const [participantTypes, setParticipantTypes] = useState([]);
+  const [academicOptions, setAcademicOptions] = useState([]);
+  const [facultyFilter, setFacultyFilter] = useState("");
+  const [infoUtnId, setInfoUtnId] = useState("");
   const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
       loadRegisteredParticipants();
+      Promise.all([getParticipantTypesDropdownRequest(), getInfosUtnDropdownRequest()]).then(([types, academic]) => {
+        setParticipantTypes(types.data.participant_types || []);
+        setAcademicOptions(academic.data.infos_utn || []);
+      }).catch(() => {});
       setExcelData([]);
       setExcelFileName("");
     }
@@ -89,6 +99,8 @@ export default function EnrollParticipantModal({ isOpen, onClose, courseId, onEn
       (p.email || "").toLowerCase().includes(term)
     );
   });
+  const selectedNewType = participantTypes.find((type) => Number(type.participant_type_id) === Number(newForm.participant_type_id));
+  const newParticipantIsUtn = !selectedNewType || /UTN/i.test(selectedNewType.name);
 
   // Handler: Enroll Existing
   const handleEnrollExisting = async (e) => {
@@ -142,7 +154,7 @@ export default function EnrollParticipantModal({ isOpen, onClose, courseId, onEn
 
     try {
       setSubmitting(true);
-      const res = await enrollCourseParticipantRequest(courseId, newForm);
+      const res = await enrollCourseParticipantRequest(courseId, { ...newForm, info_utn_id: infoUtnId || null });
       Swal.fire({
         icon: "success",
         title: "Participante Registrado",
@@ -555,62 +567,36 @@ export default function EnrollParticipantModal({ isOpen, onClose, courseId, onEn
               </label>
               <select
                 value={newForm.participant_type_id}
-                onChange={(e) =>
-                  setNewForm({ ...newForm, participant_type_id: Number(e.target.value) })
-                }
+                onChange={(e) => { const typeId = Number(e.target.value); const type = participantTypes.find((item) => Number(item.participant_type_id) === typeId); setNewForm({ ...newForm, participant_type_id: typeId, ...(type && !/UTN/i.test(type.name) ? { degree: "", degree_level: "" } : {}) }); if (type && !/UTN/i.test(type.name)) { setInfoUtnId(""); setFacultyFilter(""); } }}
                 className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-[#6cc24a] bg-gray-50"
               >
-                <option value={1}>Estudiante UTN</option>
-                <option value={2}>Graduado / Egresado UTN</option>
-                <option value={4}>Particular / Externo</option>
-                <option value={5}>Docente UTN</option>
+                {participantTypes.map((type) => <option key={type.participant_type_id} value={type.participant_type_id}>{type.name}</option>)}
               </select>
             </div>
 
             {/* Datos Académicos y Laborales */}
             <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-gray-200">
+              {newParticipantIsUtn ? <>
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   <FontAwesomeIcon icon={faGraduationCap} className="mr-1 text-[#049fd9]" />
                   Carrera
                 </label>
-                <input
-                  type="text"
-                  placeholder="Ej: CITEL, CIELE, Software"
-                  value={newForm.degree}
-                  onChange={(e) => setNewForm({ ...newForm, degree: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-[#6cc24a] bg-white"
-                />
+                <select value={facultyFilter} onChange={(e) => { setFacultyFilter(e.target.value); setInfoUtnId(""); setNewForm({ ...newForm, degree: "", degree_level: "" }); }} className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm bg-white"><option value="">Seleccionar facultad</option>{[...new Set(academicOptions.map((item) => item.faculty).filter(Boolean))].sort().map((faculty) => <option key={faculty} value={faculty}>{faculty}</option>)}</select>
+                <select value={infoUtnId} onChange={(e) => { const selected = academicOptions.find((item) => String(item.info_utn_id) === e.target.value); setInfoUtnId(e.target.value); setNewForm({ ...newForm, degree: selected?.degree || "", degree_level: selected?.degree_level || "" }); }} className="mt-2 w-full px-3 py-2 rounded-xl border border-gray-300 text-sm bg-white"><option value="">Seleccionar carrera</option>{academicOptions.filter((item) => !facultyFilter || item.faculty === facultyFilter).map((item) => <option key={item.info_utn_id} value={item.info_utn_id}>{item.degree}</option>)}</select>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Nivel / Semestre
+                  Nivel académico
                 </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="10"
-                  placeholder="Ej: 7 u 8"
-                  value={newForm.degree_level}
-                  onChange={(e) => setNewForm({ ...newForm, degree_level: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-[#6cc24a] bg-white"
-                />
+                <input type="text" readOnly placeholder="Nivel del catálogo" value={newForm.degree_level} className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm bg-slate-100" />
               </div>
 
-              <div className="col-span-2">
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  <FontAwesomeIcon icon={faBuilding} className="mr-1 text-slate-400" />
-                  Empresa / Institución Laboral
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ej: Telconet Latam, Bridge Telecom (o UTN)"
-                  value={newForm.institution}
-                  onChange={(e) => setNewForm({ ...newForm, institution: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-[#6cc24a] bg-white"
-                />
-              </div>
+              </> : <div className="col-span-2">
+                <label className="block text-xs font-semibold text-slate-700 mb-1"><FontAwesomeIcon icon={faBuilding} className="mr-1 text-slate-400" />Empresa / Institución</label>
+                <input type="text" value={newForm.institution} onChange={(e) => setNewForm({ ...newForm, institution: e.target.value })} className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm" />
+              </div>}
             </div>
 
             <div>

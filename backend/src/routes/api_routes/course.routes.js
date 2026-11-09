@@ -29,11 +29,19 @@ import {
   validateParticipantPayment,
   importInvoicesBulk,
   downloadCourseDocumentDocx,
+  saveCourseTemplate,
+  exportCoursePaymentsExcel,
+  exportCourseParticipantsExcel,
+  reorderCourseChapters,
 } from "../../controllers/api_controllers/course.controller.js";
 
 const router = Router();
 
 router.get("/course/templates", getCourseTemplates);
+router.post("/course/templates", saveCourseTemplate);
+router.put("/course/templates/:id", saveCourseTemplate);
+router.get("/course/:id/payments/export.xlsx", exportCoursePaymentsExcel);
+router.get("/course/:id/participants/export.xlsx", exportCourseParticipantsExcel);
 router.get("/course/template/:id", getCourseTemplateById);
 router.post("/course/start-from-template", startCourseFromTemplate);
 router.put("/course/:id/edition", updateCourseEdition);
@@ -48,6 +56,7 @@ router.get("/course/:id/validate-closure", validateCourseClosure);
 router.post("/course/:id/close-edition", closeCourseEdition);
 router.post("/course/:id/reopen-edition", reopenCourseEdition);
 router.post("/course/:id/chapter", addCourseChapter);
+router.put("/course/:id/chapters/reorder", reorderCourseChapters);
 router.put("/course/:id/chapter/:chapterId", updateCourseChapter);
 router.delete("/course/:id/chapter/:chapterId", removeCourseChapter);
 router.post("/course/:id/load-default-chapters", loadDefaultCourseChapters);

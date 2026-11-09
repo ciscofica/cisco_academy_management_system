@@ -35,6 +35,7 @@ function formatDate(dateStr) {
   try {
     const d = new Date(dateStr);
     return d.toLocaleDateString("es-EC", {
+      timeZone: "UTC",
       day: "numeric",
       month: "long",
       year: "numeric",
@@ -48,9 +49,9 @@ function formatDateShort(dateStr) {
   if (!dateStr) return "—";
   try {
     const d = new Date(dateStr);
-    const day = String(d.getDate()).padStart(2, "0");
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const year = d.getFullYear();
+    const day = String(d.getUTCDate()).padStart(2, "0");
+    const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const year = d.getUTCFullYear();
     return `${day}/${month}/${year}`;
   } catch {
     return String(dateStr);
@@ -78,10 +79,10 @@ function formatWeekdayDate(dateStr, withComma = false) {
       }
     }
     if (dayIndex === undefined) {
-      dayIndex = d.getDay();
-      dayNum = d.getDate();
-      monthIndex = d.getMonth();
-      yearNum = d.getFullYear();
+      dayIndex = d.getUTCDay();
+      dayNum = d.getUTCDate();
+      monthIndex = d.getUTCMonth();
+      yearNum = d.getUTCFullYear();
     }
     const dayName = days[dayIndex];
     const monthName = months[monthIndex];
@@ -605,13 +606,14 @@ export async function generatePlanificacionDocx(course) {
   const schedules = detail.Schedules || [];
   const costs = detail.Costs || [];
 
-  const totalHours = Number(detail.total_hours) || 70;
-  const instructorHours = Number(detail.instructor_hours) || 50;
-  const costPerHour = Number(detail.cost_per_hour) || 13.0;
+  const templateDetail = course.TemplateCourse?.Detail || {};
+  const totalHours = Number(detail.total_hours || templateDetail.total_hours) || 0;
+  const instructorHours = Number(detail.instructor_hours || templateDetail.instructor_hours) || 0;
+  const costPerHour = Number(detail.cost_per_hour) || 0;
   const estimatedPay = (instructorHours * costPerHour).toFixed(2);
-  const modalityStr = modalities.length > 0 ? modalities.map((m) => m.name).join(", ") : "híbrida";
+  const modalityStr = modalities.map((m) => m.name).filter(Boolean).join(", ");
 
-  let scheduleText = "—";
+  let scheduleText = "";
   if (schedules.length > 0) {
     const formattedSchedules = schedules
       .map((s) => `${s.day_of_week || s.name || "Horario"}: ${s.start_time || ""} - ${s.end_time || ""}`.trim())
@@ -621,25 +623,25 @@ export async function generatePlanificacionDocx(course) {
     }
   }
 
-  let costText = "—";
+  let costText = "";
   if (costs.length > 0) {
     costText = costs
-      .map((c) => `${c.cost_type || c.name || "Matrícula"}: ${Number(c.cost || 0).toFixed(2)} USD más el IVA`)
+      .map((c) => `${c.description || ""}: ${c.amount || ""}`.replace(/^: /, ""))
       .join("\n");
   }
 
   const generalInfoItems = [
     ["Nombre del curso:", course.course_name || "—"],
     ["Área temática:", detail.subject_area || detail.area || "—"],
-    ["Duración total:", `${totalHours} horas`],
-    ["Modalidad:", modalities.length > 0 ? modalityStr.toLowerCase() : "—"],
+    ["Duración total:", totalHours ? `${totalHours} horas` : ""],
+    ["Modalidad:", modalityStr.toLowerCase()],
     ["Fecha de inicio y fin:", `${formatDate(course.start_date)} - ${formatDate(course.end_date)}`],
     ["Horario propuesto:", scheduleText],
     ["Dirigido a:", detail.target_audience || "—"],
-    ["Número de participantes:", String(course.Participants?.length || "—")],
+    ["Número de participantes:", String(course.Participants?.length ?? "")],
     ["Costo:", costText],
-    ["Formas de pago:", detail.payment_methods || "—"],
-    ["Responsable académico del curso:", "MSc. Ludmila Starodub"],
+    ["Formas de pago:", detail.payment_methods || templateDetail.payment_methods || ""],
+    ["Responsable académico del curso:", detail.academic_responsible || templateDetail.academic_responsible || ""],
   ];
 
   // Temario curricular 100% dinámico desde la Base de Datos
@@ -649,27 +651,17 @@ export async function generatePlanificacionDocx(course) {
           String(idx + 1),
           ch.chapter_name || `Módulo ${idx + 1}`,
           ch.main_topics || "",
-          String(ch.hours || 2),
-          ch.modality || "Virtual",
+          String(ch.hours ?? ""),
+          ch.modality || "",
         ])
-      : [
-          ["1", "Contenido inicial", "", "2", "Virtual"],
-        ];
+      : [];
 
   const totalCalculatedHours = chapters.reduce((sum, ch) => sum + (Number(ch.hours) || 0), 0);
-  chapterRows.push(["", "", "Total", String(totalCalculatedHours || totalHours), ""]);
+  chapterRows.push(["", "", "Total", String(totalCalculatedHours || totalHours || ""), ""]);
 
   const budgetRows = [
-    ["Honorarios docentes", `$ ${estimatedPay}`, `$${costPerHour.toFixed(2)} la hora por ${instructorHours} horas dictadas incluido el IVA`],
-    ["Material didáctico", "0", "Equipos existentes del laboratorio de redes #4 FICA"],
-    [
-      "Plataforma tecnológica",
-      "0",
-      "Acceso a la plataforma virtual netacad internacional y aplicación para las clases virtuales webex es parte del convenio de la Academia CISCO",
-    ],
-    ["Publicidad y difusión", "0", "Página web, radio y TV de la UTN, Redes sociales"],
-    ["Otros", "0", ""],
-    ["Total", `$ ${estimatedPay}`, "Incluido el IVA"],
+    ...(instructorHours && costPerHour ? [["Honorarios docentes", `$ ${estimatedPay}`, `$${costPerHour.toFixed(2)} por hora × ${instructorHours} horas`]] : []),
+    ...costs.map((cost) => [cost.description || "Costo", cost.amount || "", ""]),
   ];
 
   const doc = new Document({
@@ -688,18 +680,11 @@ export async function generatePlanificacionDocx(course) {
           createKeyValueTable(generalInfoItems),
 
           createSectionHeading("2. Justificación del Curso"),
-          createParagraph("Relevancia del curso:", true),
-          ...createBlankSpace(4),
-          createParagraph("A qué necesidades responde:", true),
-          ...createBlankSpace(4),
-          createParagraph("Relación con la misión y objetivos de la UTN:", true),
-          ...createBlankSpace(4),
+      createParagraph(detail.justification || templateDetail.justification || "", false),
 
           createSectionHeading("3. Objetivos del Curso"),
-          createParagraph("Objetivo general:", true),
-          ...createBlankSpace(3),
-          createParagraph("Objetivos específicos:", true),
-          ...createBlankSpace(4),
+      createParagraph(`Objetivo general: ${detail.objective || templateDetail.objective || ""}`, false),
+          createParagraph(`Objetivos específicos: ${detail.specific_objectives || templateDetail.specific_objectives || ""}`, false),
 
           createSectionHeading("4. Contenidos del Curso"),
           createDataTable(
@@ -709,12 +694,7 @@ export async function generatePlanificacionDocx(course) {
           ),
 
           createSectionHeading("5. Metodología de Enseñanza-Aprendizaje"),
-          createParagraph("Estrategias didácticas:", true),
-          ...createBlankSpace(4),
-          createParagraph("Recursos y herramientas:", true),
-          ...createBlankSpace(4),
-          createParagraph("Evaluación del aprendizaje:", true),
-          ...createBlankSpace(4),
+      createParagraph(detail.methodology || templateDetail.methodology || "", false),
 
           createSectionHeading("6. Perfil del Docente o Equipo Docente que dictará el curso"),
           createParagraph(`Nombre: ${instructor.name || "—"}`, true),
@@ -726,16 +706,14 @@ export async function generatePlanificacionDocx(course) {
           ...createBlankSpace(3),
 
           createSectionHeading("7. Evaluación del Curso"),
-          createParagraph("Criterios e instrumentos para la evaluación por participantes:", true),
-          ...createBlankSpace(4),
+      createParagraph(detail.evaluation_criteria || templateDetail.evaluation_criteria || "", false),
           createParagraph("Mecanismos de mejora continua:", true),
           ...createBlankSpace(4),
 
           createSectionHeading("8. Requerimientos Logísticos"),
           createParagraph("Aulas/espacios:", true),
           ...createBlankSpace(3),
-          createParagraph("Materiales didácticos:", true),
-          ...createBlankSpace(3),
+      createParagraph(detail.resources_materials || templateDetail.resources_materials || "", false),
           createParagraph("Software:", true),
           ...createBlankSpace(3),
 
@@ -747,14 +725,14 @@ export async function generatePlanificacionDocx(course) {
             spacing: { before: 80, after: 40 },
             children: [
               new TextRun({ text: "Nombre: ", bold: true, size: 20, font: "Arial" }),
-              new TextRun({ text: "MSc. Ludmila Starodub", size: 20, font: "Arial" }),
+              new TextRun({ text: detail.academic_responsible || templateDetail.academic_responsible || "", size: 20, font: "Arial" }),
             ],
           }),
           new Paragraph({
             spacing: { before: 40, after: 40 },
             children: [
               new TextRun({ text: "Cargo: ", bold: true, size: 20, font: "Arial" }),
-              new TextRun({ text: "Analista de sistemas – Coordinadora Academia CISCO", size: 20, font: "Arial" }),
+              new TextRun({ text: detail.academic_responsible_charge || templateDetail.academic_responsible_charge || "", size: 20, font: "Arial" }),
             ],
           }),
           new Paragraph({
@@ -762,7 +740,7 @@ export async function generatePlanificacionDocx(course) {
             children: [
               new TextRun({ text: "Fecha presentación: ", bold: true, size: 20, font: "Arial" }),
               new TextRun({
-                text: formatDate(course.start_date) || "12 de enero del 2026",
+                text: formatDate(course.start_date) || "",
                 size: 20,
                 font: "Arial",
               }),
@@ -787,6 +765,7 @@ export async function generatePlanificacionDocx(course) {
 // ============================================================================
 export async function generateCronogramaDocx(course) {
   const detail = course.Detail || {};
+  const templateDetail = course.TemplateCourse?.Detail || {};
   const instructor = detail.Instructor || {};
   const chapters = course.Chapters || [];
 
@@ -814,11 +793,11 @@ export async function generateCronogramaDocx(course) {
     }
   });
 
-  if (!virtualSchedule) virtualSchedule = "—";
-  if (!presencialSchedule) presencialSchedule = "—";
+  if (!virtualSchedule) virtualSchedule = "";
+  if (!presencialSchedule) presencialSchedule = "";
 
   // 2. Período oficial del curso
-  let period = "ENERO - MARZO 2026";
+  let period = "";
   if (course.start_date && course.end_date) {
     const months = [
       "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
@@ -830,13 +809,7 @@ export async function generateCronogramaDocx(course) {
   }
 
   // 3. Nombre corto del curso para el total
-  let shortCourseName = course.course_name || "Curso";
-  const shortMatch = (course.course_name || "").match(
-    /^(CCNA\s*\d|CCNP\s*\d|DevNet|CyberOps|Python|Linux)/i
-  );
-  if (shortMatch) {
-    shortCourseName = shortMatch[0].replace(/\s+/g, "");
-  }
+  let shortCourseName = course.course_name || "";
 
   // 4. Estilos de celda y bordes negros
   const BORDER_BLACK = {
@@ -887,19 +860,6 @@ export async function generateCronogramaDocx(course) {
     });
   }
 
-  // Generador de fechas tentativas secuenciales en caso de fechas no definidas en DB
-  const estimatedDates = [];
-  let baseDate = course.start_date ? new Date(course.start_date) : new Date(2026, 0, 27);
-  let curUtc = new Date(Date.UTC(baseDate.getUTCFullYear(), baseDate.getUTCMonth(), baseDate.getUTCDate()));
-  for (let i = 0; i < Math.max(chapters.length, 16); i++) {
-    if (i > 0) {
-      do {
-        curUtc.setUTCDate(curUtc.getUTCDate() + 1);
-      } while (curUtc.getUTCDay() !== 2 && curUtc.getUTCDay() !== 4 && curUtc.getUTCDay() !== 6);
-    }
-    estimatedDates.push(new Date(curUtc));
-  }
-
   const tableRows = [];
 
   // Fila 1: Cabecera gris (CRONOGRAMA CURSO ACADEMIA CISCO FICA-UTN)
@@ -923,7 +883,7 @@ export async function generateCronogramaDocx(course) {
     new TableRow({
       children: [
         makeCronoCell({
-          text: course.course_name || "CCNA1 v7: Introduction to Networks (ITN)",
+          text: course.course_name || "",
           bold: true,
           align: AlignmentType.CENTER,
           fill: "EFEFEF",
@@ -951,9 +911,7 @@ export async function generateCronogramaDocx(course) {
   );
 
   // Fila 4: FECHA INICIO (Naranja suave)
-  const inicioFormatted = course.start_date
-    ? formatWeekdayDate(course.start_date, false)
-    : "martes 27 de enero de 2026";
+  const inicioFormatted = course.start_date ? formatWeekdayDate(course.start_date, false) : "";
   tableRows.push(
     new TableRow({
       children: [
@@ -970,9 +928,7 @@ export async function generateCronogramaDocx(course) {
   );
 
   // Fila 5: FECHA FINAL (Blanco)
-  const finalFormatted = course.end_date
-    ? formatWeekdayDate(course.end_date, false)
-    : "Domingo 22 de marzo de 2026";
+  const finalFormatted = course.end_date ? formatWeekdayDate(course.end_date, false) : "";
   tableRows.push(
     new TableRow({
       children: [
@@ -1026,9 +982,9 @@ export async function generateCronogramaDocx(course) {
       children: [
         makeCronoCell({ text: "Clase", bold: true, align: AlignmentType.CENTER, fill: "B7B7B7", size: 19 }),
         makeCronoCell({ text: "Fecha", bold: true, align: AlignmentType.CENTER, fill: "B7B7B7", size: 19 }),
-        makeCronoCell({ text: "Núm. Horas", bold: true, align: AlignmentType.CENTER, fill: "B7B7B7", size: 19 }),
+        makeCronoCell({ text: "Horas", bold: true, align: AlignmentType.CENTER, fill: "B7B7B7", size: 19 }),
         makeCronoCell({ text: "Modalidad", bold: true, align: AlignmentType.CENTER, fill: "B7B7B7", size: 19 }),
-        makeCronoCell({ text: "Capítulos", bold: true, align: AlignmentType.CENTER, fill: "B7B7B7", size: 19 }),
+        makeCronoCell({ text: "Contenido / Horario", bold: true, align: AlignmentType.CENTER, fill: "B7B7B7", size: 19 }),
       ],
     })
   );
@@ -1054,44 +1010,31 @@ export async function generateCronogramaDocx(course) {
 
   if (chapters.length > 0) {
     chapters.forEach((ch, idx) => {
-      const hours = Number(ch.hours) || 2;
+      const hours = Number(ch.hours) || 0;
       instructorHoursSum += hours;
       const isPresencial = (ch.modality || "").toLowerCase().includes("presencial");
       const rowFill = isPresencial ? "FFFF00" : "FFFFFF";
 
       const dateText = ch.start_date
-        ? formatWeekdayDate(ch.start_date, true)
-        : formatWeekdayDate(estimatedDates[idx], true);
+        ? `${formatWeekdayDate(ch.start_date, true)}${ch.end_date && String(ch.end_date) !== String(ch.start_date) ? ` – ${formatWeekdayDate(ch.end_date, true)}` : ""}`
+        : "";
 
       tableRows.push(
         new TableRow({
           children: [
             makeCronoCell({ text: String(idx + 1), align: AlignmentType.CENTER, fill: rowFill }),
             makeCronoCell({ text: dateText, align: AlignmentType.LEFT, fill: rowFill }),
-            makeCronoCell({ text: String(hours), align: AlignmentType.CENTER, fill: rowFill }),
+              makeCronoCell({ text: String(hours || ""), align: AlignmentType.CENTER, fill: rowFill }),
             makeCronoCell({
-              text: isPresencial ? "Presencial" : (ch.modality || "Virtual"),
+              text: isPresencial ? "Presencial" : (ch.modality || ""),
               align: AlignmentType.CENTER,
               fill: rowFill,
             }),
-            makeCronoCell({ text: ch.chapter_name || `Capítulo ${idx + 1}`, align: AlignmentType.LEFT, fill: rowFill }),
+            makeCronoCell({ text: [ch.chapter_name, ch.activity, [ch.session_start_time, ch.session_end_time].filter(Boolean).join("–")].filter(Boolean).join("\n"), align: AlignmentType.LEFT, fill: rowFill }),
           ],
         })
       );
     });
-  } else {
-    // Sin capítulos registrados en la base de datos — fila placeholder
-    tableRows.push(
-      new TableRow({
-        children: [
-          makeCronoCell({ text: "—", align: AlignmentType.CENTER, fill: "FFFFFF" }),
-          makeCronoCell({ text: "—", align: AlignmentType.LEFT, fill: "FFFFFF" }),
-          makeCronoCell({ text: "—", align: AlignmentType.CENTER, fill: "FFFFFF" }),
-          makeCronoCell({ text: "—", align: AlignmentType.CENTER, fill: "FFFFFF" }),
-          makeCronoCell({ text: "[Sin capítulos registrados en la base de datos]", align: AlignmentType.LEFT, fill: "FFFFFF" }),
-        ],
-      })
-    );
   }
 
   // Fila Subtotal: Total horas clase-instructor (Verde suave)
@@ -1106,7 +1049,7 @@ export async function generateCronogramaDocx(course) {
           columnSpan: 2,
         }),
         makeCronoCell({
-          text: String(instructorHoursSum || 50),
+          text: String(instructorHoursSum),
           bold: true,
           align: AlignmentType.CENTER,
           fill: "D9EAD3",
@@ -1117,80 +1060,11 @@ export async function generateCronogramaDocx(course) {
     })
   );
 
-  // Fila: Actividades en la plataforma virtual (Lila suave)
-  const actHours = detail.activities_hours
-    ? Number(detail.activities_hours) >= 3
-      ? Number(detail.activities_hours) - 3
-      : Number(detail.activities_hours)
-    : (detail.activities_hours !== undefined && detail.activities_hours !== null ? Number(detail.activities_hours) : "—");
-
-  tableRows.push(
-    new TableRow({
-      children: [
-        makeCronoCell({
-          text: "Actividades en la plataforma virtual",
-          bold: true,
-          align: AlignmentType.LEFT,
-          fill: "D9D2E9",
-          columnSpan: 2,
-        }),
-        makeCronoCell({
-          text: String(actHours),
-          bold: true,
-          align: AlignmentType.CENTER,
-          fill: "D9D2E9",
-        }),
-        makeCronoCell({
-          text: "On-line",
-          align: AlignmentType.CENTER,
-          fill: "D9D2E9",
-        }),
-        makeCronoCell({
-          text: "Laboratorios Packet tracer  y evaluaciones de los capítulos",
-          align: AlignmentType.LEFT,
-          fill: "D9D2E9",
-        }),
-      ],
-    })
-  );
-
-  // Fila: Examen final (Naranja / Melón suave)
-  const examDate = course.end_date
-    ? formatWeekdayDate(course.end_date, true)
-    : "domingo, 22 de marzo de 2026";
-
-  tableRows.push(
-    new TableRow({
-      children: [
-        makeCronoCell({
-          text: examDate,
-          bold: true,
-          align: AlignmentType.LEFT,
-          fill: "FCE5CD",
-          columnSpan: 2,
-        }),
-        makeCronoCell({
-          text: "3",
-          bold: true,
-          align: AlignmentType.CENTER,
-          fill: "FCE5CD",
-        }),
-        makeCronoCell({
-          text: "On-line",
-          align: AlignmentType.CENTER,
-          fill: "FCE5CD",
-        }),
-        makeCronoCell({
-          text: "Exámen final",
-          align: AlignmentType.LEFT,
-          fill: "FCE5CD",
-        }),
-      ],
-    })
-  );
+  // Horas autónomas registradas en la ficha de la edición.
+  const actHours = Number(detail.activities_hours || 0);
 
   // Fila: Total horas curso (Verde suave)
-  const grandTotal = instructorHoursSum + actHours + 3;
+  const grandTotal = instructorHoursSum + actHours;
   tableRows.push(
     new TableRow({
       children: [
@@ -1238,8 +1112,8 @@ export async function generateCronogramaDocx(course) {
               institution: "Facultad de Ingeniería en Ciencias Aplicadas",
             },
             {
-              name: "MSc. Ludmila Starodub",
-              title: "Coordinadora Academia CISCO",
+              name: detail.academic_responsible || templateDetail.academic_responsible || "",
+              title: detail.academic_responsible_charge || templateDetail.academic_responsible_charge || "",
               institution: "Universidad Técnica del Norte",
             }
           ),
@@ -1311,53 +1185,27 @@ export async function generateInformeFinalDocx(course) {
   const participants = course.Participants || [];
   const chapters = course.Chapters || [];
   const template = course.TemplateCourse || {};
+  const templateDetail = template.Detail || {};
 
-  const totalHours = Number(detail.total_hours) || 70;
-  const instructorHours = Number(detail.instructor_hours) || 50;
-  const autonomousHours = Number(detail.activities_hours) || 20;
+  const totalHours = Number(detail.total_hours || templateDetail.total_hours) || 0;
+  const instructorHours = Number(detail.instructor_hours || templateDetail.instructor_hours) || 0;
+  const autonomousHours = Number(detail.activities_hours || templateDetail.activities_hours) || 0;
 
   // Participantes matriculados
   const enrolledParticipants = participants.filter((p) => {
     return Boolean(p.CourseParticipant?.enrolled && p.CourseParticipant?.invoice_number);
   });
-  const matriculadosCount = enrolledParticipants.length || participants.length || "—";
+  const matriculadosCount = enrolledParticipants.length;
 
   // Fechas y semanas
-  const sDate = course.start_date ? new Date(course.start_date) : null;
-  const eDate = course.end_date ? new Date(course.end_date) : null;
   const monthsEs = [
     "enero", "febrero", "marzo", "abril", "mayo", "junio",
     "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
   ];
   const formatEsDate = (d) => {
-    if (!d || isNaN(d.getTime())) return "Por definir";
-    return `${d.getDate()}/${monthsEs[d.getMonth()]}/${d.getFullYear()}`;
+    if (!d || isNaN(d.getTime())) return "";
+    return `${d.getUTCDate()}/${monthsEs[d.getUTCMonth()]}/${d.getUTCFullYear()}`;
   };
-
-  const startDateFormatted = formatEsDate(sDate);
-  const endDateFormatted = formatEsDate(eDate);
-
-  let diffWeeks = 8;
-  if (sDate && eDate && !isNaN(sDate.getTime()) && !isNaN(eDate.getTime())) {
-    const diffTime = Math.abs(eDate - sDate);
-    diffWeeks = Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24 * 7))) || 8;
-  }
-
-  // Tiempos y Cronograma: Presencial / Virtual
-  const schedules = detail.Schedules || [];
-  let presentialSchedule = "—";
-  let virtualSchedule = "—";
-  if (schedules.length > 0) {
-    if (schedules[0] && schedules[0].time_start && schedules[0].time_end) {
-      presentialSchedule = `${schedules[0].time_start}-${schedules[0].time_end}`;
-    }
-    if (schedules[1] && schedules[1].time_start && schedules[1].time_end) {
-      virtualSchedule = `${schedules[1].time_start}-${schedules[1].time_end}`;
-    }
-  }
-
-  const presencialHours = 5;
-  const virtualHours = Math.max(0, instructorHours - presencialHours);
 
   // Tabla Tiempos y Cronograma
   const timelineTable = new Table({
@@ -1373,13 +1221,13 @@ export async function generateInformeFinalDocx(course) {
     rows: [
       new TableRow({
         children: [
-          "FECHA INICIO",
-          "FECHA FINAL",
-          "DÍAS",
+          "FECHA",
           "HORARIO",
+          "MODALIDAD",
+          "SESIÓN / CONTENIDO",
           "NÚMERO DE ALUMNOS",
-          "TOTAL HORAS RELOJ (ACADÉMICAS)",
-          "DURACIÓN DEL CURSO EN SEMANAS",
+          "HORAS",
+          "ACTIVIDAD",
         ].map((h) =>
           new TableCell({
             width: { size: 14, type: WidthType.PERCENTAGE },
@@ -1403,16 +1251,15 @@ export async function generateInformeFinalDocx(course) {
           })
         ),
       }),
-      // Fila Presencial
-      new TableRow({
+      ...chapters.map((chapter) => new TableRow({
         children: [
-          startDateFormatted,
-          endDateFormatted,
-          "(Presencial)",
-          presentialSchedule,
+          chapter.start_date ? formatEsDate(new Date(chapter.start_date)) : "",
+          [chapter.session_start_time, chapter.session_end_time].filter(Boolean).join("–"),
+          chapter.modality || "",
+          [chapter.chapter_name, chapter.main_topics].filter(Boolean).join("\n"),
           String(matriculadosCount),
-          String(presencialHours),
-          String(diffWeeks),
+          String(Number(chapter.hours) || ""),
+          chapter.activity || "",
         ].map((val) =>
           new TableCell({
             width: { size: 14, type: WidthType.PERCENTAGE },
@@ -1433,38 +1280,7 @@ export async function generateInformeFinalDocx(course) {
             ],
           })
         ),
-      }),
-      // Fila Virtual
-      new TableRow({
-        children: [
-          "—",
-          "—",
-          "(Virtual)",
-          virtualSchedule,
-          "—",
-          String(virtualHours),
-          "—",
-        ].map((val) =>
-          new TableCell({
-            width: { size: 14, type: WidthType.PERCENTAGE },
-            borders: { top: BORDER_LIGHT, bottom: BORDER_LIGHT, left: BORDER_LIGHT, right: BORDER_LIGHT },
-            children: [
-              new Paragraph({
-                alignment: AlignmentType.CENTER,
-                spacing: { before: 60, after: 60 },
-                children: [
-                  new TextRun({
-                    text: String(val),
-                    size: 19,
-                    font: "Arial",
-                    color: "1f2937",
-                  }),
-                ],
-              }),
-            ],
-          })
-        ),
-      }),
+      })),
       // Fila Total
       new TableRow({
         children: [
@@ -1522,9 +1338,9 @@ export async function generateInformeFinalDocx(course) {
           name: ch.chapter_name?.toLowerCase().includes("módulo") || ch.chapter_name?.toLowerCase().includes("modulo")
             ? ch.chapter_name
             : `Módulo ${idx + 1}: ${ch.chapter_name}`,
-          hours: ch.hours || ch.total_hours || "—",
+          hours: ch.hours ?? "",
         }))
-      : [{ name: "[Sin capítulos registrados en la base de datos]", hours: "—" }];
+      : [];
 
   const contentRows = [
     new TableRow({
@@ -1726,7 +1542,7 @@ export async function generateInformeFinalDocx(course) {
     course.course_name;
 
   const className =
-    course.class_name ||
+    course.class_code ||
     `UTN_${course.course_name.replace(/[^a-zA-Z0-9_-]/g, "_").toUpperCase()}_${course.course_id}`;
 
   const doc = new Document({
@@ -1805,14 +1621,14 @@ export async function generateInformeFinalDocx(course) {
             spacing: { after: 60 },
             children: [
               new TextRun({ text: "INSTRUCTOR: ", bold: true, size: 20, font: "Arial" }),
-              new TextRun({ text: instructor.name || "Ing. Docente Asignado", size: 20, font: "Arial" }),
+              new TextRun({ text: instructor.name || "", size: 20, font: "Arial" }),
             ],
           }),
           new Paragraph({
             spacing: { after: 120 },
             children: [
               new TextRun({ text: "DURACIÓN: ", bold: true, size: 20, font: "Arial" }),
-              new TextRun({ text: `${instructorHours} horas`, size: 20, font: "Arial" }),
+              new TextRun({ text: instructorHours ? `${instructorHours} horas` : "", size: 20, font: "Arial" }),
             ],
           }),
 
@@ -1916,22 +1732,12 @@ export async function generateInformeFinalDocx(course) {
               }),
             ],
           }),
-          new Paragraph({
-            spacing: { after: 100, line: 260 },
-            children: [
-              new TextRun({
-                text: `Este curso de ${totalHours} horas incluye prácticas de laboratorio y una amplia gama de herramientas y tipos de evaluaciones a lo largo de todo el currículo.`,
-                size: 20,
-                font: "Arial",
-                color: "1f2937",
-              }),
-            ],
-          }),
+          new Paragraph({ spacing: { after: 100, line: 260 }, children: [new TextRun({ text: detail.methodology || templateDetail.methodology || "", size: 20, font: "Arial", color: "1f2937" })] }),
           new Paragraph({
             spacing: { after: 160, line: 260 },
             children: [
               new TextRun({
-                text: `Son ${instructorHours} horas con instructor. Más ${autonomousHours} horas de actividades autónomas en la plataforma virtual.`,
+                text: [instructorHours ? `${instructorHours} horas con instructor` : "", autonomousHours ? `${autonomousHours} horas autónomas` : ""].filter(Boolean).join(". "),
                 size: 20,
                 font: "Arial",
                 color: "1f2937",
@@ -1955,8 +1761,8 @@ export async function generateInformeFinalDocx(course) {
           new Paragraph({
             spacing: { after: 80, line: 260 },
             children: [
-              new TextRun({ text: "HUMANOS:    ", bold: true, size: 20, font: "Arial" }),
-              new TextRun({ text: "Estudiantes, instructor, personal de apoyo.", size: 20, font: "Arial" }),
+              new TextRun({ text: "MATERIALES: ", bold: true, size: 20, font: "Arial" }),
+              new TextRun({ text: detail.resources_materials || templateDetail.resources_materials || "", size: 20, font: "Arial" }),
             ],
           }),
           new Paragraph({
@@ -1964,7 +1770,7 @@ export async function generateInformeFinalDocx(course) {
             children: [
               new TextRun({ text: "MATERIALES: ", bold: true, size: 20, font: "Arial" }),
               new TextRun({
-                text: "—",
+                text: detail.evaluation_criteria || templateDetail.evaluation_criteria || "",
                 size: 20,
                 font: "Arial",
               }),
@@ -1988,7 +1794,7 @@ export async function generateInformeFinalDocx(course) {
             spacing: { after: 100, line: 260 },
             children: [
               new TextRun({
-                text: "El curso se desarrolló satisfactoriamente cumpliendo los tiempos y objetivos.",
+                text: detail.justification || templateDetail.justification || "",
                 size: 20,
                 font: "Arial",
               }),
@@ -1998,7 +1804,7 @@ export async function generateInformeFinalDocx(course) {
             spacing: { after: 100, line: 260 },
             children: [
               new TextRun({
-                text: `Los estudiantes que completaron con éxito el curso "${course.course_name}" son capaces de hacer lo siguiente:`,
+                text: detail.specific_objectives || templateDetail.specific_objectives || "",
                 size: 20,
                 font: "Arial",
               }),
@@ -2023,7 +1829,7 @@ export async function generateInformeFinalDocx(course) {
             spacing: { after: 160, line: 260 },
             children: [
               new TextRun({
-                text: "—",
+                text: detail.bibliography || templateDetail.bibliography || "",
                 size: 20,
                 font: "Arial",
               }),
@@ -2047,7 +1853,7 @@ export async function generateInformeFinalDocx(course) {
             spacing: { after: 160, line: 260 },
             children: [
               new TextRun({
-                text: "Se aprueba la asistencia con un mínimo de 70%.",
+                text: detail.participant_requeriment || templateDetail.participant_requeriment || "",
                 size: 20,
                 font: "Arial",
               }),
@@ -2071,49 +1877,10 @@ export async function generateInformeFinalDocx(course) {
             spacing: { after: 100, line: 260 },
             children: [
               new TextRun({
-                text: "Cada módulo se evalúa vía online por Internet, y tiene sus valoraciones cuantitativas y acumulativas:",
+                text: detail.evaluation_criteria || templateDetail.evaluation_criteria || "",
                 size: 20,
                 font: "Arial",
               }),
-            ],
-          }),
-          ...[
-            "Exámenes de puntos de control de módulos 30 puntos",
-            "Práctica final 10 puntos",
-            "Examen de habilidades 30 puntos",
-            "Un examen final online sobre 30 puntos.",
-          ].map(
-            (point) =>
-              new Paragraph({
-                bullet: { level: 0 },
-                spacing: { after: 50 },
-                children: [new TextRun({ text: point, size: 20, font: "Arial" })],
-              })
-          ),
-          new Paragraph({
-            spacing: { before: 80, after: 50 },
-            children: [
-              new TextRun({ text: "Letra P (Pass) ", bold: true, size: 20, font: "Arial" }),
-              new TextRun({ text: 'en el campo "Result" significa que el curso es ', size: 20, font: "Arial" }),
-              new TextRun({ text: "Aprobado.", bold: true, size: 20, font: "Arial" }),
-            ],
-          }),
-          new Paragraph({
-            spacing: { after: 50 },
-            children: [
-              new TextRun({ text: "Letra I – Incompleto.", size: 20, font: "Arial" }),
-            ],
-          }),
-          new Paragraph({
-            spacing: { after: 80 },
-            children: [
-              new TextRun({ text: "Letra F – Fail (no aprobado).", size: 20, font: "Arial" }),
-            ],
-          }),
-          new Paragraph({
-            spacing: { after: 180 },
-            children: [
-              new TextRun({ text: "Un estudiante aprueba con un acumulativo mínimo de 70 puntos.", bold: true, size: 20, font: "Arial" }),
             ],
           }),
 
@@ -2215,6 +1982,20 @@ export async function generateInformeFinalDocx(course) {
   return await Packer.toBuffer(doc);
 }
 
+function createDocumentTitle(title, subtitle) {
+  return new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 240 }, children: [new TextRun({ text: `${title}${subtitle ? `\n${subtitle}` : ""}`, bold: true, size: 24, font: "Arial", color: COLOR_PRIMARY })] });
+}
+
+function getAcademicPeriod(start, end) {
+  if (!start || !end) return "";
+  const months = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
+  const first = new Date(start); const last = new Date(end);
+  if (Number.isNaN(first.getTime()) || Number.isNaN(last.getTime())) return "";
+  return `${months[first.getUTCMonth()]} - ${months[last.getUTCMonth()]} ${last.getUTCFullYear()}`;
+}
+
+const formatDateDisplay = (value) => value ? formatDate(value) : "";
+
 export async function generateReporteAprobadosDocx(course) {
   const detail = course.Detail || {};
   const instructor = detail.Instructor || {};
@@ -2235,9 +2016,9 @@ export async function generateReporteAprobadosDocx(course) {
 
   const approvedRows = approvedParticipants.map((p, idx) => {
     const cp = p.CourseParticipant || {};
-    const grade = cp.grade_final !== null && cp.grade_final !== undefined ? `${parseFloat(cp.grade_final).toFixed(1)}/100` : "70.0/100";
+    const grade = cp.grade_final !== null && cp.grade_final !== undefined ? `${parseFloat(cp.grade_final).toFixed(1)}/100` : "";
     const invoice = cp.invoice_number || "—";
-    const degreeOrOrg = p.degree || p.institution || "FICA - UTN";
+    const degreeOrOrg = p.degree || p.institution || "";
 
     return [
       String(idx + 1),
@@ -2255,12 +2036,8 @@ export async function generateReporteAprobadosDocx(course) {
   }
 
   const doc = new Document({
-    styles: defaultDocumentStyles,
     sections: [
       {
-        properties: defaultSectionProps,
-        headers: { default: createHeader() },
-        footers: { default: createFooter() },
         children: [
           createDocumentTitle(
             "ACTA Y REPORTE DE ESTUDIANTES APROBADOS",
@@ -2268,22 +2045,22 @@ export async function generateReporteAprobadosDocx(course) {
           ),
 
           createSectionHeading("1. Datos Generales de la Convocatoria"),
-          createMetadataTable([
+          createKeyValueTable([
             ["Programa / Curso:", course.course_name || "Curso Cisco"],
             ["Docente / Instructor:", instructor.name || "Por designar"],
             ["Periodo Académico:", getAcademicPeriod(course.start_date, course.end_date)],
             ["Fechas de Ejecución:", `${formatDateDisplay(course.start_date)} al ${formatDateDisplay(course.end_date)}`],
-            ["Carga Horaria Oficial:", `${detail.total_hours || 70} Horas Académicas`],
+            ["Carga Horaria Oficial:", detail.total_hours ? `${detail.total_hours} Horas Académicas` : ""],
             ["Estado del Curso:", course.status || "En ejecución"],
           ]),
 
           createSectionHeading("2. Balance y Rendimiento de Aprobación"),
-          createMetadataTable([
+          createKeyValueTable([
             ["Total Estudiantes Inscritos:", `${participants.length} participantes`],
             ["Total Estudiantes Matriculados:", `${totalMatriculados} estudiantes oficiales`],
             ["Total Estudiantes Aprobados:", `${totalAprobados} estudiantes`],
             ["Tasa de Aprobación:", `${tasaAprobacion} %`],
-            ["Criterio de Certificación:", "Calificación mínima de 70.0/100 y 80% de asistencia/cumplimiento NetAcad"],
+            ["Criterio de Certificación:", detail.evaluation_criteria || course.TemplateCourse?.Detail?.evaluation_criteria || ""],
           ]),
 
           createSectionHeading("3. Nómina Oficial de Estudiantes Aprobados"),

@@ -2,6 +2,7 @@ import Payment from "../../models/Payment.js";
 import Participant from "../../models/Participant.js";
 import PaymentType from "../../models/PaymentType.js";
 import ParticipantType from "../../models/ParticipantType.js";
+import ParticipantInfoUtn from "../../models/ParticipantInfo.js";
 import InfoUtn from "../../models/InfoUtn.js";
 import CourseParticipant from "../../models/CourseParticipant.js";
 import Detail from "../../models/Detail.js";
@@ -268,6 +269,10 @@ export const updateParticipant = async (req, res) => {
 
     if (Object.keys(updatedFields).length > 0) {
       await participant.update(updatedFields);
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, "info_utn_id")) {
+      await ParticipantInfoUtn.destroy({ where: { participant_id: participant.participant_id } });
+      if (req.body.info_utn_id) await ParticipantInfoUtn.create({ participant_id: participant.participant_id, info_utn_id: Number(req.body.info_utn_id) });
     }
 
     if (course_id) {

@@ -24,7 +24,6 @@ const Chapter = sequelize.define('Chapter', {
   },
   modality: {
     type: DataTypes.STRING(100),
-    defaultValue: 'Virtual',
     field: 'modality',
   },
   activity: {
@@ -37,6 +36,8 @@ const Chapter = sequelize.define('Chapter', {
   end_date: {
     type: DataTypes.DATE,
   },
+  session_start_time: { type: DataTypes.TIME, field: 'session_start_time' },
+  session_end_time: { type: DataTypes.TIME, field: 'session_end_time' },
   createdAt: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,

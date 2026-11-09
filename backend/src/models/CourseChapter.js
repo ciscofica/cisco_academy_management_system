@@ -29,6 +29,7 @@ const CourseChapter = sequelize.define('CourseChapter', {
     },
     allowNull: false,
   },
+  sort_order: { type: DataTypes.INTEGER, allowNull: true, field: 'sort_order' },
   createdAt: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
