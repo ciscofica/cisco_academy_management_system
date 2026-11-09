@@ -20,13 +20,17 @@ import { getAllCoursesRequest } from "../api/course";
 import { useAuth } from "../context/AuthContext";
 
 export default function HomePage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState("2026");
   const reportPrintRef = useRef(null);
 
   useEffect(() => {
+    if (authLoading || !isAuthenticated) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     getAllCoursesRequest({ limit: 500 })
       .then((res) => {
@@ -35,7 +39,7 @@ export default function HomePage() {
       })
       .catch((err) => console.error("Error al cargar cursos para dashboard:", err))
       .finally(() => setLoading(false));
-  }, []);
+  }, [authLoading, isAuthenticated]);
 
   // Extraer años disponibles basados en fechas de inicio o fin de los cursos
   const availableYears = useMemo(() => {
@@ -137,6 +141,57 @@ export default function HomePage() {
       return String(dateStr);
     }
   };
+
+  if (authLoading) {
+    return (
+      <main className="min-h-[calc(100vh-130px)] flex items-center justify-center bg-slate-50 px-6">
+        <p className="text-sm text-slate-500">Cargando…</p>
+      </main>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <main className="min-h-[calc(100vh-130px)] bg-slate-50 flex flex-col justify-center">
+        <section className="py-16 px-6 text-center">
+          <div className="max-w-3xl mx-auto">
+            <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight mb-4">
+              Plataforma de Gestión de <span className="text-[#6cc24a]">Cursos Cisco</span>
+            </h1>
+            <p className="text-base md:text-lg text-slate-600 mb-8 max-w-xl mx-auto leading-relaxed">
+              Facultad de Ingeniería en Ciencias Aplicadas · UTN.
+              <br className="hidden sm:inline" />
+              Administración centralizada de cursos, estudiantes y certificaciones.
+            </p>
+            <div className="flex flex-col sm:flex-row justify-center gap-3">
+              <Link to="/login" className="px-8 py-3 bg-[#6cc24a] hover:bg-[#5aad3a] text-white font-semibold rounded-full shadow-sm transition-all">
+                Iniciar Sesión
+              </Link>
+              <Link to="/register" className="px-8 py-3 bg-white hover:bg-slate-100 text-slate-700 font-semibold rounded-full border border-slate-300 transition-all">
+                Registrarse
+              </Link>
+            </div>
+          </div>
+        </section>
+        <section className="max-w-4xl mx-auto px-6 pb-16 w-full">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8 border-t border-gray-200 text-center md:text-left">
+            <div>
+              <h2 className="text-sm font-semibold text-slate-800 uppercase tracking-wide mb-1">Cursos y horarios</h2>
+              <p className="text-xs text-slate-500 leading-relaxed">Planificación académica, capítulos y modalidades de estudio.</p>
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-slate-800 uppercase tracking-wide mb-1">Participantes y docentes</h2>
+              <p className="text-xs text-slate-500 leading-relaxed">Control de matrículas, roles e instructores asignados.</p>
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-slate-800 uppercase tracking-wide mb-1">Certificaciones y pagos</h2>
+              <p className="text-xs text-slate-500 leading-relaxed">Seguimiento de certificados emitidos y reportes de gestión.</p>
+            </div>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-8" ref={reportPrintRef}>
