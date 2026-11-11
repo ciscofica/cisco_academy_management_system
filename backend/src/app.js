@@ -17,10 +17,7 @@ const app = express();
 //}));
 app.use(cors({
   origin: [
-    "http://localhost:5173",
-    "http://192.168.2.11:5173",
-    "http://172.20.136.164:5173",
-    "http://172.20.150.40:5173"
+    "http://172.16.44.46:5173"
   ],
   credentials: true
 }));
