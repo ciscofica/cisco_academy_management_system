@@ -77,15 +77,11 @@ export const getPaymentTypeById = async (req, res) => {
 export const deletePaymentType = async (req, res) => {
   try {
     const { id } = req.params;
-
     const payment_type = await PaymentType.findByPk(id);
     if (!payment_type) {
-      return res.status(404).json({ message: notifications.tipo_pago.tp1 });
+      return res.status(404).json({ message: notifications.tipo_pago.tp5 });
     }
-
-    await payment_type.destroy();
-
-    return res.status(200).json({ message: notifications.tipo_pago.tp3 });
+    return res.status(409).json({ message: "No se puede eliminar un tipo de pago del catálogo porque puede estar vinculado a pagos existentes. Puede editar sus datos para conservar el historial." });
   } catch (error) {
     return res.status(500).json({ message: notifications.principal.p1, error });
   }

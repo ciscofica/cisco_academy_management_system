@@ -2,7 +2,6 @@ import { createContext, useContext, useState } from "react";
 import Swal from "sweetalert2"; // Importa SweetAlert
 import {
     createPaymentTypesRequest,
-    deletePaymentTypesRequest,
     // getPaymentTypeRequest,
     getPaymentTypesDropdownRequest,
     getPaymentTypesRequest,
@@ -82,15 +81,6 @@ export function PaymentTypeProvider({ children }) {
     };
 
 
-    const deletePaymentTypes = async (id) => {
-        try {
-            await deletePaymentTypesRequest(id);
-            getPaymentTypes({ page: currentPage }); // Vuelve a obtener la lista actualizada
-        } catch (error) {
-            console.log(error);
-        }
-    };
-
     return (
         <PaymentTypeContext.Provider
             value={{
@@ -99,7 +89,6 @@ export function PaymentTypeProvider({ children }) {
                 createPaymentType,
                 updatePaymentType,
                 getPaymentTypes,
-                deletePaymentTypes,
                 // getAllChapters,
                 // allchaptersforreport,
                 totalPages,

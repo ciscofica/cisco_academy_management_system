@@ -10,6 +10,5 @@ export const createModalitiesRequest = (modality) =>
   axios.post(`/modality`, modality);
 export const updateModalitiesRequest = (modality) =>
   axios.put(`/modality/${modality.id}`, modality);
-export const deleteModalitiesRequest = (id) => axios.delete(`/modality/${id}`);
 export const getModalitiesDropdownRequest = () => axios.get(`/modalities-dropdown`);
 

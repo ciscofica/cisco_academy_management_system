@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEye, faEdit, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faEye, faEdit } from "@fortawesome/free-solid-svg-icons";
 import { usePaymentType } from "../../context/PaymentTypeContext";
 import RegisterPaymentTypeModal from "../Payment_Type/RegisterPaymentTypeModal";
 
 function ParticipantTypePage() {
 
-    const {getPaymentTypes,deletePaymentTypes, paymentTypes, totalPages, currentPage, setCurrentPage,  } = usePaymentType();
+    const {getPaymentTypes, paymentTypes, totalPages, currentPage, setCurrentPage,  } = usePaymentType();
     const [searchTerm, setSearchTerm] = useState('');
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
     const [selectedPaymentType, setSelectedPaymentType] = useState(null);
@@ -29,10 +29,6 @@ function ParticipantTypePage() {
     const handleEdit = (payment_type) => {
         setSelectedPaymentType(payment_type);
         setIsRegisterModalOpen(true);
-    };
-
-    const handleDelete = (paymentTypeId) => {
-        deletePaymentTypes(paymentTypeId);
     };
 
     return (
@@ -80,9 +76,6 @@ function ParticipantTypePage() {
                                     </button>
                                     <button className="text-amber-500 hover:text-amber-600 transition-colors" onClick={() => handleEdit(payment_type)}>
                                         <FontAwesomeIcon icon={faEdit} />
-                                    </button>
-                                    <button className="text-red-500 hover:text-red-600 transition-colors" onClick={() => handleDelete(payment_type.payment_type_id)}>
-                                        <FontAwesomeIcon icon={faTrash} />
                                     </button>
                                 </td>
 

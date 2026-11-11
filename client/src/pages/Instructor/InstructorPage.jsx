@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faEdit } from "@fortawesome/free-solid-svg-icons";
 import { useInstructor } from "../../context/InstructorContext";
 import RegisterInstructorModal from "./RegisterInstructorModal";
 
@@ -89,9 +89,6 @@ function PermissionPage() {
                 <td className="px-6 py-4 flex space-x-3">
                   <button className="text-amber-500 hover:text-amber-600 transition-colors" onClick={() => handleEdit(instructor)}>
                     <FontAwesomeIcon icon={faEdit} />
-                  </button>
-                  <button className="text-red-500 hover:text-red-600 transition-colors mr-2 ml-2">
-                    <FontAwesomeIcon icon={faTrash} />
                   </button>
                 </td>
               </tr>

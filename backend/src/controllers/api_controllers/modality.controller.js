@@ -110,15 +110,11 @@ export const updateModality = async (req, res) => {
 export const deleteModality = async (req, res) => {
   try {
     const { id } = req.params;
-
     const modality = await Modality.findByPk(id);
     if (!modality) {
       return res.status(404).json({ message: notifications.modalidad.m5 });
     }
-
-    await modality.destroy();
-
-    return res.status(200).json({ message: notifications.modalidad.m3 });
+    return res.status(409).json({ message: "No se puede eliminar una modalidad del catálogo porque puede estar vinculada a cursos existentes. Puede editar sus datos para conservar el historial." });
   } catch (error) {
     return res
       .status(500)

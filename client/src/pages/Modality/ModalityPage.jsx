@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faEdit } from "@fortawesome/free-solid-svg-icons";
 import { useModality } from "../../context/ModalityContext";
 import RegisterModalityModal from "../Modality/RegisterModalityModal";
 
 function ModalityPage() {
-  const { getModalities, modalities , totalPages, currentPage, setCurrentPage, deleteModality } = useModality();
+  const { getModalities, modalities , totalPages, currentPage, setCurrentPage } = useModality();
   const [searchTerm, setSearchTerm] = useState('');
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [selectedModality, setSelectedModality] = useState(null);
@@ -28,13 +28,6 @@ function ModalityPage() {
   const handleEdit = (modality) => {
     setSelectedModality(modality);
     setIsRegisterModalOpen(true);
-  };
-
-  const handleDelete = (modalityId) => {
-    // const confirmDelete = window.confirm("¿Estás seguro de que deseas eliminar este permiso?");
-    // if (confirmDelete) {
-    deleteModality(modalityId); // Llama a la función de eliminación
-    // }
   };
 
   return (
@@ -82,9 +75,6 @@ function ModalityPage() {
                 <td className="px-6 py-4 flex space-x-3"> {/* Cambié space-x-2 por space-x-4 */}
                   <button className="text-amber-500 hover:text-amber-600 transition-colors" onClick={() => handleEdit(modality)}>
                     <FontAwesomeIcon icon={faEdit} />
-                  </button>
-                  <button className="text-red-500 hover:text-red-600 transition-colors" onClick={() => handleDelete(modality.modality_id)}>
-                    <FontAwesomeIcon icon={faTrash} />
                   </button>
                 </td>
 
