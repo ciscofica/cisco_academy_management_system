@@ -14,7 +14,7 @@ function ProtectedRoute({ allowedRoles }) {
     const role = user?.userExists?.Role || user?.user?.Role;
     const roleName = role?.name;
     const permissions = role?.Permissions?.filter((permission) => permission.status === "Activo" || permission.status === "1").map((permission) => permission.name) || [];
-    const isAdmin = roleName === "Administrador";
+    const isStaff = roleName === "Administrador" || roleName === "Gestor";
     const hasInformationPermission = permissions.includes("Consultar información") || permissions.includes("Consultar dashboard");
     const routePermission = /payment|payments|factur/i.test(location.pathname)
         ? "Gestionar pagos"
@@ -31,8 +31,10 @@ function ProtectedRoute({ allowedRoles }) {
         /^\/preview-course\/\d+$/,
     ];
     const canReadRoute = hasInformationPermission && readOnlyPaths.some((pattern) => pattern.test(location.pathname));
-    const canManageRoute = isAdmin || (routePermission && permissions.includes(routePermission));
-    if (location.pathname === "/users" && !isAdmin && !hasInformationPermission) return <Navigate to="/" replace />;
+    const canManageRoute = isStaff || (routePermission && permissions.includes(routePermission));
+    if (location.pathname === "/users" && roleName === "Gestor") return <Navigate to="/" replace />;
+    if (["/backups", "/roles", "/permissions"].includes(location.pathname) && roleName !== "Administrador") return <Navigate to="/" replace />;
+    if (location.pathname === "/users" && roleName !== "Administrador" && !hasInformationPermission) return <Navigate to="/" replace />;
     if (routePermission && !canManageRoute && !canReadRoute) return <Navigate to="/" replace />;
     if (!routePermission && allowedRoles?.length && !allowedRoles.includes(roleName)) return <Navigate to="/" replace />;
 

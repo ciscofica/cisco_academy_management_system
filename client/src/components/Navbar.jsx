@@ -38,8 +38,9 @@ function Navbar() {
     const roleName = user?.userExists?.Role?.name || user?.user?.Role?.name;
     const rolePermissions = (user?.userExists?.Role?.Permissions || user?.user?.Role?.Permissions || []).filter((permission) => permission.status === "Activo" || permission.status === "1").map((permission) => permission.name);
     const isAdmin = roleName === "Administrador";
-    const canManageCourses = isAdmin || rolePermissions.includes("Gestionar cursos");
-    const canManagePayments = isAdmin || rolePermissions.includes("Gestionar pagos");
+    const isStaff = isAdmin || roleName === "Gestor";
+    const canManageCourses = isStaff || rolePermissions.includes("Gestionar cursos");
+    const canManagePayments = isStaff || rolePermissions.includes("Gestionar pagos");
     const canReadInformation = rolePermissions.includes("Consultar información") || rolePermissions.includes("Consultar dashboard");
     const canViewCourses = canManageCourses || canReadInformation;
     const canViewPayments = canManagePayments || canReadInformation;
@@ -165,7 +166,7 @@ function Navbar() {
                         {expandedSections.cursos && (
                             <ul className="pl-5 mt-1 space-y-1">
                                 {canViewCourses && <><li><Link to="/courses" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faDiagramProject} className="w-3.5" />Cursos y catálogo</Link></li>{canManageCourses && <li><Link to="/course/start" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faPlayCircle} className="w-3.5" />Iniciar nuevo curso</Link></li>}<li><Link to="/courses/report" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faChartBar} className="w-3.5" />Reporte de cursos</Link></li></>}
-                                {isAdmin && <><li><Link to="/participant-types" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faPerson} className="w-3.5" />Tipos de Participante</Link></li><li><Link to="/infos_utn" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faInfo} className="w-3.5" />Info UTN</Link></li><li><Link to="/instructors" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faUserAlt} className="w-3.5" />Instructor</Link></li></>}
+                                {isStaff && <><li><Link to="/participant-types" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faPerson} className="w-3.5" />Tipos de Participante</Link></li><li><Link to="/infos_utn" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faInfo} className="w-3.5" />Info UTN</Link></li><li><Link to="/instructors" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faUserAlt} className="w-3.5" />Instructor</Link></li></>}
                             </ul>
                         )}
                     </div>
@@ -184,13 +185,13 @@ function Navbar() {
                         {expandedSections.detail && (
                             <ul className="pl-5 mt-1 space-y-1">
                                 {canViewPayments && <li><Link to="/payments" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faMoneyBill} className="w-3.5" />Facturación y pagos</Link></li>}
-                                {isAdmin && <><li><Link to="/payment-types" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faMoneyCheck} className="w-3.5" />Tipos de pago</Link></li><li><Link to="/modalities" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faCogs} className="w-3.5" />Modalidades</Link></li></>}
+                                {isStaff && <><li><Link to="/payment-types" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faMoneyCheck} className="w-3.5" />Tipos de pago</Link></li><li><Link to="/modalities" className="flex items-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800 transition-colors" onClick={() => setIsDrawerOpen(false)}><FontAwesomeIcon icon={faCogs} className="w-3.5" />Modalidades</Link></li></>}
                             </ul>
                         )}
                     </div>
                     </>}
 
-                    {canReadInformation && !isAdmin && <div className="pb-5">
+                    {canReadInformation && !isStaff && <div className="pb-5">
                         <button className="w-full text-left text-slate-700 font-semibold py-2 flex items-center gap-2" onClick={() => toggleSection("consultas")}>
                             <FontAwesomeIcon icon={faUsers} className="text-[#6cc24a]" /> Consultas
                         </button>

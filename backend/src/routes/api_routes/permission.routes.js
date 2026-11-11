@@ -1,10 +1,9 @@
 import { Router } from "express";
-import { authRequired, adminRequired } from "../../middlewares/validateToken.js";
+import { authRequired, adminOnlyRequired } from "../../middlewares/validateToken.js";
 import { getPermission,getPermissionById } from "../../controllers/api_controllers/permission.controller.js";
 const router = Router();
-router.use(authRequired, adminRequired);
 
-router.get('/permission/:id', getPermissionById);
-router.post('/permissions', getPermission);
+router.get('/permission/:id', authRequired, adminOnlyRequired, getPermissionById);
+router.post('/permissions', authRequired, adminOnlyRequired, getPermission);
 
 export default router;

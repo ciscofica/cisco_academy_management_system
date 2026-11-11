@@ -33,6 +33,15 @@ export async function synchronizeSystemPermissions() {
   });
   if (administratorRole.status !== "Activo") await administratorRole.update({ status: "Activo" });
 
+  const [managerRole] = await Role.findOrCreate({
+    where: { name: "Gestor" },
+    defaults: { description: "Acceso completo a la gestión académica y de pagos, excepto usuarios y respaldos.", status: "Activo" },
+  });
+  const managerDescription = "Acceso completo a la gestión académica y de pagos, excepto usuarios y respaldos.";
+  if (managerRole.status !== "Activo" || managerRole.description !== managerDescription) {
+    await managerRole.update({ status: "Activo", description: managerDescription });
+  }
+
   const [viewerRole] = await Role.findOrCreate({
     where: { name: "Visor" },
     defaults: { description: "Consulta cursos, participantes, usuarios, facturación e informes sin modificar datos.", status: "Activo" },
@@ -43,9 +52,10 @@ export async function synchronizeSystemPermissions() {
 
   const adminPermissions = await Permission.findAll({ where: { name: SYSTEM_PERMISSION_NAMES, status: "Activo" } });
   await administratorRole.setPermissions(adminPermissions);
+  await managerRole.setPermissions(adminPermissions);
   await viewerRole.setPermissions(readPermission ? [readPermission] : []);
 
-  const retiredRoles = await Role.findAll({ where: { name: { [Op.notIn]: ["Administrador", "Visor"] } } });
+  const retiredRoles = await Role.findAll({ where: { name: { [Op.notIn]: ["Administrador", "Gestor", "Visor"] } } });
   for (const role of retiredRoles) {
     await User.update({ role_id: viewerRole.role_id }, { where: { role_id: role.role_id } });
     if (role.status !== "Inactivo") await role.update({ status: "Inactivo" });

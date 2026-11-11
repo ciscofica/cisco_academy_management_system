@@ -41,16 +41,16 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route element={<ProtectedRoute allowedRoles={["Administrador", "Visor"]} />}>
+          <Route element={<ProtectedRoute allowedRoles={["Administrador", "Gestor", "Visor"]} />}>
             <Route element={<ProtectedRoute allowedRoles={["Administrador"]} />}>
             <Route path="/permissions" element={<PermissionPage />} />
             <Route path="/roles" element={<RolePage />} />
+            <Route path="/backups" element={<DatabaseBackupsPage />} />
             </Route>
-            <Route element={<ProtectedRoute allowedRoles={["Administrador"]} />}>
+            <Route element={<ProtectedRoute allowedRoles={["Administrador", "Gestor"]} />}>
             <Route path="/instructors" element={<InstructorPage />} />
             <Route path="/modalities" element={<ModalityPage />} />
             <Route path="/participant-types" element={<ParticipantTypePage />} />
-            <Route path="/backups" element={<DatabaseBackupsPage />} />
             <Route path="/schedules" element={<SchedulePage />} />
             <Route path="/infos_utn" element={<InfoUtnPage />} />
             <Route path="/certificates" element={<CertificatePage />} />
@@ -60,7 +60,9 @@ function App() {
             <Route path="/chapters" element={<ChapterPage />} />
             <Route path="/details" element={<DetailPage />} />
             </Route>
+            <Route element={<ProtectedRoute allowedRoles={["Administrador", "Visor"]} />}>
             <Route path="/users" element={<UserPage />} />
+            </Route>
             <Route path="/participants" element={<ParticipantPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/courses" element={<CoursePage />} />

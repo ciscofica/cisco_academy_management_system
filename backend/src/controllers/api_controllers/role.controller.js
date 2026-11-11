@@ -22,7 +22,7 @@ const resolvePermissionIds = async (permissionIds = []) => {
 };
 
 export const addRole = async (req, res) => {
-  return res.status(403).json({ message: "El sistema admite únicamente los roles Administrador y Visor." });
+  return res.status(403).json({ message: "El sistema admite únicamente los roles base Administrador, Gestor y Visor." });
 };
 
 export const getRoles = async (req, res) => {
@@ -32,7 +32,7 @@ export const getRoles = async (req, res) => {
 
     const roles = await Role.findAndCountAll({
       where: {
-        name: { [Op.in]: ["Administrador", "Visor"] },
+        name: { [Op.in]: ["Administrador", "Gestor", "Visor"] },
         [Op.and]: [{
         [Op.or]: [
           { name: { [Op.like]: `%${search}%` } },
@@ -83,7 +83,7 @@ export const inactiveRole = async (req, res) => {
     if (!role) {
       return res.status(404).json({ message: notifications.roles.r5 });
     }
-    if (["Administrador", "Visor"].includes(role.name)) return res.status(400).json({ message: "Los roles base del sistema no se pueden desactivar." });
+    if (["Administrador", "Gestor", "Visor"].includes(role.name)) return res.status(400).json({ message: "Los roles base del sistema no se pueden desactivar." });
     if (role.status == "Activo") {
       status = "Inactivo";
     } else {
@@ -118,10 +118,10 @@ export const updateRole = async (req, res) => {
       try { validPermissionIds = await resolvePermissionIds(permission_ids); }
       catch (error) { return res.status(400).json({ message: error.message }); }
     }
-    if (["Administrador", "Visor"].includes(role.name) && req.body.name && req.body.name !== role.name) return res.status(400).json({ message: "El nombre de este rol base es fijo para mantener la seguridad del sistema." });
-    if (["Administrador", "Visor"].includes(role.name) && req.body.status && req.body.status !== "Activo") return res.status(400).json({ message: "Los roles base del sistema no se pueden desactivar." });
+    if (["Administrador", "Gestor", "Visor"].includes(role.name) && req.body.name && req.body.name !== role.name) return res.status(400).json({ message: "El nombre de este rol base es fijo para mantener la seguridad del sistema." });
+    if (["Administrador", "Gestor", "Visor"].includes(role.name) && req.body.status && req.body.status !== "Activo") return res.status(400).json({ message: "Los roles base del sistema no se pueden desactivar." });
     if (role.name === "Visor" && Array.isArray(req.body.permission_ids)) return res.status(400).json({ message: "El rol Visor solo puede consultar información; sus permisos son fijos." });
-    if (role.name === "Administrador" && Array.isArray(req.body.permission_ids)) return res.status(400).json({ message: "El rol Administrador conserva acceso completo al sistema." });
+    if (["Administrador", "Gestor"].includes(role.name) && Array.isArray(req.body.permission_ids)) return res.status(400).json({ message: `El rol ${role.name} conserva los permisos definidos por el sistema.` });
     const updatedFields = {};
 
     // Iterar sobre los campos en req.body
