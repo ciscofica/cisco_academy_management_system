@@ -35,17 +35,23 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: notifications.login.l1 });
     }
 
+    if (String(userExists.status) !== "1" || userExists.Role?.status !== "Activo") {
+      return res.status(403).json({ message: "Esta cuenta está inactiva. Contacte al administrador." });
+    }
+
     const isMatch = await bcrypt.compare(password, userExists.password);
     if (!isMatch) {
       return res.status(400).json({ message: notifications.login.l2 });
     }
 
-    const token = await createAccessToken({ user: userExists });
+    const token = await createAccessToken({ user: { id: userExists.id } });
     // res.cookie("token", token);
     // Guardar el token en la cookie
     res.cookie("token", token);
 
-    return res.status(201).json({ message: notifications.login.l3 ,userExists});
+    const safeUser = userExists.toJSON();
+    delete safeUser.password;
+    return res.status(201).json({ message: notifications.login.l3 ,userExists: safeUser});
   } catch (error) {
     console.log(error);
     return res.status(500).json({ message: notifications.principal.p1 });
@@ -67,6 +73,7 @@ export const logout = (req, res) => {
 export const profile = async (req, res) => {
   try {
     const userExist = await User.findByPk(req.user.user.id, {
+      attributes: { exclude: ["password"] },
       include: [
         {
           model: Role,
@@ -98,6 +105,7 @@ export const verify = async (req, res) => {
       return res.status(401).json({ message: notifications.principal.p3 });
 
     const userExists = await User.findByPk(user.user.id, {
+      attributes: { exclude: ["password"] },
       include: [
         {
           model: Role,
@@ -113,6 +121,7 @@ export const verify = async (req, res) => {
 
     if (!userExists)
       return res.status(401).json({ message: notifications.usuarios.u5 });
+    if (String(userExists.status) !== "1" || userExists.Role?.status !== "Activo") return res.status(401).json({ message: "La cuenta está inactiva." });
     return res.json({ userExists });
   });
 };

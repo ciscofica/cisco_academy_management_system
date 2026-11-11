@@ -8,6 +8,7 @@ const jsonPath = path.resolve("./src/notifications.json");
 const notifications = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
 import bcrypt from "bcryptjs";
 import { createAccessToken } from "../../libs/jwt.js";
+import { Op } from "sequelize";
 
 export const register = async (req, res) => {
   try {
@@ -21,13 +22,11 @@ export const register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 8);
 
-    const defaultRole = await Role.findOne({
-      where: { name: "Usuario" },
-    });
+    const defaultRole = await Role.findOne({ where: { name: "Visor", status: "Activo" } });
 
     if (!defaultRole) {
       return res.status(400).json({
-        message: ["No existe el rol Usuario. Créalo antes de registrar nuevos usuarios."],
+        message: ["No existe el rol Visor. Contacte al administrador del sistema."],
       });
     }
 
@@ -45,7 +44,7 @@ export const register = async (req, res) => {
 
     return res
       .status(201)
-      .json({ message: notifications.usuarios.u4, user: newUser });
+      .json({ message: notifications.usuarios.u4, user: { id: newUser.id, name: newUser.name, email: newUser.email, status: newUser.status, role_id: newUser.role_id } });
   } catch (error) {
     console.log(error);
     return res.status(500).json({ message: notifications.principal.p1 });
@@ -54,13 +53,53 @@ export const register = async (req, res) => {
 
 export const getAllUsers = async (req, res) => {
   try {
-    const users = await User.findAll();
+    const attributes = req.currentUser?.Role?.name === "Administrador"
+      ? ["id", "name", "email", "address", "status", "role_id"]
+      : ["id", "name", "email", "status", "role_id"];
+    const users = await User.findAll({ attributes, include: [{ model: Role, attributes: ["role_id", "name"] }], order: [["name", "ASC"]] });
     return res.status(200).json(users);
   } catch (error) {
     return res
       .status(500)
       .json({ message: "Error al obtener los usuarios", error });
   }
+};
+
+export const createManagedUser = async (req, res) => {
+  try {
+    const { name, email, address, password, role_id } = req.body;
+    if (!name?.trim() || !email?.trim() || !password || !role_id) return res.status(400).json({ message: "Nombre, correo, contraseña y rol son obligatorios." });
+    const existing = await User.findOne({ where: { email: email.trim() } });
+    if (existing) return res.status(409).json({ message: "Ya existe una cuenta con ese correo." });
+    const role = await Role.findOne({ where: { role_id, status: "Activo" } });
+    if (!role) return res.status(400).json({ message: "Seleccione un rol activo." });
+    const created = await User.create({ name: name.trim(), email: email.trim(), address: address || null, password: await bcrypt.hash(password, 10), role_id: role.role_id, status: "1" });
+    return res.status(201).json({ message: "Usuario creado.", user: { id: created.id, name: created.name, email: created.email, status: created.status, role_id: created.role_id } });
+  } catch (error) { return res.status(500).json({ message: "No se pudo crear el usuario." }); }
+};
+
+export const updateManagedUser = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.params.id);
+    if (!user) return res.status(404).json({ message: "Usuario no encontrado." });
+    if (Number(user.id) === Number(req.user.user.id) && req.body.status === "0") return res.status(400).json({ message: "No puede desactivar su propia cuenta." });
+    const { name, email, address, role_id, status, password } = req.body;
+    if (email && await User.findOne({ where: { email: email.trim(), id: { [Op.ne]: user.id } } })) return res.status(409).json({ message: "Ese correo ya está en uso." });
+    const updates = {};
+    if (name !== undefined) updates.name = name.trim();
+    if (email !== undefined) updates.email = email.trim();
+    if (address !== undefined) updates.address = address || null;
+    if (status !== undefined) updates.status = String(status);
+    if (password) updates.password = await bcrypt.hash(password, 10);
+    if (role_id !== undefined) {
+      const role = await Role.findOne({ where: { role_id, status: "Activo" } });
+      if (!role) return res.status(400).json({ message: "Seleccione un rol activo." });
+      if (Number(user.id) === Number(req.user.user.id) && role.name !== "Administrador") return res.status(400).json({ message: "No puede quitarse a sí mismo el rol Administrador." });
+      updates.role_id = role.role_id;
+    }
+    await user.update(updates);
+    return res.json({ message: "Usuario actualizado." });
+  } catch (error) { return res.status(500).json({ message: "No se pudo actualizar el usuario." }); }
 };
 
 export const getUserById = async (req, res) => {

@@ -1,6 +1,8 @@
+import { adminRequired } from "../../middlewares/validateToken.js";
 import { Router } from "express";
 import { addCertificate, deleteCertificate, getCartificates, getCertificateById, updateCertificate} from "../../controllers/api_controllers/certificate.controller.js";
 const router = Router();
+router.use(adminRequired);
 
 router.get('/certificate/:id', getCertificateById);
 router.post('/certificates', getCartificates);

@@ -3,13 +3,11 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEdit, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { useChapter } from "../../context/ChapterContext";
 import RegisterChapterModal from "../Chapter/RegisterChapterModal";
-import ChapterReportsModal from "./ChapterReportModal";
 
 function ChapterPage() {
     const { getChapters, chapters, totalPages, currentPage, setCurrentPage, deleteChapter } = useChapter();
     const [searchTerm, setSearchTerm] = useState('');
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-    const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
     const [selectedChapter, setSelectedChapter] = useState(null);
 
     useEffect(() => {
@@ -63,13 +61,7 @@ function ChapterPage() {
                     >
                         Registrar Capítulo
                     </button>
-                    <button
-                        onClick={() => setIsReportsModalOpen(true)}
-                        className="px-4 py-2 rounded-xl text-slate-600 bg-white border border-gray-300 hover:bg-gray-50 text-sm font-medium transition-colors"
-                    >
-                        Reportes
-                    </button>
-                </div>
+                    </div>
             </div>
 
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm relative overflow-x-auto max-h-[600px] min-h-[600px]">
@@ -144,7 +136,7 @@ function ChapterPage() {
             </div>
 
             <RegisterChapterModal isOpen={isRegisterModalOpen} onClose={() => setIsRegisterModalOpen(false)} chapter={selectedChapter} />
-            <ChapterReportsModal isOpen={isReportsModalOpen} onClose={() => setIsReportsModalOpen(false)} />
+
         </div >
     );
 }

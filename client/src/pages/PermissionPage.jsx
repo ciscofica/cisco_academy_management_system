@@ -1,16 +1,9 @@
 import { useEffect, useState } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEye, faEdit, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { usePermission } from "../context/PermissionContext";
-import RegisterPermissionModal from "./RegisterPermissionModal";
-import ReportsModal from "./ReportsModal";
 
 function PermissionPage() {
-  const { getPermissions, permissions, totalPages, currentPage, setCurrentPage, deletePermission } = usePermission();
+  const { getPermissions, permissions, totalPages, currentPage, setCurrentPage } = usePermission();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-  const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
-  const [selectedPermission, setSelectedPermission] = useState(null);
 
   useEffect(() => {
     getPermissions({ search: searchTerm, page: currentPage });
@@ -27,21 +20,13 @@ function PermissionPage() {
     }
   };
 
-  const handleEdit = (permission) => {
-    setSelectedPermission(permission);
-    setIsRegisterModalOpen(true);
-  };
-
-  const handleDelete = (permissionId) => {
-    // const confirmDelete = window.confirm("¿Estás seguro de que deseas eliminar este permiso?");
-    // if (confirmDelete) {
-    deletePermission(permissionId); // Llama a la función de eliminación
-    // }
-  };
-
   return (
     <div className="p-6 bg-slate-50 min-h-screen overflow-hidden">
-      <div className="flex justify-between mb-6 gap-3 items-center">
+      <div className="flex flex-col md:flex-row justify-between mb-6 gap-4 items-start md:items-center">
+        <div>
+          <h1 className="text-xl font-bold text-slate-800">Permisos del sistema</h1>
+          <p className="text-sm text-slate-500 mt-1">Estas capacidades corresponden a funciones disponibles. Asígnelas a cada rol desde la gestión de roles.</p>
+        </div>
         <input
           type="text"
           placeholder="Buscar permisos..."
@@ -49,23 +34,6 @@ function PermissionPage() {
           onChange={handleSearchChange}
           className="w-full md:w-1/3 p-2 rounded-xl border border-gray-300 bg-white text-slate-700 placeholder-slate-400 focus:outline-none focus:border-[#049fd9] focus:ring-2 focus:ring-[#049fd9]/20 transition text-sm"
         />
-        <div className="flex space-x-3">
-          <button
-            onClick={() => {
-              setSelectedPermission(null);
-              setIsRegisterModalOpen(true);
-            }}
-            className="px-4 py-2 rounded-xl text-white bg-[#6cc24a] hover:bg-[#5aad3a] text-sm font-medium transition-colors shadow-sm"
-          >
-            Registrar Permiso
-          </button>
-          <button
-            onClick={() => setIsReportsModalOpen(true)}
-            className="px-4 py-2 rounded-xl text-slate-600 bg-white border border-gray-300 hover:bg-gray-50 text-sm font-medium transition-colors"
-          >
-            Reportes
-          </button>
-        </div>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm relative overflow-x-auto max-h-[600px] min-h-[600px]">
@@ -76,7 +44,6 @@ function PermissionPage() {
               <th scope="col" className="px-6 py-3">Nombre</th>
               <th scope="col" className="px-6 py-3">Estado</th>
               <th scope="col" className="px-6 py-3">Descripción</th>
-              <th scope="col" className="px-6 py-3">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -93,14 +60,6 @@ function PermissionPage() {
                 </td>
 
                 <td className="px-6 py-4">{permission.description}</td>
-                <td className="px-6 py-4 flex space-x-3">
-                  <button className="text-amber-500 hover:text-amber-600 transition-colors" onClick={() => handleEdit(permission)}>
-                    <FontAwesomeIcon icon={faEdit} />
-                  </button>
-                  <button className="text-red-500 hover:text-red-600 transition-colors" onClick={() => handleDelete(permission.permission_id)}>
-                    <FontAwesomeIcon icon={faTrash} />
-                  </button>
-                </td>
 
               </tr>
             ))}
@@ -126,8 +85,6 @@ function PermissionPage() {
         </button>
       </div>
 
-      <RegisterPermissionModal isOpen={isRegisterModalOpen} onClose={() => setIsRegisterModalOpen(false)} permission={selectedPermission} />
-      <ReportsModal isOpen={isReportsModalOpen} onClose={() => setIsReportsModalOpen(false)} />
     </div>
   );
 }

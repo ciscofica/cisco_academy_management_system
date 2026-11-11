@@ -3,14 +3,12 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEdit, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { useParticipantType } from "../../context/ParticipantTypeContext";
 import RegisterParticipantTypeModal from "../Participant_Type/RegisterParticipantTypeModal";
-import ReportsModalityModal from "../Reports/ReportsModalityModal";
 
 function ParticipantTypePage() {
 
     const { getParticipantTypes, participant_types, totalPages, currentPage, setCurrentPage, deleteParticipantType } = useParticipantType();
     const [searchTerm, setSearchTerm] = useState('');
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-    const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
     const [selectedParticipantType, setSelectedParticipantType] = useState(null);
 
     useEffect(() => {
@@ -57,13 +55,7 @@ function ParticipantTypePage() {
                     >
                         Registrar Tipo de Participante
                     </button>
-                    <button
-                        onClick={() => setIsReportsModalOpen(true)}
-                        className="px-4 py-2 rounded-xl text-slate-600 bg-white border border-gray-300 hover:bg-gray-50 text-sm font-medium transition-colors"
-                    >
-                        Reportes
-                    </button>
-                </div>
+                    </div>
             </div>
 
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm relative overflow-x-auto max-h-[600px] min-h-[600px]">
@@ -122,7 +114,7 @@ function ParticipantTypePage() {
             </div>
 
             <RegisterParticipantTypeModal isOpen={isRegisterModalOpen} onClose={() => setIsRegisterModalOpen(false)} participant_type={selectedParticipantType} />
-            <ReportsModalityModal isOpen={isReportsModalOpen} onClose={() => setIsReportsModalOpen(false)} />
+
         </div>
     );
 }

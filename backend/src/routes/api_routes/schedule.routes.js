@@ -1,6 +1,8 @@
+import { adminRequired } from "../../middlewares/validateToken.js";
 import { Router } from "express";
 import { addSchedule,deleteSchedule,getSchedule,getScheduleById,updateSchedule } from "../../controllers/api_controllers/schedule.controller.js";
 const router = Router();
+router.use(adminRequired);
 
 router.get('/schedule/:id', getScheduleById);
 router.post('/schedules', getSchedule);

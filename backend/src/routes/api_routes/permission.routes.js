@@ -1,12 +1,10 @@
 import { Router } from "express";
-import { addPermission,getPermission,getPermissionById,updatePermission, inactivePermission } from "../../controllers/api_controllers/permission.controller.js";
+import { authRequired, adminRequired } from "../../middlewares/validateToken.js";
+import { getPermission,getPermissionById } from "../../controllers/api_controllers/permission.controller.js";
 const router = Router();
+router.use(authRequired, adminRequired);
 
 router.get('/permission/:id', getPermissionById);
-// router.get('/permissions', getPermission);
 router.post('/permissions', getPermission);
-router.post('/permission', addPermission);
-router.put('/permission/:id', updatePermission);
-router.delete('/permission/:id', inactivePermission);
 
 export default router;

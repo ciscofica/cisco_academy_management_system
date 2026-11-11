@@ -20,10 +20,19 @@ import { getAllCoursesRequest } from "../api/course";
 import { useAuth } from "../context/AuthContext";
 
 export default function HomePage() {
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading, user } = useAuth();
+  const role = user?.userExists?.Role || user?.user?.Role;
+  const roleName = role?.name;
+  const permissions = (role?.Permissions || [])
+    .filter((permission) => permission.status === "Activo" || permission.status === "1")
+    .map((permission) => permission.name);
+  const canManageCourses = roleName === "Administrador" || permissions.includes("Gestionar cursos");
+  const canManagePayments = roleName === "Administrador" || permissions.includes("Gestionar pagos");
+  const isReadOnlyDashboard = (permissions.includes("Consultar información") || permissions.includes("Consultar dashboard")) && !canManageCourses && !canManagePayments;
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedYear, setSelectedYear] = useState("2026");
+  const [loadError, setLoadError] = useState("");
+  const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
   const reportPrintRef = useRef(null);
 
   useEffect(() => {
@@ -32,12 +41,16 @@ export default function HomePage() {
       return;
     }
     setLoading(true);
+    setLoadError("");
     getAllCoursesRequest({ limit: 500 })
       .then((res) => {
         const list = res.data?.courses || [];
         setCourses(Array.isArray(list) ? list : []);
       })
-      .catch((err) => console.error("Error al cargar cursos para dashboard:", err))
+      .catch((err) => {
+        console.error("Error al cargar cursos para dashboard:", err);
+        setLoadError(err.response?.data?.message || "No se pudieron cargar los datos del panel. Verifique que su rol tenga el permiso de consulta del dashboard.");
+      })
       .finally(() => setLoading(false));
   }, [authLoading, isAuthenticated]);
 
@@ -54,9 +67,15 @@ export default function HomePage() {
         if (!isNaN(y)) yearsSet.add(String(y));
       }
     });
-    if (yearsSet.size === 0) yearsSet.add("2026");
+    if (yearsSet.size === 0) yearsSet.add(String(new Date().getFullYear()));
     return Array.from(yearsSet).sort((a, b) => b - a);
   }, [courses]);
+
+  useEffect(() => {
+    if (courses.length && selectedYear !== "all" && !availableYears.includes(selectedYear)) {
+      setSelectedYear(availableYears[0] || String(new Date().getFullYear()));
+    }
+  }, [courses, availableYears, selectedYear]);
 
   // Filtrar cursos por el año seleccionado (o todos)
   const filteredCourses = useMemo(() => {
@@ -94,7 +113,7 @@ export default function HomePage() {
       // Matriculados con factura
       const enrolledCount =
         Number(detail.num_enrolled) ||
-        participants.filter((p) => p.CourseParticipant?.enrolled && p.CourseParticipant?.invoice_number).length ||
+        participants.filter((p) => p.CourseParticipant?.enrolled && (p.CourseParticipant?.hasValidatedInvoice || p.CourseParticipant?.invoice_number)).length ||
         0;
       totalEnrolled += enrolledCount;
 
@@ -194,7 +213,8 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 md:p-8" ref={reportPrintRef}>
+    <div id="annual-dashboard-report" className="min-h-screen bg-slate-50 p-6 md:p-8" ref={reportPrintRef}>
+      <style>{`@media print { @page { size: A4 landscape; margin: 10mm; } html, body { width: 277mm; min-height: 190mm; margin: 0 !important; padding: 0 !important; background: #fff !important; } body * { visibility: hidden !important; } #annual-dashboard-report, #annual-dashboard-report * { visibility: visible !important; } #annual-dashboard-report { position: absolute; inset: 0 auto auto 0; width: 100% !important; min-height: 0 !important; padding: 0 !important; margin: 0 !important; background: #fff !important; color: #111827 !important; font-size: 8pt !important; } #annual-dashboard-report .max-w-7xl { max-width: none !important; width: 100% !important; } #annual-dashboard-report .grid { gap: 3mm !important; } #annual-dashboard-report table { width: 100% !important; table-layout: fixed !important; font-size: 7pt !important; } #annual-dashboard-report th, #annual-dashboard-report td { padding: 2mm 1.5mm !important; overflow-wrap: anywhere !important; } #annual-dashboard-report tr { break-inside: avoid; } #annual-dashboard-report .overflow-hidden, #annual-dashboard-report .overflow-x-auto { overflow: visible !important; } #annual-dashboard-report .print\\:hidden { display: none !important; } nav, footer { display: none !important; } }`}</style>
       {/* =================================================================== */}
       {/* ENCABEZADO Y CONTROLES DEL DASHBOARD                                */}
       {/* =================================================================== */}
@@ -247,7 +267,7 @@ export default function HomePage() {
         {/* =================================================================== */}
         {/* TARJETAS DE INDICADORES ESTADÍSTICOS (KPIs)                          */}
         {/* =================================================================== */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className={`grid grid-cols-2 md:grid-cols-3 ${isReadOnlyDashboard ? "lg:grid-cols-5" : "lg:grid-cols-6"} gap-4`}>
           {/* Convocatorias Totales */}
           <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between text-slate-400 mb-2">
@@ -321,7 +341,7 @@ export default function HomePage() {
           </div>
 
           {/* Facturación Total */}
-          <div className="bg-white p-5 rounded-2xl border border-green-200 bg-[#edf7e6]/40 shadow-xs flex flex-col justify-between">
+          {!isReadOnlyDashboard && <div className="bg-white p-5 rounded-2xl border border-green-200 bg-[#edf7e6]/40 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between text-[#3a8c25] mb-2">
               <span className="text-[11px] font-bold uppercase tracking-wider text-[#3a8c25]">
                 Recaudación
@@ -334,7 +354,7 @@ export default function HomePage() {
               </p>
               <p className="text-[10px] text-[#3a8c25] mt-0.5 font-semibold">USD cobrados</p>
             </div>
-          </div>
+          </div>}
         </div>
 
         {/* =================================================================== */}
@@ -366,16 +386,20 @@ export default function HomePage() {
                   <th className="px-3 py-3 text-center">Matriculados</th>
                   <th className="px-3 py-3 text-center">Aprobados</th>
                   <th className="px-4 py-3 text-center">Estado</th>
-                  <th className="px-4 py-3 text-right">Acción</th>
+                  {!isReadOnlyDashboard && <th className="px-4 py-3 text-right">Acción</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {loading ? (
                   <tr>
-                    <td colSpan="8" className="px-6 py-12 text-center text-slate-400">
+                    <td colSpan={isReadOnlyDashboard ? 7 : 8} className="px-6 py-12 text-center text-slate-400">
                       <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
                       Cargando estadísticas de convocatorias...
                     </td>
+                  </tr>
+                ) : loadError ? (
+                  <tr>
+                    <td colSpan={isReadOnlyDashboard ? 7 : 8} className="px-6 py-12 text-center text-red-600">{loadError}</td>
                   </tr>
                 ) : filteredCourses.length > 0 ? (
                   filteredCourses.map((c) => {
@@ -383,7 +407,7 @@ export default function HomePage() {
                     const inst = detail.Instructor || {};
                     const parts = c.Participants || [];
                     const enrCount =
-                      parts.filter((p) => p.CourseParticipant?.enrolled && p.CourseParticipant?.invoice_number).length ||
+                      parts.filter((p) => p.CourseParticipant?.enrolled && (p.CourseParticipant?.hasValidatedInvoice || p.CourseParticipant?.invoice_number)).length ||
                       detail.num_enrolled ||
                       0;
                     const regCount = detail.num_registered || parts.length;
@@ -427,7 +451,7 @@ export default function HomePage() {
                             {c.status || "Planificado"}
                           </span>
                         </td>
-                        <td className="px-4 py-3.5 text-right">
+                        {!isReadOnlyDashboard && <td className="px-4 py-3.5 text-right">
                           <Link
                             to={`/course/${c.course_id}/expedient`}
                             className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-[#6cc24a] hover:text-white text-slate-700 text-xs font-bold transition-all inline-flex items-center gap-1.5"
@@ -435,13 +459,13 @@ export default function HomePage() {
                             <span>Expediente</span>
                             <FontAwesomeIcon icon={faExternalLinkAlt} className="text-[10px]" />
                           </Link>
-                        </td>
+                        </td>}
                       </tr>
                     );
                   })
                 ) : (
                   <tr>
-                    <td colSpan="8" className="px-6 py-12 text-center text-slate-400 italic">
+                    <td colSpan={isReadOnlyDashboard ? 7 : 8} className="px-6 py-12 text-center text-slate-400 italic">
                       No se registraron convocatorias de cursos para el año {selectedYear}.
                     </td>
                   </tr>
@@ -454,7 +478,7 @@ export default function HomePage() {
         {/* =================================================================== */}
         {/* ACCESOS RÁPIDOS A MÓDULOS DEL SISTEMA                               */}
         {/* =================================================================== */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 print:hidden">
+        {!isReadOnlyDashboard && <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 print:hidden">
           <Link
             to="/courses"
             className="p-4 bg-white rounded-2xl border border-gray-200 shadow-2xs hover:border-[#6cc24a] hover:shadow-md transition-all group flex items-center gap-3"
@@ -506,7 +530,7 @@ export default function HomePage() {
               <p className="text-[10px] text-slate-400">Firmas y acreditaciones</p>
             </div>
           </Link>
-        </div>
+        </div>}
       </div>
     </div>
   );

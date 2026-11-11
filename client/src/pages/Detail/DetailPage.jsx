@@ -3,13 +3,11 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEdit, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { useDetail } from "../../context/DetailContext";
 import RegisterDetailModal from "../Detail/RegisterDetailModal";
-import ReportsModalityModal from "../Reports/ReportsModalityModal";
 
 function DetailPage() {
     const { getDetails, details, totalPages, currentPage, setCurrentPage, deleteDetailValues } = useDetail();
     const [searchTerm, setSearchTerm] = useState('');
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-    const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
     const [selectedDetail, setSelectedDetail] = useState(null);
 
     useEffect(() => {
@@ -56,13 +54,7 @@ function DetailPage() {
                     >
                         Registrar Detalle
                     </button>
-                    <button
-                        onClick={() => setIsReportsModalOpen(true)}
-                        className="px-4 py-2 rounded-xl text-slate-600 bg-white border border-gray-300 hover:bg-gray-50 text-sm font-medium transition-colors"
-                    >
-                        Reportes
-                    </button>
-                </div>
+                    </div>
             </div>
 
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm relative overflow-x-auto max-h-[600px] min-h-[600px]">
@@ -139,7 +131,7 @@ function DetailPage() {
             </div>
 
             <RegisterDetailModal isOpen={isRegisterModalOpen} onClose={() => setIsRegisterModalOpen(false)} detail={selectedDetail} />
-            <ReportsModalityModal isOpen={isReportsModalOpen} onClose={() => setIsReportsModalOpen(false)} />
+
         </div>
     );
 }

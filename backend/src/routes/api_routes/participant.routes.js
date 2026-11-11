@@ -1,3 +1,4 @@
+import { adminRequired } from "../../middlewares/validateToken.js";
 import { Router } from "express";
 import {
   getParticipants,
@@ -13,10 +14,10 @@ const router = Router();
 
 router.get("/participants-dropdown", getParticipantsDropdown);
 router.post("/participants", getParticipants);
-router.post('/participant', addParticipant);
-router.post('/upload-excel', upload.single("file"), addfromExcel);
+router.post('/participant', adminRequired, addParticipant);
+router.post('/upload-excel', adminRequired, upload.single("file"), addfromExcel);
 // router.get('/course/:id', getCourseById);
-router.put('/participant/:id', updateParticipant);
+router.put('/participant/:id', adminRequired, updateParticipant);
 // router.delete('/course/:id', inactiveCourse);
 
 export default router;

@@ -26,6 +26,7 @@ export const useCourse = () => {
 
 export function CourseProvider({ children }) {
   const [courses, setCourses] = useState([]);
+  const [coursesError, setCoursesError] = useState("");
   const [allcoursesforreport, setAllCoursesForReport] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
@@ -65,12 +66,16 @@ export function CourseProvider({ children }) {
     }
   };
   const getCourses = async ({ search = '', page = 1, limit = 15 }) => {
+    setCoursesError("");
     try {
       const res = await getCoursesRequest({ search, page, limit });
       setCourses(res.data.courses);
       // console.log(res.data.permissions);
       setTotalPages(res.data.totalPages);
     } catch (error) {
+      setCourses([]);
+      setTotalPages(1);
+      setCoursesError(error.response?.data?.message || "No se pudieron cargar las ediciones. Verifique la conexión y los permisos de consulta.");
       console.log(error);
     }
   };
@@ -141,6 +146,7 @@ export function CourseProvider({ children }) {
     <CourseContext.Provider
       value={{
         courses,
+        coursesError,
         createCourse,
         updateCourse,
         getCourses,

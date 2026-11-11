@@ -3,14 +3,12 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {  faEdit, faTrash, faUser } from "@fortawesome/free-solid-svg-icons";
 import { useCertificate } from "../../context/CertificateContext";
 import RegisterCertificateModal from "../Certificate/RegisterCertificateModal";
-import ReportsModalityModal from "../Reports/ReportsModalityModal";
 
 function CertificatePage() {
 
     const { getCertificates, certificates, totalPages, currentPage, setCurrentPage, deleteCertificates } = useCertificate();
     const [searchTerm, setSearchTerm] = useState('');
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-    const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
     const [selectedCertificate, setSelectedCertificate] = useState(null);
 
     useEffect(() => {
@@ -64,13 +62,7 @@ function CertificatePage() {
                     >
                         Registrar Certificado
                     </button>
-                    <button
-                        onClick={() => setIsReportsModalOpen(true)}
-                        className="px-4 py-2 rounded-xl text-slate-600 bg-white border border-gray-300 hover:bg-gray-50 text-sm font-medium transition-colors"
-                    >
-                        Reportes
-                    </button>
-                </div>
+                    </div>
             </div>
 
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm relative overflow-x-auto max-h-[600px] min-h-[600px]">
@@ -116,7 +108,7 @@ function CertificatePage() {
                                     </td>
                                     <td className="px-6 py-4 text-slate-600">{certificate.is_international == false ? "NO" : "SI"}</td>
                                     <td className="px-6 py-4 text-slate-600 font-mono text-xs truncate max-w-xs" title={certificate.file_url || ""}>{certificate.file_url || "—"}</td>
-                                    
+
                                     <td className="px-6 py-4 flex space-x-3">
                                     <button className="text-[#049fd9] hover:text-[#0380b0] transition-colors">
                                         <FontAwesomeIcon icon={faUser} />
@@ -155,7 +147,7 @@ function CertificatePage() {
             </div>
 
             <RegisterCertificateModal isOpen={isRegisterModalOpen} onClose={() => setIsRegisterModalOpen(false)} certificate={selectedCertificate} />
-            <ReportsModalityModal isOpen={isReportsModalOpen} onClose={() => setIsReportsModalOpen(false)} />
+
         </div >
     );
 }

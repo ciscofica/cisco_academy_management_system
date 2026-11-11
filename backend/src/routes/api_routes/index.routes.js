@@ -1,4 +1,3 @@
-import userRoutes from "./user.routes.js";
 import roleRoutes from "./role.routes.js";
 import permissionRoutes from "./permission.routes.js";
 import coursesRoutes from "./course.routes.js";
@@ -15,9 +14,9 @@ import paymentRoutes from "./payment.routes.js";
 import participantRoutes from "./participant.routes.js";
 import detailRoutes from "./detail.routes.js";
 import costRoutes from "./cost.routes.js";
+import databaseBackupRoutes from "./databaseBackup.routes.js";
 
 export default [
-  userRoutes,
   roleRoutes,
   permissionRoutes,
   coursesRoutes,
@@ -33,5 +32,6 @@ export default [
   paymentRoutes,
   participantRoutes,
   detailRoutes,
-  costRoutes
+  costRoutes,
+  databaseBackupRoutes,
 ];

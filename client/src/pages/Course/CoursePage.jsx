@@ -27,16 +27,24 @@ import {
 import { useCourse } from "../../context/CourseContext";
 import { getCourseTemplatesRequest, saveCourseTemplateRequest, reorderCourseChaptersRequest } from "../../api/course";
 import RegisterCourseModal from "../Course/RegisterCourseModal";
-import ReportsModalityModal from "../Reports/ReportsModalityModal";
 import CoursePreviewModal from "./CoursePreviewModal";
 import CertificateDownloadModal from "../../components/course/CertificateDownloadModal";
 import EditChapterModal from "../../components/course/EditChapterModal";
 import { getPaymentTypesDropdownRequest } from "../../api/payment_type";
+import { getParticipantTypesDropdownRequest } from "../../api/participant_type";
+import { useAuth } from "../../context/AuthContext";
 
 function CoursePage() {
+  const { user } = useAuth();
+  const role = user?.userExists?.Role || user?.user?.Role;
+  const rolePermissions = (role?.Permissions || []).filter((permission) => permission.status === "Activo" || permission.status === "1").map((permission) => permission.name);
+  const canManageCourses = role?.name === "Administrador" || rolePermissions.includes("Gestionar cursos");
+  const canManagePayments = role?.name === "Administrador" || rolePermissions.includes("Gestionar pagos");
+  const isReadOnly = (rolePermissions.includes("Consultar información") || rolePermissions.includes("Consultar dashboard")) && !canManageCourses && !canManagePayments;
   const {
     getCourses,
     courses,
+    coursesError,
     totalPages,
     currentPage,
     setCurrentPage,
@@ -52,7 +60,6 @@ function CoursePage() {
   // State for Editions
   const [searchTerm, setSearchTerm] = useState("");
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-  const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
@@ -61,8 +68,10 @@ function CoursePage() {
   // State for Catalog
   const [templates, setTemplates] = useState([]);
   const [paymentTypes, setPaymentTypes] = useState([]);
+  const [participantTypes, setParticipantTypes] = useState([]);
   const [catalogSearch, setCatalogSearch] = useState("");
   const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [templatesError, setTemplatesError] = useState("");
   const [previewTemplate, setPreviewTemplate] = useState(null);
   const [isChapterModalOpen, setIsChapterModalOpen] = useState(false);
   const [catalogChapterToEdit, setCatalogChapterToEdit] = useState(null);
@@ -79,10 +88,15 @@ function CoursePage() {
 
   useEffect(() => {
     loadTemplates();
-    getPaymentTypesDropdownRequest()
-      .then((res) => setPaymentTypes(res.data?.payment_types || []))
-      .catch((error) => console.error("Error al cargar tipos de pago:", error));
-  }, []);
+    if (canManageCourses) {
+      getPaymentTypesDropdownRequest()
+        .then((res) => setPaymentTypes(res.data?.payment_types || []))
+        .catch((error) => console.error("Error al cargar tipos de pago:", error));
+      getParticipantTypesDropdownRequest()
+        .then((res) => setParticipantTypes(res.data?.participant_types || []))
+        .catch((error) => console.error("Error al cargar tipos de participante:", error));
+    }
+  }, [canManageCourses]);
 
   const loadTemplates = async () => {
     try {
@@ -92,8 +106,11 @@ function CoursePage() {
         ? res.data
         : res.data?.templates || res.data?.courses || [];
       setTemplates(list);
+      setTemplatesError("");
     } catch (err) {
       console.error("Error al cargar plantillas del catálogo:", err);
+      setTemplates([]);
+      setTemplatesError(err.response?.data?.message || "No se pudo cargar el catálogo. Verifique la conexión y los permisos de consulta.");
     } finally {
       setLoadingTemplates(false);
     }
@@ -152,6 +169,13 @@ function CoursePage() {
     const selected = getSelectedPaymentMethods();
     const next = selected.includes(name) ? selected.filter((item) => item !== name) : [...selected, name];
     setTemplateForm((form) => ({ ...form, payment_methods: next.join(", ") }));
+  };
+  const getSelectedAudiences = () => (templateForm.target_audience || "")
+    .split(",").map((item) => item.trim()).filter(Boolean);
+  const toggleAudience = (name) => {
+    const selected = getSelectedAudiences();
+    const next = selected.includes(name) ? selected.filter((item) => item !== name) : [...selected, name];
+    setTemplateForm((form) => ({ ...form, target_audience: next.join(", ") }));
   };
   const saveTemplate = async (e) => {
     e.preventDefault();
@@ -253,21 +277,14 @@ function CoursePage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <button
+            {!isReadOnly && <button
               onClick={() => navigate("/course/start")}
               className="px-4 py-2.5 rounded-xl text-white bg-[#6cc24a] hover:bg-[#5aad3a] shadow-sm flex items-center gap-2 text-sm font-semibold transition-all hover:shadow"
             >
               <FontAwesomeIcon icon={faPlayCircle} />
               Iniciar nueva convocatoria
-            </button>
-            <button
-              onClick={() => navigate("/courses/report")}
-              className="px-4 py-2.5 rounded-xl text-slate-600 bg-white border border-gray-300 hover:bg-gray-50 text-sm font-semibold transition-colors shadow-sm flex items-center gap-2"
-            >
-              <FontAwesomeIcon icon={faChartBar} />
-              Reportes
-            </button>
-          </div>
+            </button>}
+            </div>
         </div>
 
         {/* Pestañas Principales: Ediciones vs. Catálogo */}
@@ -302,6 +319,7 @@ function CoursePage() {
         ═══════════════════════════════════════════════════════════════ */}
         {activeTab === "editions" && (
           <div>
+            {coursesError && <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{coursesError}</div>}
             <div className="flex justify-between mb-4 gap-3 items-center flex-wrap">
               <div className="relative w-full md:w-96">
                 <FontAwesomeIcon
@@ -333,7 +351,7 @@ function CoursePage() {
                       <th scope="col" className="px-6 py-3.5">Docente Asignado</th>
                       <th scope="col" className="px-6 py-3.5">Fechas de Clases</th>
                       <th scope="col" className="px-6 py-3.5">Estado</th>
-                      <th scope="col" className="px-6 py-3.5 text-center">Acciones</th>
+                      <th scope="col" className="px-6 py-3.5 text-center">{isReadOnly ? "Consulta" : "Acciones"}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -409,34 +427,34 @@ function CoursePage() {
                               >
                                 <FontAwesomeIcon icon={faEye} className="text-xs" />
                               </button>
-                              <button
+                              {!isReadOnly && <button
                                 className="w-8 h-8 rounded-lg bg-[#edf7e6] text-[#3a8c25] hover:bg-[#6cc24a] hover:text-white transition-all flex items-center justify-center"
                                 onClick={() => navigate(`/course/${course.course_id}/expedient`)}
                                 title="Abrir expediente completo"
                               >
                                 <FontAwesomeIcon icon={faFolderOpen} className="text-xs" />
-                              </button>
-                              <button
+                              </button>}
+                              {!isReadOnly && <button
                                 className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white transition-all flex items-center justify-center"
                                 onClick={() => handleDownloadCertificate(course)}
                                 title="Certificados"
                               >
                                 <FontAwesomeIcon icon={faCertificate} className="text-xs" />
-                              </button>
-                              <button
+                              </button>}
+                              {!isReadOnly && <button
                                 className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition-all flex items-center justify-center"
                                 onClick={() => handleEdit(course)}
                                 title="Editar"
                               >
                                 <FontAwesomeIcon icon={faEdit} className="text-xs" />
-                              </button>
-                              <button
+                              </button>}
+                              {!isReadOnly && <button
                                 className="w-8 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center"
                                 onClick={() => handleDelete(course.course_id)}
                                 title="Inactivar"
                               >
                                 <FontAwesomeIcon icon={faTrash} className="text-xs" />
-                              </button>
+                              </button>}
                             </div>
                           </td>
                         </tr>
@@ -482,6 +500,7 @@ function CoursePage() {
         ═══════════════════════════════════════════════════════════════ */}
         {activeTab === "catalog" && (
           <div>
+            {templatesError && <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{templatesError}</div>}
             {/* Barra de Búsqueda y Filtros de Catálogo */}
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
               <div className="relative w-full md:w-96">
@@ -501,7 +520,7 @@ function CoursePage() {
               <div className="text-xs text-slate-500 font-medium">
                 Mostrando {filteredTemplates.length} de {templates.length} cursos disponibles
               </div>
-              <button onClick={() => openTemplateForm()} className="px-4 py-2.5 rounded-xl bg-[#005073] text-white text-sm font-semibold">Crear curso en catálogo</button>
+              {!isReadOnly && <button onClick={() => openTemplateForm()} className="px-4 py-2.5 rounded-xl bg-[#005073] text-white text-sm font-semibold">Crear curso en catálogo</button>}
             </div>
 
             {/* Grid de Tarjetas Estilo Cisco NetAcad */}
@@ -571,22 +590,24 @@ function CoursePage() {
                         <FontAwesomeIcon icon={faListOl} />
                         Ver Temario ({chaptersCount})
                       </button>
-                      <button onClick={() => openTemplateForm(template)} className="text-xs font-semibold text-amber-700 hover:text-amber-900">Editar ficha</button>
+                      {!isReadOnly && <button onClick={() => openTemplateForm(template)} className="text-xs font-semibold text-amber-700 hover:text-amber-900">Editar ficha</button>}
 
-                      <button
+                      {!isReadOnly && <button
                         onClick={() => navigate(`/course/start?templateId=${template.course_id}`)}
                         className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#6cc24a] hover:bg-[#5aad3a] transition-all shadow-sm flex items-center gap-1.5"
                       >
                         <FontAwesomeIcon icon={faPlayCircle} />
                         Iniciar Convocatoria
-                      </button>
+                      </button>}
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            {filteredTemplates.length === 0 && !loadingTemplates && (
+            {loadingTemplates && <div className="rounded-xl border border-slate-200 bg-white py-12 text-center text-sm text-slate-500">Cargando catálogo de cursos…</div>}
+
+            {filteredTemplates.length === 0 && !loadingTemplates && !templatesError && (
               <div className="text-center py-16 bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
                 <FontAwesomeIcon icon={faBookOpen} className="text-slate-300 text-4xl mb-3" />
                 <p className="text-base font-bold text-slate-700">No se encontraron cursos en el catálogo</p>
@@ -598,13 +619,14 @@ function CoursePage() {
           </div>
         )}
 
-        {templateFormOpen && (
+        {!isReadOnly && templateFormOpen && (
           <div className="fixed inset-0 z-[70] bg-slate-900/60 flex items-center justify-center p-4">
             <form onSubmit={saveTemplate} className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 space-y-4">
               <div className="flex justify-between"><h2 className="text-xl font-bold">{editingTemplateId ? "Editar ficha de catálogo" : "Crear curso en catálogo"}</h2><button type="button" onClick={() => setTemplateFormOpen(false)}>Cerrar</button></div>
               <div className="grid md:grid-cols-2 gap-3">
-                {[["course_name","Nombre del curso"],["subject_area","Área temática"],["total_hours","Horas totales"],["instructor_hours","Horas con instructor"],["activities_hours","Horas autónomas"],["target_audience","Público destinatario"],["participant_requeriment","Requisitos de participantes"],["prerequisites","Prerrequisitos"],["course_description","Descripción"],["objective","Objetivo general"],["specific_objectives","Objetivos específicos"],["justification","Justificación"],["methodology","Metodología"],["evaluation_criteria","Criterios de evaluación"],["resources_materials","Recursos y materiales"],["bibliography","Bibliografía"]].map(([key,label]) => <label key={key} className="text-sm font-medium text-slate-700">{label}<textarea required={key === "course_name"} rows={key === "course_name" || key.includes("hours") ? 1 : 2} value={templateForm[key]} onChange={(e) => setTemplateForm((f) => ({ ...f, [key]: e.target.value }))} className="mt-1 w-full rounded-lg border border-slate-300 p-2" /></label>)}
+                {[["course_name","Nombre del curso"],["subject_area","Área temática"],["total_hours","Horas totales"],["instructor_hours","Horas con instructor"],["activities_hours","Horas autónomas"],["participant_requeriment","Requisitos de participantes"],["prerequisites","Prerrequisitos"],["course_description","Descripción"],["objective","Objetivo general"],["specific_objectives","Objetivos específicos"],["justification","Justificación"],["methodology","Metodología"],["evaluation_criteria","Criterios de evaluación"],["resources_materials","Recursos y materiales"],["bibliography","Bibliografía"]].map(([key,label]) => <label key={key} className="text-sm font-medium text-slate-700">{label}<textarea required={key === "course_name"} rows={key === "course_name" || key.includes("hours") ? 1 : 2} value={templateForm[key]} onChange={(e) => setTemplateForm((f) => ({ ...f, [key]: e.target.value }))} className="mt-1 w-full rounded-lg border border-slate-300 p-2" /></label>)}
               </div>
+              <fieldset className="rounded-xl border border-slate-200 p-4"><legend className="px-1 text-sm font-semibold text-slate-700">Público destinatario</legend>{participantTypes.length ? <div className="grid sm:grid-cols-2 gap-2">{participantTypes.map((type) => <label key={type.participant_type_id} className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={getSelectedAudiences().includes(type.name)} onChange={() => toggleAudience(type.name)} />{type.name}</label>)}</div> : <p className="text-xs text-slate-500">No hay tipos de participante activos para seleccionar. Adminístrelos en Tipos de Participante.</p>}</fieldset>
               <div className="grid md:grid-cols-2 gap-3">{[["course_name_en","Nombre en inglés"],["course_code","Código del curso"],["academic_responsible","Responsable académico"],["academic_responsible_charge","Cargo del responsable"]].map(([key,label]) => <label key={key} className="text-sm font-medium text-slate-700">{label}<textarea rows={2} value={templateForm[key] || ""} onChange={(e) => setTemplateForm((f) => ({ ...f, [key]: e.target.value }))} className="mt-1 w-full rounded-lg border border-slate-300 p-2" /></label>)}</div>
               <fieldset className="rounded-xl border border-slate-200 p-4"><legend className="px-1 text-sm font-semibold text-slate-700">Tipos de pago aceptados</legend>{paymentTypes.length ? <div className="grid sm:grid-cols-2 gap-2">{paymentTypes.map((type) => <label key={type.payment_type_id} className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={getSelectedPaymentMethods().includes(type.name)} onChange={() => togglePaymentMethod(type.name)} />{type.name}</label>)}</div> : <p className="text-xs text-slate-500">No hay tipos de pago registrados para seleccionar.</p>}</fieldset>
               <div className="flex justify-end gap-3 border-t border-slate-100 pt-4"><button type="button" onClick={() => { setTemplateFormOpen(false); setTemplateForm(emptyTemplate); setEditingTemplateId(null); }} className="px-5 py-2 rounded-xl border border-slate-300 text-slate-600 font-semibold">Cancelar</button><button disabled={templateSaving} className="px-5 py-2 rounded-xl bg-[#6cc24a] text-white font-bold">{templateSaving ? "Guardando…" : "Guardar ficha"}</button></div>
@@ -665,7 +687,7 @@ function CoursePage() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1"><button onClick={() => moveCatalogChapter(ch.chapter_id, -1)} disabled={idx === 0} title="Mover arriba" className="px-1 text-slate-500 disabled:opacity-30">↑</button><button onClick={() => moveCatalogChapter(ch.chapter_id, 1)} disabled={idx === previewTemplate.Chapters.length - 1} title="Mover abajo" className="px-1 text-slate-500 disabled:opacity-30">↓</button><button onClick={() => { setCatalogChapterToEdit(ch); setIsCatalogChapterEditorOpen(true); }} className="text-xs font-semibold text-amber-700 hover:text-amber-900">Editar</button></div>
+                      {!isReadOnly && <div className="flex items-center gap-1"><button onClick={() => moveCatalogChapter(ch.chapter_id, -1)} disabled={idx === 0} title="Mover arriba" className="px-1 text-slate-500 disabled:opacity-30">↑</button><button onClick={() => moveCatalogChapter(ch.chapter_id, 1)} disabled={idx === previewTemplate.Chapters.length - 1} title="Mover abajo" className="px-1 text-slate-500 disabled:opacity-30">↓</button><button onClick={() => { setCatalogChapterToEdit(ch); setIsCatalogChapterEditorOpen(true); }} className="text-xs font-semibold text-amber-700 hover:text-amber-900">Editar</button></div>}
                     </div>
                   ))
                 ) : (
@@ -680,12 +702,12 @@ function CoursePage() {
 
               {/* Footer con CTA */}
               <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
-                <button
+                {!isReadOnly && <button
                   onClick={() => { setCatalogChapterToEdit(null); setIsCatalogChapterEditorOpen(true); }}
                   className="px-4 py-2 text-xs font-semibold text-[#005073] hover:bg-blue-50 rounded-xl transition-colors"
                 >
                   Agregar contenido
-                </button>
+                </button>}
                 <button
                   onClick={() => setIsChapterModalOpen(false)}
                   className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-gray-100 rounded-xl transition-colors"
@@ -693,7 +715,7 @@ function CoursePage() {
                   Cerrar temario
                 </button>
 
-                <button
+                {!isReadOnly && <button
                   onClick={() => {
                     setIsChapterModalOpen(false);
                     navigate(`/course/start?templateId=${previewTemplate.course_id}`);
@@ -702,34 +724,31 @@ function CoursePage() {
                 >
                   <FontAwesomeIcon icon={faPlayCircle} />
                   Iniciar Convocatoria con este Temario
-                </button>
+                </button>}
               </div>
             </div>
           </div>
         )}
 
         {/* Modales Existentes */}
-        <RegisterCourseModal
+        {!isReadOnly && <RegisterCourseModal
           isOpen={isRegisterModalOpen}
           onClose={() => setIsRegisterModalOpen(false)}
           course={selectedCourse}
-        />
-        <ReportsModalityModal
-          isOpen={isReportsModalOpen}
-          onClose={() => setIsReportsModalOpen(false)}
-        />
+        />}
+
         <CoursePreviewModal
           isOpen={isDetailsModalOpen}
           onClose={() => setIsDetailsModalOpen(false)}
           course={selectedCourse}
         />
-        <CertificateDownloadModal
+        {!isReadOnly && <CertificateDownloadModal
           isOpen={isCertificateModalOpen}
           onClose={() => setIsCertificateModalOpen(false)}
           course={courseForCertificates}
           onDownload={downloadCertificates}
-        />
-        <EditChapterModal
+        />}
+        {!isReadOnly && <EditChapterModal
           isOpen={isCatalogChapterEditorOpen}
           onClose={() => { setIsCatalogChapterEditorOpen(false); setCatalogChapterToEdit(null); }}
           courseId={previewTemplate?.course_id}
@@ -743,7 +762,7 @@ function CoursePage() {
               setPreviewTemplate(list.find((item) => item.course_id === previewTemplate.course_id) || previewTemplate);
             }
           }}
-        />
+        />}
       </div>
     </div>
   );

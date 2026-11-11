@@ -6,8 +6,10 @@ import {
   inactiveRole,
   updateRole,
 } from "../../controllers/api_controllers/role.controller.js";
+import { authRequired, adminRequired } from "../../middlewares/validateToken.js";
 
 const router = Router();
+router.use(authRequired, adminRequired);
 
 /**
  * @swagger

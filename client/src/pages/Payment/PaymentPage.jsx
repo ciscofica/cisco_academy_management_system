@@ -10,22 +10,23 @@ import {
   faCalendarAlt,
   faFileInvoiceDollar,
   faChevronRight,
-  faCheckCircle,
   faHourglassHalf,
   faUsers,
   faUserCheck,
   faReceipt,
   faExternalLinkAlt,
-  faSpinner,
-  faTable,
 } from "@fortawesome/free-solid-svg-icons";
 import { usePayment } from "../../context/PaymentContext";
 import { getAllCoursesRequest, getCourseExpedientRequest, exportCoursePaymentsExcelRequest } from "../../api/course";
 import RegisterPaymentModal from "../Payment/RegisterPaymentModal";
-import ReportsModalityModal from "../Reports/ReportsModalityModal";
-import ValidatePaymentModal from "../../components/course/ValidatePaymentModal";
+import { useAuth } from "../../context/AuthContext";
 
 export default function PaymentPage() {
+  const { user } = useAuth();
+  const role = user?.userExists?.Role || user?.user?.Role;
+  const rolePermissions = (role?.Permissions || []).filter((permission) => permission.status === "Activo" || permission.status === "1").map((permission) => permission.name);
+  const canManagePayments = role?.name === "Administrador" || rolePermissions.includes("Gestionar pagos");
+  const isReadOnly = (rolePermissions.includes("Consultar información") || rolePermissions.includes("Consultar dashboard")) && !canManagePayments;
   const {
     payments,
     getPayments,
@@ -42,17 +43,11 @@ export default function PaymentPage() {
   const [selectedEdition, setSelectedEdition] = useState(null);
 
   // Nivel 2: Datos del Curso y Estudiantes
-  const [activeTab, setActiveTab] = useState("invoices_crud"); // 'invoices_crud' | 'participants'
   const [expedientData, setExpedientData] = useState(null);
-  const [loadingParticipants, setLoadingParticipants] = useState(false);
-  const [studentSearch, setStudentSearch] = useState("");
-  const [studentFilter, setStudentFilter] = useState("all"); // 'all' | 'pending' | 'enrolled'
 
   // Modales
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-  const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
-  const [selectedStudentForInvoice, setSelectedStudentForInvoice] = useState(null);
 
   // Búsqueda de facturas generales en Tab de Facturación (CRUD)
   const [paymentSearch, setPaymentSearch] = useState("");
@@ -86,13 +81,11 @@ export default function PaymentPage() {
   // Cargar estudiantes y expediente de la edición seleccionada
   const loadEditionData = (courseId) => {
     if (!courseId) return;
-    setLoadingParticipants(true);
     getCourseExpedientRequest(courseId)
       .then((res) => {
         setExpedientData(res.data?.course || null);
       })
-      .catch((err) => console.error("Error al cargar participantes del curso:", err))
-      .finally(() => setLoadingParticipants(false));
+      .catch((err) => console.error("Error al cargar resumen de la edición:", err));
   };
 
   // Cargar pagos de la edición
@@ -109,9 +102,6 @@ export default function PaymentPage() {
 
   const handleEditionSelect = (edition) => {
     setSelectedEdition(edition);
-    setActiveTab("invoices_crud");
-    setStudentSearch("");
-    setStudentFilter("all");
     setPaymentSearch("");
     setCurrentPage(1);
   };
@@ -120,7 +110,6 @@ export default function PaymentPage() {
     setSelectedEdition(null);
     setExpedientData(null);
     setPaymentSearch("");
-    setStudentSearch("");
     setCurrentPage(1);
   };
 
@@ -190,26 +179,6 @@ export default function PaymentPage() {
     return payments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
   }, [payments]);
 
-  // Filtrado de estudiantes en Tab 2
-  const filteredStudents = participants.filter((p) => {
-    const cp = p.CourseParticipant || {};
-    const isEnrolled = Boolean(cp.enrolled && cp.invoice_number);
-
-    if (studentFilter === "enrolled" && !isEnrolled) return false;
-    if (studentFilter === "pending" && isEnrolled) return false;
-
-    if (studentSearch.trim()) {
-      const q = studentSearch.toLowerCase().trim();
-      const matchName = (p.name || "").toLowerCase().includes(q);
-      const matchCid = (p.cid || "").toLowerCase().includes(q);
-      const matchEmail = (p.email || "").toLowerCase().includes(q);
-      const matchInvoice = (cp.invoice_number || "").toLowerCase().includes(q);
-      return matchName || matchCid || matchEmail || matchInvoice;
-    }
-
-    return true;
-  });
-
   return (
     <div className="p-6 bg-slate-50 min-h-screen">
       {/* ==================================================================== */}
@@ -225,10 +194,10 @@ export default function PaymentPage() {
               </div>
               <div>
                 <h1 className="text-lg font-bold text-slate-800">
-                  Gestión de Facturación y Pagos
+                  {isReadOnly ? "Consulta de Facturación y Pagos" : "Gestión de Facturación y Pagos"}
                 </h1>
                 <p className="text-xs text-slate-500">
-                  Seleccione una edición de curso para gestionar el reporte de facturación y cobros
+                  Seleccione una edición para consultar sus facturas y cobros
                 </p>
               </div>
             </div>
@@ -334,22 +303,22 @@ export default function PaymentPage() {
                   </span>
                 </div>
                 <p className="text-xs text-slate-500">
-                  Gestión integral de facturas y vinculación con estudiantes matriculados
+                  {isReadOnly ? "Consulta de facturas y cobros; no se pueden modificar registros." : "Gestión integral de facturas y vinculación con estudiantes matriculados"}
                 </p>
               </div>
             </div>
 
             {/* Acciones Rápidas */}
             <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-              <Link
+              {!isReadOnly && <Link
                 to={`/course/${selectedEdition.course_id}/expedient`}
                 className="px-3.5 py-2 rounded-xl text-slate-600 bg-slate-50 border border-gray-200 hover:bg-gray-100 text-xs font-semibold transition-colors flex items-center gap-1.5"
                 title="Ver expediente académico y notas"
               >
                 <FontAwesomeIcon icon={faExternalLinkAlt} />
                 <span>Expediente</span>
-              </Link>
-              <button
+              </Link>}
+              {!isReadOnly && <button
                 onClick={() => {
                   setSelectedPayment(null);
                   setIsRegisterModalOpen(true);
@@ -358,13 +327,8 @@ export default function PaymentPage() {
               >
                 <FontAwesomeIcon icon={faPlus} />
                 <span>Nueva Factura</span>
-              </button>
-              <button
-                onClick={() => setIsReportsModalOpen(true)}
-                className="px-3.5 py-2 rounded-xl text-slate-600 bg-white border border-gray-300 hover:bg-gray-50 text-xs font-medium transition-colors"
-              >
-                Reportes
-              </button>
+              </button>}
+
             </div>
           </div>
 
@@ -413,37 +377,12 @@ export default function PaymentPage() {
             </div>
           </div>
 
-          {/* Navegación por Pestañas */}
-          <div className="flex border-b border-gray-200 gap-6">
-            <button
-              onClick={() => setActiveTab("invoices_crud")}
-              className={`pb-3 text-xs font-bold transition-all relative flex items-center gap-2 ${
-                activeTab === "invoices_crud"
-                  ? "text-[#3a8c25] border-b-2 border-[#6cc24a]"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              <FontAwesomeIcon icon={faTable} />
-              <span>Reporte de Facturación (CRUD) ({payments.length})</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("participants")}
-              className={`pb-3 text-xs font-bold transition-all relative flex items-center gap-2 ${
-                activeTab === "participants"
-                  ? "text-[#3a8c25] border-b-2 border-[#6cc24a]"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              <FontAwesomeIcon icon={faUsers} />
-              <span>Estudiantes y Registro por Factura ({totalRegistered})</span>
-            </button>
+          <div className="border-b border-gray-200 pb-3">
+            <h2 className="text-sm font-bold text-slate-700">Facturas registradas ({payments.length})</h2>
           </div>
 
-          {/* ================================================================= */}
-          {/* PESTAÑA 1: CRUD DE FACTURAS INGRESADAS (ESTILO REPORTE INSTITUCIONAL) */}
-          {/* ================================================================= */}
-          {activeTab === "invoices_crud" && (
-            <div className="space-y-4">
+          {/* Listado de facturas */}
+          <div className="space-y-4">
               {/* Barra de Filtro de Facturas */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div className="relative w-full sm:w-80">
@@ -464,7 +403,7 @@ export default function PaymentPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
+                  {!isReadOnly && <button
                     onClick={() => {
                       setSelectedPayment(null);
                       setIsRegisterModalOpen(true);
@@ -473,7 +412,7 @@ export default function PaymentPage() {
                   >
                     <FontAwesomeIcon icon={faPlus} />
                     <span>Agregar Factura</span>
-                  </button>
+                  </button>}
                   <button onClick={downloadPaymentsExcel} className="px-3.5 py-1.5 rounded-xl text-white bg-emerald-700 hover:bg-emerald-800 text-xs font-bold transition-all shadow-xs flex items-center gap-1.5">
                     <FontAwesomeIcon icon={faFileInvoiceDollar} />
                     <span>Descargar Excel</span>
@@ -503,7 +442,7 @@ export default function PaymentPage() {
                         <th scope="col" className="px-3 py-2.5 text-right">IVA</th>
                         <th scope="col" className="px-3 py-2.5 text-right">TOTAL</th>
                         <th scope="col" className="px-2 py-2.5 text-center">PROYECTO</th>
-                        <th scope="col" className="px-3 py-2.5 text-center">ACCIONES</th>
+                        {!isReadOnly && <th scope="col" className="px-3 py-2.5 text-center">ACCIONES</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -569,7 +508,7 @@ export default function PaymentPage() {
                               <td className="px-2 py-2.5 text-center font-mono text-slate-600">
                                 {payment.project_code || "0607"}
                               </td>
-                              <td className="px-3 py-2.5 text-center">
+                              {!isReadOnly && <td className="px-3 py-2.5 text-center">
                                 <div className="flex items-center justify-center space-x-1.5">
                                   <button
                                     className="text-amber-600 hover:text-amber-700 p-1 rounded hover:bg-amber-50 transition-colors"
@@ -586,14 +525,14 @@ export default function PaymentPage() {
                                     <FontAwesomeIcon icon={faTrash} />
                                   </button>
                                 </div>
-                              </td>
+                              </td>}
                             </tr>
                           );
                         })
                       ) : (
                         <tr>
                           <td
-                            colSpan="12"
+                            colSpan={isReadOnly ? 11 : 12}
                             className="px-6 py-14 text-center text-slate-400 italic"
                           >
                             No se registran comprobantes de pago en esta edición aún.
@@ -615,7 +554,7 @@ export default function PaymentPage() {
                           <td className="px-3 py-2.5 text-right text-xs font-bold text-slate-900">
                             ${totalCollected.toFixed(2)}
                           </td>
-                          <td colSpan="2"></td>
+                          <td colSpan={isReadOnly ? 1 : 2}></td>
                         </tr>
                       </tfoot>
                     )}
@@ -653,216 +592,10 @@ export default function PaymentPage() {
                   </div>
                 )}
               </div>
-            </div>
-          )}
-
-          {/* ================================================================= */}
-          {/* PESTAÑA 2: TABLA COMBINADA DE ESTUDIANTES Y REGISTRO DE FACTURA   */}
-          {/* ================================================================= */}
-          {activeTab === "participants" && (
-            <div className="space-y-4">
-              {/* Barra de Búsqueda y Filtros de Estado */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <div className="relative w-full sm:w-80">
-                  <input
-                    type="text"
-                    placeholder="Buscar estudiante por nombre, cédula o N° factura..."
-                    value={studentSearch}
-                    onChange={(e) => setStudentSearch(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-300 bg-white text-slate-700 placeholder-slate-400 focus:outline-none focus:border-[#6cc24a] focus:ring-2 focus:ring-[#6cc24a]/20 transition text-xs shadow-xs"
-                  />
-                  <FontAwesomeIcon
-                    icon={faSearch}
-                    className="absolute left-3 top-3 text-slate-400 text-xs pointer-events-none"
-                  />
-                </div>
-
-                {/* Filtros rápidos de estado */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setStudentFilter("all")}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
-                      studentFilter === "all"
-                        ? "bg-slate-800 text-white shadow-xs"
-                        : "bg-white border border-gray-200 text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    Todos ({totalRegistered})
-                  </button>
-                  <button
-                    onClick={() => setStudentFilter("pending")}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
-                      studentFilter === "pending"
-                        ? "bg-amber-600 text-white shadow-xs"
-                        : "bg-white border border-gray-200 text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    Pendientes ({totalPending})
-                  </button>
-                  <button
-                    onClick={() => setStudentFilter("enrolled")}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
-                      studentFilter === "enrolled"
-                        ? "bg-[#6cc24a] text-white shadow-xs"
-                        : "bg-white border border-gray-200 text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    Matriculados ({totalEnrolled})
-                  </button>
-                </div>
-              </div>
-
-              {/* Tabla de Estudiantes */}
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left text-slate-600">
-                    <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-gray-200">
-                      <tr>
-                        <th scope="col" className="px-5 py-3">Estudiante</th>
-                        <th scope="col" className="px-5 py-3">Cédula / RUC</th>
-                        <th scope="col" className="px-5 py-3">Tipo</th>
-                        <th scope="col" className="px-5 py-3 text-center">Estado</th>
-                        <th scope="col" className="px-5 py-3">N° Factura</th>
-                        <th scope="col" className="px-5 py-3 text-right">Monto</th>
-                        <th scope="col" className="px-5 py-3 text-center">Acción</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {loadingParticipants ? (
-                        <tr>
-                          <td colSpan="7" className="px-6 py-12 text-center text-slate-400">
-                            <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
-                            Cargando lista de participantes de esta edición...
-                          </td>
-                        </tr>
-                      ) : filteredStudents.length > 0 ? (
-                        filteredStudents.map((p) => {
-                          const cp = p.CourseParticipant || {};
-                          const isEnrolled = Boolean(cp.enrolled && cp.invoice_number);
-                          const invoiceNo = cp.invoice_number;
-                          const totalPaid = cp.total_payment !== undefined ? cp.total_payment : p.total_payment;
-
-                          return (
-                            <tr
-                              key={p.participant_id}
-                              className="border-b border-gray-100 hover:bg-slate-50 transition-colors"
-                            >
-                              {/* Nombre y correo */}
-                              <td className="px-5 py-3.5">
-                                <div className="font-semibold text-slate-800 text-xs">
-                                  {p.name}
-                                </div>
-                                <div className="text-[11px] text-slate-400">
-                                  {p.email || "Sin correo"}
-                                </div>
-                              </td>
-
-                              {/* Cédula */}
-                              <td className="px-5 py-3.5 font-mono text-xs text-slate-600">
-                                {p.cid}
-                              </td>
-
-                              {/* Tipo de participante */}
-                              <td className="px-5 py-3.5 text-xs text-slate-500">
-                                {p.ParticipantType?.name || "General"}
-                              </td>
-
-                              {/* Estado de matrícula */}
-                              <td className="px-5 py-3.5 text-center">
-                                <span
-                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
-                                    isEnrolled
-                                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                      : "bg-amber-50 text-amber-700 border-amber-200"
-                                  }`}
-                                >
-                                  <FontAwesomeIcon
-                                    icon={isEnrolled ? faCheckCircle : faHourglassHalf}
-                                    className="text-[10px]"
-                                  />
-                                  {isEnrolled ? "Matriculado" : "Inscrito (Pendiente Factura)"}
-                                </span>
-                              </td>
-
-                              {/* Número de factura */}
-                              <td className="px-5 py-3.5">
-                                {invoiceNo ? (
-                                  <span className="font-mono font-bold text-slate-800 text-xs px-2 py-0.5 rounded bg-slate-100 border border-slate-200">
-                                    {invoiceNo}
-                                  </span>
-                                ) : (
-                                  <span className="text-slate-400 italic text-xs">
-                                    Sin Factura
-                                  </span>
-                                )}
-                              </td>
-
-                              {/* Monto */}
-                              <td className="px-5 py-3.5 text-right font-bold text-[#3a8c25] text-xs">
-                                {isEnrolled && totalPaid !== null && totalPaid !== undefined && Number(totalPaid) > 0
-                                  ? `$${Number(totalPaid).toFixed(2)}`
-                                  : isEnrolled
-                                  ? "$69.00"
-                                  : "—"}
-                              </td>
-
-                              {/* Botón de Acción Directo */}
-                              <td className="px-5 py-3.5 text-center">
-                                {isEnrolled ? (
-                                  <button
-                                    onClick={() => setSelectedStudentForInvoice(p)}
-                                    className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors flex items-center gap-1.5 mx-auto"
-                                    title="Modificar comprobante o datos de la factura"
-                                  >
-                                    <FontAwesomeIcon icon={faEdit} className="text-slate-500" />
-                                    <span>Modificar</span>
-                                  </button>
-                                ) : (
-                                  <button
-                                    onClick={() => setSelectedStudentForInvoice(p)}
-                                    className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#6cc24a] hover:bg-[#5aad3a] text-white shadow-xs transition-all flex items-center gap-1.5 mx-auto"
-                                    title="Ingresar factura para matricular formalmente"
-                                  >
-                                    <FontAwesomeIcon icon={faFileInvoiceDollar} />
-                                    <span>Registrar Factura</span>
-                                  </button>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })
-                      ) : (
-                        <tr>
-                          <td colSpan="7" className="px-6 py-12 text-center text-slate-400 text-xs italic">
-                            No se encontraron estudiantes para esta edición con el filtro seleccionado.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Modal de Validación / Registro de Factura por Estudiante */}
-          <ValidatePaymentModal
-            isOpen={Boolean(selectedStudentForInvoice)}
-            onClose={() => setSelectedStudentForInvoice(null)}
-            courseId={selectedEdition.course_id}
-            participant={selectedStudentForInvoice}
-            onValidated={() => {
-              loadEditionData(selectedEdition.course_id);
-              getPayments({
-                search: paymentSearch,
-                page: currentPage,
-                course_id: selectedEdition.course_id,
-              });
-            }}
-          />
+          </div>
 
           {/* Modal para Crear / Editar Factura vinculado a esta edición */}
-          <RegisterPaymentModal
+          {!isReadOnly && <RegisterPaymentModal
             isOpen={isRegisterModalOpen}
             onClose={() => {
               setIsRegisterModalOpen(false);
@@ -875,13 +608,8 @@ export default function PaymentPage() {
             }}
             payment={selectedPayment}
             defaultCourseId={selectedEdition.course_id}
-          />
+          />}
 
-          {/* Modal de Reportes */}
-          <ReportsModalityModal
-            isOpen={isReportsModalOpen}
-            onClose={() => setIsReportsModalOpen(false)}
-          />
         </div>
       )}
     </div>

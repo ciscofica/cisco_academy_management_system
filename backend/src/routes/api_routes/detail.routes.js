@@ -1,3 +1,4 @@
+import { adminRequired } from "../../middlewares/validateToken.js";
 import { Router } from "express";
 import {
   addDetail,
@@ -6,6 +7,7 @@ import {
   updateDetail,
 } from "../../controllers/api_controllers/detail.controller.js";
 const router = Router();
+router.use(adminRequired);
 
 // router.get('/detail-value/:id', getDetailValuesById);
 router.post("/details", getDetails);

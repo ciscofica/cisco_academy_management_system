@@ -5,14 +5,12 @@ import { useCosts } from "../../context/CostContext";
 // import RegisterChapterModal from "../Chapter/RegisterChapterModal";
 // ! ↓ estas comente
 import RegisterCostModal from "../Cost/RegisterCostModal";
-// import ReportsModalityModal from "../Reports/ReportsModalityModal";
 
 function CostPage() {
 
     const { totalPages, currentPage, setCurrentPage,costs,deleteCost,getCosts} = useCosts();
     const [searchTerm, setSearchTerm] = useState('');
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-    // const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
     const [selectedCost, setSelectedCost] = useState(null);
 
     useEffect(() => {
@@ -63,12 +61,6 @@ function CostPage() {
                     >
                         Registrar Costo
                     </button>
-                    {/* <button
-                        // onClick={() => setIsReportsModalOpen(true)}
-                        className="px-4 py-2 rounded-xl text-slate-600 bg-white border border-gray-300 hover:bg-gray-50 text-sm font-medium transition-colors"
-                    >
-                        Reportes
-                    </button> */}
                 </div>
             </div>
 
@@ -129,7 +121,6 @@ function CostPage() {
             </div>
             {/* ! estas comente igual */}
             <RegisterCostModal isOpen={isRegisterModalOpen} onClose={() => setIsRegisterModalOpen(false)} cost={selectedCost} />
-            {/* <ReportsModalityModal isOpen={isReportsModalOpen} onClose={() => setIsReportsModalOpen(false)} /> */}
         </div >
     );
 }

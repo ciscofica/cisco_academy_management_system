@@ -3,15 +3,19 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEdit, faTrash, faUser } from "@fortawesome/free-solid-svg-icons";
 import { useParticipant } from "../../context/ParticipantContext";
 import RegisterParticipantModal from "../participant/RegisterParticipantModal";
-import ParticipantReportsModal from "./ParticipantReportModal";
 import UploadExcelModal from "./UploadExcelModal";
+import { useAuth } from "../../context/AuthContext";
 
 function ParticipantPage() {
 
+    const { user } = useAuth();
+    const role = user?.userExists?.Role || user?.user?.Role;
+    const rolePermissions = (role?.Permissions || []).filter((permission) => permission.status === "Activo" || permission.status === "1").map((permission) => permission.name);
+    const canManageDirectory = role?.name === "Administrador" || rolePermissions.includes("Gestionar cursos") || rolePermissions.includes("Gestionar pagos");
+    const isReadOnly = (rolePermissions.includes("Consultar información") || rolePermissions.includes("Consultar dashboard")) && !canManageDirectory;
     const { participants, getParticipants, totalPages, currentPage, setCurrentPage } = useParticipant();
     const [searchTerm, setSearchTerm] = useState('');
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-    const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
     const [selectedParticipant, setSelectedParticipant] = useState(null);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
@@ -58,7 +62,7 @@ function ParticipantPage() {
 
                 />
                 <div className="flex space-x-3">
-                    <button
+                            {!isReadOnly && <button
                         onClick={() => {
                             setSelectedParticipant(null);
                             setIsRegisterModalOpen(true);
@@ -66,19 +70,13 @@ function ParticipantPage() {
                         className="px-4 py-2 rounded-xl text-white bg-[#6cc24a] hover:bg-[#5aad3a] text-sm font-medium transition-colors shadow-sm"
                     >
                         Registrar Participante
-                    </button>
-                    <button
-                        onClick={() => setIsReportsModalOpen(true)}
-                        className="px-4 py-2 rounded-xl text-slate-600 bg-white border border-gray-300 hover:bg-gray-50 text-sm font-medium transition-colors"
-                    >
-                        Reportes
-                    </button>
-                    <button
+                            </button>}
+                    {!isReadOnly && <button
                         onClick={() => setIsUploadModalOpen(true)}
                         className="px-4 py-2 rounded-xl text-slate-600 bg-white border border-gray-300 hover:bg-gray-50 text-sm font-medium transition-colors"
                     >
                         Cargar desde Excel
-                    </button>
+                    </button>}
                 </div>
             </div>
 
@@ -94,7 +92,7 @@ function ParticipantPage() {
                             <th scope="col" className="px-5 py-3">Tipo</th>
                             <th scope="col" className="px-5 py-3">Empresa / Institución</th>
                             <th scope="col" className="px-5 py-3">Teléfono</th>
-                            <th scope="col" className="px-5 py-3 text-center">Acciones</th>
+                            {!isReadOnly && <th scope="col" className="px-5 py-3 text-center">Acciones</th>}
                         </tr>
                     </thead>
                     <tbody>
@@ -121,7 +119,7 @@ function ParticipantPage() {
                                 <td className="px-5 py-3.5 text-xs text-slate-600">{participant.institution || "UTN / Particular"}</td>
                                 <td className="px-5 py-3.5 text-xs text-slate-500">{participant.phone && participant.phone !== "sin registro" ? participant.phone : "—"}</td>
 
-                                <td className="px-5 py-3.5 text-center flex items-center justify-center space-x-2">
+                                {!isReadOnly && <td className="px-5 py-3.5 text-center flex items-center justify-center space-x-2">
                                     <button className="text-[#049fd9] hover:text-[#0380b0] transition-colors">
                                         <FontAwesomeIcon icon={faUser} />
                                     </button>
@@ -131,7 +129,7 @@ function ParticipantPage() {
                                     <button className="text-red-500 hover:text-red-600 transition-colors" onClick={() => handleDelete(participant.participant_id)}>
                                         <FontAwesomeIcon icon={faTrash} />
                                     </button>
-                                </td>
+                                </td>}
                             </tr>
                         ))}
                     </tbody>
@@ -157,9 +155,8 @@ function ParticipantPage() {
                 </button>
             </div>
 
-            <RegisterParticipantModal isOpen={isRegisterModalOpen} onClose={() => setIsRegisterModalOpen(false)} participant={selectedParticipant} />
-            <ParticipantReportsModal isOpen={isReportsModalOpen} onClose={() => setIsReportsModalOpen(false)} />
-            <UploadExcelModal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)} />
+            {!isReadOnly && <RegisterParticipantModal isOpen={isRegisterModalOpen} onClose={() => setIsRegisterModalOpen(false)} participant={selectedParticipant} />}
+            {!isReadOnly && <UploadExcelModal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)} />}
 
         </div >
     );

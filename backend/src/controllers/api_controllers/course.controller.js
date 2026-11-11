@@ -34,6 +34,7 @@ import CourseParticipant from "../../models/CourseParticipant.js";
 import DetailModality from "../../models/DetailModality.js";
 import DetailSchedule from "../../models/DetailSchedule.js";
 import DetailCost from "../../models/DetailCost.js";
+import { getActivePermissionNames } from "../../config/systemPermissions.js";
 import {
   generatePlanificacionDocx,
   generateCronogramaDocx,
@@ -124,10 +125,34 @@ export const getAllCourses = async (req, res) => {
       distinct: true,
     });
 
+    const currentPermissions = getActivePermissionNames(req.currentUser?.Role);
+    const dashboardOnly = currentPermissions.includes("Consultar dashboard")
+      && !currentPermissions.includes("Gestionar cursos")
+      && !currentPermissions.includes("Gestionar pagos");
+    const responseCourses = dashboardOnly
+      ? courses.rows.map((course) => {
+          const detail = course.Detail || {};
+          return {
+            course_id: course.course_id,
+            course_name: course.course_name,
+            start_date: course.start_date,
+            end_date: course.end_date,
+            status: course.status,
+            Detail: { num_registered: detail.num_registered, num_enrolled: detail.num_enrolled, Instructor: { name: detail.Instructor?.name || "" } },
+            Participants: (course.Participants || []).map((participant) => ({ CourseParticipant: {
+              approval: participant.CourseParticipant?.approval,
+              grade_final: participant.CourseParticipant?.grade_final,
+              status_code: participant.CourseParticipant?.status_code,
+              enrolled: participant.CourseParticipant?.enrolled,
+              hasValidatedInvoice: Boolean(participant.CourseParticipant?.enrolled && participant.CourseParticipant?.invoice_number),
+            } })),
+          };
+        })
+      : courses.rows;
     return res.status(200).json({
       total: courses.count,
       totalPages: Math.ceil(courses.count / limit),
-      courses: courses.rows,
+      courses: responseCourses,
     });
   } catch (error) {
     console.log(error.message);

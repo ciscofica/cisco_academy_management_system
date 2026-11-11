@@ -6,7 +6,6 @@ import RegisterPage from "./pages/RegisterPage";
 import PermissionPage from "./pages/PermissionPage";
 import ProfilePage from "./pages/ProfilePage";
 import HomePage from "./pages/HomePage";
-import PermissionFormPage from "./pages/PermissionFormPage";
 import InstructorPage from "./pages/Instructor/InstructorPage";
 import ModalityPage from "./pages/Modality/ModalityPage";
 import ParticipantTypePage from "./pages/Participant_Type/ParticipantTypePage";
@@ -30,6 +29,8 @@ import StartCoursePage from "./pages/Course/StartCoursePage";
 import CourseExpedientPage from "./pages/Course/CourseExpedientPage";
 import CourseReportsPage from "./pages/Course/CourseReportsPage";
 import CourseParticipantsReportPage from "./pages/Course/CourseParticipantsReportPage";
+import UserPage from "./pages/UserPage";
+import DatabaseBackupsPage from "./pages/DatabaseBackupsPage";
 
 function App() {
   return (
@@ -40,27 +41,31 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route element={<ProtectedRoute />}>
+          <Route element={<ProtectedRoute allowedRoles={["Administrador", "Visor"]} />}>
+            <Route element={<ProtectedRoute allowedRoles={["Administrador"]} />}>
             <Route path="/permissions" element={<PermissionPage />} />
-            <Route path="/add-permission" element={<PermissionFormPage />} />
-            <Route path="/permission/:id" element={<h1>Update Permission</h1>} />
-            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/roles" element={<RolePage />} />
+            </Route>
+            <Route element={<ProtectedRoute allowedRoles={["Administrador"]} />}>
             <Route path="/instructors" element={<InstructorPage />} />
             <Route path="/modalities" element={<ModalityPage />} />
             <Route path="/participant-types" element={<ParticipantTypePage />} />
-            <Route path="/roles" element={<RolePage />} />
-            <Route path="/chapters" element={<ChapterPage />} />
+            <Route path="/backups" element={<DatabaseBackupsPage />} />
             <Route path="/schedules" element={<SchedulePage />} />
             <Route path="/infos_utn" element={<InfoUtnPage />} />
-            <Route path="/courses" element={<CoursePage />} />
-            <Route path="/preview-course/:id" element={<PreviewCoursePage />} />
             <Route path="/certificates" element={<CertificatePage />} />
             <Route path="/detail-values" element={<DetailValuePage />} />
             <Route path="/payment-types" element={<PaymentTypePage />} />
-            <Route path="/payments" element={<PaymentPage />} />
-            <Route path="/participants" element={<ParticipantPage />} />
-            <Route path="/details" element={<DetailPage />} />
             <Route path="/costs" element={<CostPage />} />
+            <Route path="/chapters" element={<ChapterPage />} />
+            <Route path="/details" element={<DetailPage />} />
+            </Route>
+            <Route path="/users" element={<UserPage />} />
+            <Route path="/participants" element={<ParticipantPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/courses" element={<CoursePage />} />
+            <Route path="/preview-course/:id" element={<PreviewCoursePage />} />
+            <Route path="/payments" element={<PaymentPage />} />
             <Route path="/course/start" element={<StartCoursePage />} />
             <Route path="/course/:id/expedient" element={<CourseExpedientPage />} />
             <Route path="/courses/report" element={<CourseReportsPage />} />

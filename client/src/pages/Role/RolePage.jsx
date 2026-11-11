@@ -1,16 +1,9 @@
 import { useEffect, useState } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEye, faEdit, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { useRole } from "../../context/RoleContext";
-import RegisterRoleModal from "../Role/RegisterRoleModal";
-import ReportsModalityModal from "../Reports/ReportsModalityModal";
 
 function RolePage() {
-  const { getRoles, roles , totalPages, currentPage, setCurrentPage, deleteRoles } = useRole();
+  const { getRoles, roles , totalPages, currentPage, setCurrentPage } = useRole();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-  const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
-  const [selectedRole, setSelectedRole] = useState(null);
 
   useEffect(() => {
     getRoles({ search: searchTerm, page: currentPage });
@@ -27,15 +20,6 @@ function RolePage() {
     }
   };
 
-  const handleEdit = (role) => {
-    setSelectedRole(role);
-    setIsRegisterModalOpen(true);
-  };
-
-  const handleDelete = (roleId) => {
-    deleteRoles(roleId); // Llama a la función de eliminación
-  };
-
   return (
     <div className="p-6 bg-slate-50 min-h-screen overflow-hidden">
       <div className="flex justify-between mb-6 gap-3 items-center">
@@ -46,23 +30,7 @@ function RolePage() {
           onChange={handleSearchChange}
           className="w-full md:w-1/3 p-2 rounded-xl border border-gray-300 bg-white text-slate-700 placeholder-slate-400 focus:outline-none focus:border-[#049fd9] focus:ring-2 focus:ring-[#049fd9]/20 transition text-sm"
         />
-        <div className="flex space-x-3">
-          <button
-            onClick={() => {
-              setSelectedRole(null);
-              setIsRegisterModalOpen(true);
-            }}
-            className="px-4 py-2 rounded-xl text-white bg-[#6cc24a] hover:bg-[#5aad3a] text-sm font-medium transition-colors shadow-sm"
-          >
-            Registrar Rol
-          </button>
-          <button
-            onClick={() => setIsReportsModalOpen(true)}
-            className="px-4 py-2 rounded-xl text-slate-600 bg-white border border-gray-300 hover:bg-gray-50 text-sm font-medium transition-colors"
-          >
-            Reportes
-          </button>
-        </div>
+        <p className="text-sm text-slate-500">Roles base del sistema</p>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm relative overflow-x-auto max-h-[600px] min-h-[600px]">
@@ -73,7 +41,6 @@ function RolePage() {
               <th scope="col" className="px-6 py-3">Nombre</th>
               <th scope="col" className="px-6 py-3">Descripción</th>
               <th scope="col" className="px-6 py-3">Estado</th>
-              <th scope="col" className="px-6 py-3">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -85,17 +52,6 @@ function RolePage() {
                 <td className="px-6 py-4 text-slate-600">{role.name}</td>
                 <td className="px-6 py-4 text-slate-600">{role.description}</td>
                 <td className="px-6 py-4 text-slate-600">{role.status}</td>
-                <td className="px-6 py-4 flex space-x-3"> {/* Cambié space-x-2 por space-x-4 */}
-                  <button className="text-[#049fd9] hover:text-[#0380b0] transition-colors">
-                    <FontAwesomeIcon icon={faEye} />
-                  </button>
-                  <button className="text-amber-500 hover:text-amber-600 transition-colors" onClick={() => handleEdit(role)}>
-                    <FontAwesomeIcon icon={faEdit} />
-                  </button>
-                  <button className="text-red-500 hover:text-red-600 transition-colors" onClick={() => handleDelete(role.role_id)}>
-                    <FontAwesomeIcon icon={faTrash} />
-                  </button>
-                </td>
 
               </tr>
             ))}
@@ -121,8 +77,6 @@ function RolePage() {
         </button>
       </div>
 
-      <RegisterRoleModal isOpen={isRegisterModalOpen} onClose={() => setIsRegisterModalOpen(false)} role={selectedRole} />
-      <ReportsModalityModal isOpen={isReportsModalOpen} onClose={() => setIsReportsModalOpen(false)} />
     </div>
   );
 }

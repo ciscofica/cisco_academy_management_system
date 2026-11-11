@@ -3,13 +3,11 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEdit, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { useInstructor } from "../../context/InstructorContext";
 import RegisterInstructorModal from "./RegisterInstructorModal";
-import ReportsInstructorsModal from "../Reports/ReportsInstructorsModal";
 
 function PermissionPage() {
   const { getInstructors, instructors, totalPages, currentPage, setCurrentPage } = useInstructor();
   const [searchTerm, setSearchTerm] = useState('');
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-  const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
   const [selectedInstructor, setSelectedInstructor] = useState(null);
 
 
@@ -55,13 +53,7 @@ function PermissionPage() {
           >
             Registrar Instructor
           </button>
-          <button
-            onClick={() => setIsReportsModalOpen(true)}
-            className="px-4 py-2 rounded-xl text-slate-600 bg-white border border-gray-300 hover:bg-gray-50 text-sm font-medium transition-colors"
-          >
-            Reportes
-          </button>
-        </div>
+          </div>
       </div>
 
       {/* Tabla de permisos con formato actualizado */}
@@ -129,7 +121,7 @@ function PermissionPage() {
 
       {/* Modales */}
       <RegisterInstructorModal isOpen={isRegisterModalOpen} onClose={() => setIsRegisterModalOpen(false)} instructor={selectedInstructor} />
-      <ReportsInstructorsModal isOpen={isReportsModalOpen} onClose={() => setIsReportsModalOpen(false)} />
+
     </div>
   );
 }

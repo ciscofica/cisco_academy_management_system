@@ -5,6 +5,8 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import authRoutes from "./routes/sesion_routes/auth.routes.js";
 import apiRoutes from "./routes/api_routes/index.routes.js";
+import userRoutes from "./routes/api_routes/user.routes.js";
+import { authRequired, staffRequired } from "./middlewares/validateToken.js";
 
 const app = express();
 
@@ -27,6 +29,8 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use("/api", authRoutes);
+app.use("/api", userRoutes);
+app.use("/api", authRequired, staffRequired);
 
 apiRoutes.forEach(route => {
   app.use("/api", route);

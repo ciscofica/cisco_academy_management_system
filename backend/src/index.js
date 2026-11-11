@@ -1,6 +1,8 @@
 import app from "./app.js";
 import { associateModels } from "./database/associations.js";
 import db from "./database/db.js";
+import { startDatabaseBackupScheduler } from "./services/databaseBackupService.js";
+import { synchronizeSystemPermissions } from "./services/systemPermissionService.js";
 
 const { sequelize, connectDB } = db;
 
@@ -10,6 +12,8 @@ const startServer = async () => {
 
     await sequelize.sync({ alter: false });
     associateModels();
+    await synchronizeSystemPermissions();
+    await startDatabaseBackupScheduler();
     console.log("Modelos sincronizados correctamente con la base de datos");
 
     app.listen(4000, "0.0.0.0", () => {

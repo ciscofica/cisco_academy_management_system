@@ -3,13 +3,11 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEdit, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { useInfoUtn } from "../../context/InfoUtnContext";
 import RegisterInfoUtnModal from "../InfoUtn/RegisterInfoUtnModal";
-import ReportsModalityModal from "../Reports/ReportsModalityModal";
 
 function ChapterPage() {
     const { getInfosUtn, infosutn, totalPages, currentPage, setCurrentPage, deleteInfoUtn } = useInfoUtn();
     const [searchTerm, setSearchTerm] = useState('');
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-    const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
     const [selectedInfoUtn, setSelectedInfoUtn] = useState(null);
 
     useEffect(() => {
@@ -57,13 +55,7 @@ function ChapterPage() {
                     >
                         Registrar Información UTN
                     </button>
-                    <button
-                        onClick={() => setIsReportsModalOpen(true)}
-                        className="px-4 py-2 rounded-xl text-slate-600 bg-white border border-gray-300 hover:bg-gray-50 text-sm font-medium transition-colors"
-                    >
-                        Reportes
-                    </button>
-                </div>
+                    </div>
             </div>
 
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm relative overflow-x-auto max-h-[600px] min-h-[600px]">
@@ -123,7 +115,7 @@ function ChapterPage() {
             </div>
 
             <RegisterInfoUtnModal isOpen={isRegisterModalOpen} onClose={() => setIsRegisterModalOpen(false)} info_utn={selectedInfoUtn} />
-            <ReportsModalityModal isOpen={isReportsModalOpen} onClose={() => setIsReportsModalOpen(false)} />
+
         </div >
     );
 }

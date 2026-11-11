@@ -3,13 +3,11 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEdit, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { useModality } from "../../context/ModalityContext";
 import RegisterModalityModal from "../Modality/RegisterModalityModal";
-import ReportsModalityModal from "../Reports/ReportsModalityModal";
 
 function ModalityPage() {
   const { getModalities, modalities , totalPages, currentPage, setCurrentPage, deleteModality } = useModality();
   const [searchTerm, setSearchTerm] = useState('');
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-  const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
   const [selectedModality, setSelectedModality] = useState(null);
 
   useEffect(() => {
@@ -59,13 +57,7 @@ function ModalityPage() {
           >
             Registrar Modalidad
           </button>
-          <button
-            onClick={() => setIsReportsModalOpen(true)}
-            className="px-4 py-2 rounded-xl text-slate-600 bg-white border border-gray-300 hover:bg-gray-50 text-sm font-medium transition-colors"
-          >
-            Reportes
-          </button>
-        </div>
+          </div>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm relative overflow-x-auto max-h-[600px] min-h-[600px]">
@@ -121,7 +113,7 @@ function ModalityPage() {
       </div>
 
       <RegisterModalityModal isOpen={isRegisterModalOpen} onClose={() => setIsRegisterModalOpen(false)} modality={selectedModality} />
-      <ReportsModalityModal isOpen={isReportsModalOpen} onClose={() => setIsReportsModalOpen(false)} />
+
     </div>
   );
 }

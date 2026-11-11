@@ -26,25 +26,30 @@ export function RoleProvider({ children }) {
   const [currentPage, setCurrentPage] = useState(1);
 
   const createRole = async (roles) => {
-    const res = await createRolesRequest(roles);
-    console.log(res);
-    // Aquí puedes actualizar el estado si lo deseas
-    getRoles({ page: currentPage }); // Obtener la lista actualizada
+    try {
+      const res = await createRolesRequest(roles);
+      await getRoles({ page: currentPage });
+      await Swal.fire({ icon: "success", title: "Éxito", text: res.data.message });
+      return true;
+    } catch (error) {
+      await Swal.fire({ icon: "error", title: "No se pudo guardar el rol", text: error.response?.data?.message || "Revise la conexión e inténtelo de nuevo." });
+      return false;
+    }
   };
 
   const updateRole = async (role) => {
     try {
       const res = await updateRolesRequest(role);
-      Swal.fire({ // Muestra el mensaje de éxito
+      await getRoles({ page: currentPage });
+      await Swal.fire({
         icon: 'success',
         title: 'Éxito',
         text: res.data.message,
       });
-      console.log(res);
-      // Aquí puedes actualizar el estado si lo deseas
-      getRoles({ page: currentPage }); // Obtener la lista actualizada
+      return true;
     } catch (error) {
-      console.log(error);
+      await Swal.fire({ icon: "error", title: "No se pudo actualizar el rol", text: error.response?.data?.message || "Revise la conexión e inténtelo de nuevo." });
+      return false;
     }
   };
 
