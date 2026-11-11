@@ -26,6 +26,7 @@ export const useCourse = () => {
 
 export function CourseProvider({ children }) {
   const [courses, setCourses] = useState([]);
+  const [coursesError, setCoursesError] = useState("");
   const [allcoursesforreport, setAllCoursesForReport] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
@@ -65,12 +66,16 @@ export function CourseProvider({ children }) {
     }
   };
   const getCourses = async ({ search = '', page = 1, limit = 15 }) => {
+    setCoursesError("");
     try {
       const res = await getCoursesRequest({ search, page, limit });
       setCourses(res.data.courses);
       // console.log(res.data.permissions);
       setTotalPages(res.data.totalPages);
     } catch (error) {
+      setCourses([]);
+      setTotalPages(1);
+      setCoursesError(error.response?.data?.message || "No se pudieron cargar las ediciones. Verifique la conexión y los permisos de consulta.");
       console.log(error);
     }
   };
@@ -99,13 +104,12 @@ export function CourseProvider({ children }) {
     }
   };
 
-  const downloadCertificates = async (id) => {
+  const downloadCertificates = async (id, params = {}) => {
     try {
       const response = await axios.get(`/courses-certificate/${id}`, {
+        params,
         responseType: 'blob', // Necesario para manejar el PDF como un archivo binario
       });
-      // const response = await getCertificatesRequest(id);
-      // getCourses({ page: currentPage }); // Vuelve a obtener la lista actualizada
       // Crear un enlace para descargar el archivo
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
@@ -114,14 +118,24 @@ export function CourseProvider({ children }) {
       document.body.appendChild(link);
       link.click();
       link.remove();
-
+      return true;
     } catch (error) {
-      // console.log(error);
+      let message = 'El estado del curso debe ser "Finalizado" para emitir certificados.';
+      if (error.response?.data instanceof Blob) {
+        try {
+          const text = await error.response.data.text();
+          const parsed = JSON.parse(text);
+          if (parsed.message) message = parsed.message;
+        } catch (_) {}
+      } else if (error.response?.data?.message) {
+        message = error.response.data.message;
+      }
       Swal.fire({
         icon: 'error',
-        title: 'Error',
-        text: error.response?.data?.message || 'El estado del curso debe ser "Finalizado"',
+        title: 'No se puede generar certificados',
+        text: message,
       });
+      return false;
     }
   };
 
@@ -132,6 +146,7 @@ export function CourseProvider({ children }) {
     <CourseContext.Provider
       value={{
         courses,
+        coursesError,
         createCourse,
         updateCourse,
         getCourses,

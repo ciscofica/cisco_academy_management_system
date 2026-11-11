@@ -1,6 +1,8 @@
+import { adminRequired } from "../../middlewares/validateToken.js";
 import { Router } from "express";
 import { addChapter, getChapters, getChapterById, updateChapter,deleteChapter } from "../../controllers/api_controllers/chapter.controller.js";
 const router = Router();
+router.use(adminRequired);
 
 router.get('/chapter/:id', getChapterById);
 router.post('/chapters', getChapters);

@@ -3,7 +3,7 @@ import { Sequelize } from "sequelize";
 const sequelize = new Sequelize(
   'utn_cms',
   'root',
-  '123ADMINFICA123',
+  '#Zxcvbnm123',
   {
     host: 'localhost',
     port: 3307,

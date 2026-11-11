@@ -1,170 +1,771 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEye, faEdit, faTrash , faCertificate} from "@fortawesome/free-solid-svg-icons";
+import {
+  faEye,
+  faEdit,
+  faTrash,
+  faCertificate,
+  faFolderOpen,
+  faPlayCircle,
+  faChartBar,
+  faBookOpen,
+  faSearch,
+  faClock,
+  faGraduationCap,
+  faLaptop,
+  faNetworkWired,
+  faCode,
+  faShieldAlt,
+  faMicrochip,
+  faLaptopCode,
+  faTimes,
+  faListOl,
+  faChalkboardTeacher,
+  faLayerGroup,
+} from "@fortawesome/free-solid-svg-icons";
 import { useCourse } from "../../context/CourseContext";
+import { getCourseTemplatesRequest, saveCourseTemplateRequest, reorderCourseChaptersRequest } from "../../api/course";
 import RegisterCourseModal from "../Course/RegisterCourseModal";
-import ReportsModalityModal from "../Reports/ReportsModalityModal";
 import CoursePreviewModal from "./CoursePreviewModal";
+import CertificateDownloadModal from "../../components/course/CertificateDownloadModal";
+import EditChapterModal from "../../components/course/EditChapterModal";
+import { getPaymentTypesDropdownRequest } from "../../api/payment_type";
+import { getParticipantTypesDropdownRequest } from "../../api/participant_type";
+import { useAuth } from "../../context/AuthContext";
 
 function CoursePage() {
-    const { getCourses, courses, totalPages, currentPage, setCurrentPage, deleteCourses, downloadCertificates } = useCourse();
-    const [searchTerm, setSearchTerm] = useState('');
-    const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-    const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
-    const [selectedCourse, setSelectedCourse] = useState(null);
-    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-    useEffect(() => {
-        getCourses({ search: searchTerm, page: currentPage });
-    }, [searchTerm, currentPage]);
+  const { user } = useAuth();
+  const role = user?.userExists?.Role || user?.user?.Role;
+  const rolePermissions = (role?.Permissions || []).filter((permission) => permission.status === "Activo" || permission.status === "1").map((permission) => permission.name);
+  const canManageCourses = role?.name === "Administrador" || rolePermissions.includes("Gestionar cursos");
+  const canManagePayments = role?.name === "Administrador" || rolePermissions.includes("Gestionar pagos");
+  const isReadOnly = (rolePermissions.includes("Consultar información") || rolePermissions.includes("Consultar dashboard")) && !canManageCourses && !canManagePayments;
+  const {
+    getCourses,
+    courses,
+    coursesError,
+    totalPages,
+    currentPage,
+    setCurrentPage,
+    deleteCourses,
+    downloadCertificates,
+  } = useCourse();
 
-    console.log(courses);
-    
-    const handleSearchChange = (e) => {
-        setSearchTerm(e.target.value);
-        setCurrentPage(1);
-    };
+  const navigate = useNavigate();
 
-    const handlePageChange = (newPage) => {
-        if (newPage > 0 && newPage <= totalPages) {
-            setCurrentPage(newPage);
-        }
-    };
+  // Tabs: 'editions' | 'catalog'
+  const [activeTab, setActiveTab] = useState("editions");
 
-    const handleEdit = (course) => {
-        setSelectedCourse(course);
-        setIsRegisterModalOpen(true);
-    };
+  // State for Editions
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
+  const [courseForCertificates, setCourseForCertificates] = useState(null);
 
-    const handleDelete = (courseId) => {
-        deleteCourses(courseId); // Llama a la función de inactivación
-    };
+  // State for Catalog
+  const [templates, setTemplates] = useState([]);
+  const [paymentTypes, setPaymentTypes] = useState([]);
+  const [participantTypes, setParticipantTypes] = useState([]);
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [templatesError, setTemplatesError] = useState("");
+  const [previewTemplate, setPreviewTemplate] = useState(null);
+  const [isChapterModalOpen, setIsChapterModalOpen] = useState(false);
+  const [catalogChapterToEdit, setCatalogChapterToEdit] = useState(null);
+  const [isCatalogChapterEditorOpen, setIsCatalogChapterEditorOpen] = useState(false);
+  const emptyTemplate = { course_name: "", course_description: "", course_name_en: "", course_code: "", total_hours: "", instructor_hours: "", activities_hours: "", subject_area: "", target_audience: "", participant_requeriment: "", prerequisites: "", objective: "", specific_objectives: "", justification: "", methodology: "", evaluation_criteria: "", resources_materials: "", bibliography: "", payment_methods: "", academic_responsible: "", academic_responsible_charge: "" };
+  const [templateForm, setTemplateForm] = useState(emptyTemplate);
+  const [editingTemplateId, setEditingTemplateId] = useState(null);
+  const [templateFormOpen, setTemplateFormOpen] = useState(false);
+  const [templateSaving, setTemplateSaving] = useState(false);
 
-    const handleViewDetails = (course) => {
-        setSelectedCourse(course); // Selecciona el curso
-        setIsDetailsModalOpen(true); // Abre el modal de detalles
-    };
+  useEffect(() => {
+    getCourses({ search: searchTerm, page: currentPage });
+  }, [searchTerm, currentPage]);
 
-    const handleDownloadCertificate = (courseId) =>{
-        downloadCertificates(courseId);
+  useEffect(() => {
+    loadTemplates();
+    if (canManageCourses) {
+      getPaymentTypesDropdownRequest()
+        .then((res) => setPaymentTypes(res.data?.payment_types || []))
+        .catch((error) => console.error("Error al cargar tipos de pago:", error));
+      getParticipantTypesDropdownRequest()
+        .then((res) => setParticipantTypes(res.data?.participant_types || []))
+        .catch((error) => console.error("Error al cargar tipos de participante:", error));
     }
+  }, [canManageCourses]);
 
-    return (
-        // <div className="p-6 bg-zinc-750 min-h-screen text-white overflow-hidden">
-        <div className="p-6 bg-gray-100 min-h-screen text-white overflow-hidden">
-            <div className="flex justify-start mb-6">
-                <input
-                    type="text"
-                    placeholder="Buscar cursos..."
-                    value={searchTerm}
-                    onChange={handleSearchChange}
-                    className="w-full md:w-1/3 p-2 rounded-lg border border-gray-300 bg-gray-300 text-gray-700 placeholder-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+  const loadTemplates = async () => {
+    try {
+      setLoadingTemplates(true);
+      const res = await getCourseTemplatesRequest();
+      const list = Array.isArray(res.data)
+        ? res.data
+        : res.data?.templates || res.data?.courses || [];
+      setTemplates(list);
+      setTemplatesError("");
+    } catch (err) {
+      console.error("Error al cargar plantillas del catálogo:", err);
+      setTemplates([]);
+      setTemplatesError(err.response?.data?.message || "No se pudo cargar el catálogo. Verifique la conexión y los permisos de consulta.");
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage > 0 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
+  const handleEdit = (course) => {
+    setSelectedCourse(course);
+    setIsRegisterModalOpen(true);
+  };
+
+  const handleDelete = (courseId) => {
+    deleteCourses(courseId);
+  };
+
+  const handleViewDetails = (course) => {
+    setSelectedCourse(course);
+    setIsDetailsModalOpen(true);
+  };
+
+  const handleDownloadCertificate = (course) => {
+    setCourseForCertificates(course);
+    setIsCertificateModalOpen(true);
+  };
+
+  const handleOpenChapterModal = (template) => {
+    setPreviewTemplate(template);
+    setIsChapterModalOpen(true);
+  };
+
+  const openTemplateForm = (template = null) => {
+    const d = template?.Detail || {};
+    setTemplateForm({ ...emptyTemplate, course_name: template?.course_name || "", ...Object.fromEntries(Object.keys(emptyTemplate).filter((k) => k !== "course_name").map((k) => [k, d[k] ?? ""])) });
+    setEditingTemplateId(template?.course_id || null);
+    setTemplateFormOpen(true);
+  };
+  const getSelectedPaymentMethods = () => {
+    const raw = templateForm.payment_methods || "";
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    } catch { /* Valores guardados anteriormente como texto separado por coma. */ }
+    return raw.split(",").map((item) => item.trim()).filter(Boolean);
+  };
+  const togglePaymentMethod = (name) => {
+    const selected = getSelectedPaymentMethods();
+    const next = selected.includes(name) ? selected.filter((item) => item !== name) : [...selected, name];
+    setTemplateForm((form) => ({ ...form, payment_methods: next.join(", ") }));
+  };
+  const getSelectedAudiences = () => (templateForm.target_audience || "")
+    .split(",").map((item) => item.trim()).filter(Boolean);
+  const toggleAudience = (name) => {
+    const selected = getSelectedAudiences();
+    const next = selected.includes(name) ? selected.filter((item) => item !== name) : [...selected, name];
+    setTemplateForm((form) => ({ ...form, target_audience: next.join(", ") }));
+  };
+  const saveTemplate = async (e) => {
+    e.preventDefault();
+    try {
+      setTemplateSaving(true);
+      await saveCourseTemplateRequest({ ...templateForm, total_hours: templateForm.total_hours || null, instructor_hours: templateForm.instructor_hours || null, activities_hours: templateForm.activities_hours || null }, editingTemplateId);
+      await loadTemplates();
+      setTemplateFormOpen(false);
+    } catch (err) {
+      window.alert(err.response?.data?.message || "No se pudo guardar la ficha del catálogo.");
+    } finally { setTemplateSaving(false); }
+  };
+  const moveCatalogChapter = async (chapterId, offset) => {
+    const chapters = previewTemplate?.Chapters || [];
+    const index = chapters.findIndex((chapter) => Number(chapter.chapter_id) === Number(chapterId));
+    const nextIndex = index + offset;
+    if (index < 0 || nextIndex < 0 || nextIndex >= chapters.length) return;
+    const reordered = [...chapters];
+    [reordered[index], reordered[nextIndex]] = [reordered[nextIndex], reordered[index]];
+    try {
+      await reorderCourseChaptersRequest(previewTemplate.course_id, reordered.map((chapter) => chapter.chapter_id));
+      const response = await getCourseTemplatesRequest();
+      const list = Array.isArray(response.data) ? response.data : response.data?.templates || [];
+      setTemplates(list);
+      setPreviewTemplate(list.find((item) => item.course_id === previewTemplate.course_id) || previewTemplate);
+    } catch (error) {
+      window.alert(error.response?.data?.message || "No se pudo guardar el orden del temario.");
+    }
+  };
+
+  // Helper para asignar categorías e iconos estilo Cisco NetAcad
+  const getCourseCategory = (name) => {
+    const lower = name.toLowerCase();
+    if (lower.includes("ccna") || lower.includes("ccnp") || lower.includes("network")) {
+      return {
+        name: "Redes y Conectividad",
+        color: "bg-blue-50 text-[#049fd9] border-blue-200",
+        icon: faNetworkWired,
+      };
+    }
+    if (lower.includes("python") || lower.includes("javascript") || lower.includes("programaci")) {
+      return {
+        name: "Programación y Software",
+        color: "bg-amber-50 text-amber-700 border-amber-200",
+        icon: faCode,
+      };
+    }
+    if (lower.includes("security") || lower.includes("cyber") || lower.includes("seguridad")) {
+      return {
+        name: "Ciberseguridad",
+        color: "bg-red-50 text-red-600 border-red-200",
+        icon: faShieldAlt,
+      };
+    }
+    if (lower.includes("iot") || lower.includes("things") || lower.includes("analytics")) {
+      return {
+        name: "Internet de las Cosas (IoT)",
+        color: "bg-purple-50 text-purple-700 border-purple-200",
+        icon: faMicrochip,
+      };
+    }
+    if (lower.includes("linux") || lower.includes("essentials")) {
+      return {
+        name: "Sistemas Operativos",
+        color: "bg-emerald-50 text-emerald-700 border-emerald-200",
+        icon: faLaptopCode,
+      };
+    }
+    return {
+      name: "Academia Cisco",
+      color: "bg-slate-100 text-slate-700 border-slate-200",
+      icon: faBookOpen,
+    };
+  };
+
+  const statusConfig = {
+    Planificado: { color: "bg-blue-50 text-[#049fd9] border-blue-200", dot: "bg-[#049fd9]" },
+    "En inscripción": { color: "bg-amber-50 text-amber-700 border-amber-200", dot: "bg-amber-500" },
+    "En ejecución": { color: "bg-[#edf7e6] text-[#3a8c25] border-green-200", dot: "bg-[#6cc24a]" },
+    Finalizado: { color: "bg-gray-100 text-slate-600 border-gray-200", dot: "bg-slate-400" },
+  };
+
+  const filteredTemplates = templates.filter((t) =>
+    t.course_name.toLowerCase().includes(catalogSearch.toLowerCase())
+  );
+
+  return (
+    <div className="p-6 md:p-8 bg-slate-50 min-h-screen text-slate-800">
+      <div className="max-w-7xl mx-auto">
+        {/* Encabezado del Módulo */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+              Gestión de Cursos Cisco Academy
+            </h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Catálogo oficial de planes de estudio y control operativo de ediciones activas
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {!isReadOnly && <button
+              onClick={() => navigate("/course/start")}
+              className="px-4 py-2.5 rounded-xl text-white bg-[#6cc24a] hover:bg-[#5aad3a] shadow-sm flex items-center gap-2 text-sm font-semibold transition-all hover:shadow"
+            >
+              <FontAwesomeIcon icon={faPlayCircle} />
+              Iniciar nueva convocatoria
+            </button>}
+            </div>
+        </div>
+
+        {/* Pestañas Principales: Ediciones vs. Catálogo */}
+        <div className="flex border-b border-gray-200 mb-6 gap-3">
+          <button
+            onClick={() => setActiveTab("editions")}
+            className={`pb-3 px-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+              activeTab === "editions"
+                ? "border-[#005073] text-[#005073]"
+                : "border-transparent text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            <FontAwesomeIcon icon={faLayerGroup} />
+            Ediciones Activas y Convocatorias ({courses.length})
+          </button>
+
+          <button
+            onClick={() => setActiveTab("catalog")}
+            className={`pb-3 px-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+              activeTab === "catalog"
+                ? "border-[#6cc24a] text-[#3a8c25]"
+                : "border-transparent text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            <FontAwesomeIcon icon={faBookOpen} />
+            Catálogo Oficial CISCO ({templates.length} Cursos)
+          </button>
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════════
+            VISTA 1: EDICIONES ACTIVAS (TABLA OPERATIVA)
+        ═══════════════════════════════════════════════════════════════ */}
+        {activeTab === "editions" && (
+          <div>
+            {coursesError && <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{coursesError}</div>}
+            <div className="flex justify-between mb-4 gap-3 items-center flex-wrap">
+              <div className="relative w-full md:w-96">
+                <FontAwesomeIcon
+                  icon={faSearch}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"
                 />
-                <div className="flex space-x-4 ml-2">
-                    <button
-                        onClick={() => {
-                            setSelectedCourse(null);
-                            setIsRegisterModalOpen(true);
-                        }}
-                        className="px-4 py-2 rounded-lg text-gray-700 bg-gray-300 dark:bg-gray-700 dark:text-gray-400"
-                    >
-                        Registrar Curso
-                    </button>
-                    {/* <button
-                        onClick={() => setIsReportsModalOpen(true)}
-                        className="px-4 py-2 rounded-lg text-gray-700 bg-gray-50 dark:bg-gray-700 dark:text-gray-400"
-                    >
-                        Reportes
-                    </button> */}
-                </div>
+                <input
+                  type="text"
+                  placeholder="Buscar edición por nombre..."
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-300 bg-white text-slate-700 placeholder-slate-400 focus:outline-none focus:border-[#049fd9] focus:ring-2 focus:ring-[#049fd9]/20 transition text-sm shadow-sm"
+                />
+              </div>
+
+              <span className="text-xs text-slate-500 font-medium">
+                Página {currentPage} de {totalPages || 1}
+              </span>
             </div>
 
-            <div className="scroll-hidden bg-white dark:bg-gray-800 relative overflow-x-auto shadow-md sm:rounded-lg max-h-[600px] min-h-[600px]">
-                <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-200 dark:bg-gray-700 dark:text-gray-400 sticky top-0">
-                        <tr>
-                            <th scope="col" className="px-6 py-3">ID</th>
-                            <th scope="col" className="px-6 py-3">Nombre</th>
-                            <th scope="col" className="px-6 py-3">Fecha Inicio Inscipciones</th>
-                            <th scope="col" className="px-6 py-3">Fecha Fin Inscipciones</th>
-                            <th scope="col" className="px-6 py-3">Fecha Inicio Matriculas</th>
-                            <th scope="col" className="px-6 py-3">Fecha Fin Matriculas</th>
-                            <th scope="col" className="px-6 py-3">Fecha Inicio Curso</th>
-                            <th scope="col" className="px-6 py-3">Fecha Fin Curso</th>
-                            <th scope="col" className="px-6 py-3">Estado</th>
-                            <th scope="col" className="px-6 py-3">Acciones</th>
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left text-slate-600">
+                  <thead className="text-xs text-slate-500 uppercase bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th scope="col" className="px-6 py-3.5">ID</th>
+                      <th scope="col" className="px-6 py-3.5">Edición / Nombre Oficial</th>
+                      <th scope="col" className="px-6 py-3.5">Plantilla Base</th>
+                      <th scope="col" className="px-6 py-3.5">Docente Asignado</th>
+                      <th scope="col" className="px-6 py-3.5">Fechas de Clases</th>
+                      <th scope="col" className="px-6 py-3.5">Estado</th>
+                      <th scope="col" className="px-6 py-3.5 text-center">{isReadOnly ? "Consulta" : "Acciones"}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {courses.map((course) => {
+                      const statusStyle =
+                        statusConfig[course.status] || statusConfig.Planificado;
+                      const instructor = course.Detail?.Instructor || null;
+
+                      return (
+                        <tr
+                          key={course.course_id}
+                          className="border-b border-gray-100 hover:bg-slate-50 transition-colors"
+                        >
+                          <th scope="row" className="px-6 py-4 font-semibold text-slate-900 whitespace-nowrap">
+                            #{course.course_id}
+                          </th>
+                          <td className="px-6 py-4">
+                            <p className="font-bold text-slate-800">{course.course_name}</p>
+                            <span className="text-[11px] text-slate-400">
+                              {course.Detail?.Modalities && course.Detail.Modalities.length > 0
+                                ? course.Detail.Modalities.map((m) => m.name).join(", ")
+                                : "Modalidad no definida"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            {course.TemplateCourse ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-[#049fd9] border border-blue-200">
+                                <FontAwesomeIcon icon={faBookOpen} className="text-[10px]" />
+                                {course.TemplateCourse.course_name}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-slate-400">—</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
+                            {instructor ? (
+                              <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-full bg-[#005073] text-white flex items-center justify-center text-xs font-bold">
+                                  {instructor.name.charAt(0)}
+                                </div>
+                                <span className="text-sm font-medium text-slate-700">
+                                  {instructor.name}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-slate-400 font-medium italic">
+                                Sin asignar
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-xs text-slate-600">
+                            <p className="font-semibold text-slate-700">
+                              {new Date(course.start_date).toLocaleDateString()}
+                            </p>
+                            <p className="text-[11px] text-slate-400">
+                              al {new Date(course.end_date).toLocaleDateString()}
+                            </p>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${statusStyle.color}`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`}></span>
+                              {course.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center justify-center space-x-2">
+                              <button
+                                className="w-8 h-8 rounded-lg bg-blue-50 text-[#049fd9] hover:bg-[#049fd9] hover:text-white transition-all flex items-center justify-center"
+                                onClick={() => handleViewDetails(course)}
+                                title="Previsualizar curso"
+                              >
+                                <FontAwesomeIcon icon={faEye} className="text-xs" />
+                              </button>
+                              {!isReadOnly && <button
+                                className="w-8 h-8 rounded-lg bg-[#edf7e6] text-[#3a8c25] hover:bg-[#6cc24a] hover:text-white transition-all flex items-center justify-center"
+                                onClick={() => navigate(`/course/${course.course_id}/expedient`)}
+                                title="Abrir expediente completo"
+                              >
+                                <FontAwesomeIcon icon={faFolderOpen} className="text-xs" />
+                              </button>}
+                              {!isReadOnly && <button
+                                className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white transition-all flex items-center justify-center"
+                                onClick={() => handleDownloadCertificate(course)}
+                                title="Certificados"
+                              >
+                                <FontAwesomeIcon icon={faCertificate} className="text-xs" />
+                              </button>}
+                              {!isReadOnly && <button
+                                className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition-all flex items-center justify-center"
+                                onClick={() => handleEdit(course)}
+                                title="Editar"
+                              >
+                                <FontAwesomeIcon icon={faEdit} className="text-xs" />
+                              </button>}
+                              {!isReadOnly && <button
+                                className="w-8 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center"
+                                onClick={() => handleDelete(course.course_id)}
+                                title="Inactivar"
+                              >
+                                <FontAwesomeIcon icon={faTrash} className="text-xs" />
+                              </button>}
+                            </div>
+                          </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        {courses.map((course) => (
-                            <tr key={course.course_id} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:bg-gray-300">
-                                <th scope="row" className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                                    {course.course_id}
-                                </th>
-                                <td className="px-6 py-4">{course.course_name}</td>
-                                <td className="px-6 py-4">{new Date(course.start_registration_date).toLocaleDateString()}</td>
-                                <td className="px-6 py-4">{new Date(course.end_registration_date).toLocaleDateString()}</td>
-                                <td className="px-6 py-4">{new Date(course.start_enrollment_date).toLocaleDateString()}</td>
-                                <td className="px-6 py-4">{new Date(course.end_enrollment_date).toLocaleDateString()}</td>
-                                <td className="px-6 py-4">{new Date(course.start_date).toLocaleDateString()}</td>
-                                <td className="px-6 py-4">{new Date(course.end_date).toLocaleDateString()}</td>
-                                <td className="px-6 py-4">{course.status}</td>
-
-                                <td className="px-6 py-4 flex space-x-4">
-                                    <button className="text-blue-500 hover:text-blue-700" onClick={() => handleViewDetails(course)}>
-                                        <FontAwesomeIcon icon={faEye} />
-                                    </button>
-                                    <button className="text-yellow-500 hover:text-yellow-700" onClick={() => handleEdit(course)}>
-                                        <FontAwesomeIcon icon={faEdit} />
-                                    </button>
-                                    {/* <button className="text-purple-500 hover:text-purple-700" onClick={() => handleDownloadCertificate(course.id)}> */}
-                                    <button className="text-purple-500 hover:text-purple-700" onClick={() => handleDownloadCertificate(course.course_id)}>
-                                        <FontAwesomeIcon icon={faCertificate} />
-                                    </button>
-                                    <button className="text-red-500 hover:text-red-700" onClick={() => handleDelete(course.course_id)}>
-                                        <FontAwesomeIcon icon={faTrash} />
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-
+                      );
+                    })}
+                  </tbody>
                 </table>
+              </div>
             </div>
 
-            <div className="flex justify-center items-center mt-6 space-x-4">
-                <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className={`px-4 py-2 rounded-lg bg-gray-600 ${currentPage === 1 ? 'cursor-not-allowed opacity-50' : 'hover:bg-indigo-500'}`}
-                >
-                    Anterior
-                </button>
-                <span className="text-lg text-gray-400 dark:text-gray-700">Página {currentPage} de {totalPages}</span>
-                <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className={`px-4 py-2 rounded-lg bg-gray-600 ${currentPage === totalPages ? 'cursor-not-allowed opacity-50' : 'hover:bg-indigo-500'}`}
-                >
-                    Siguiente
-                </button>
+            <div className="flex justify-center items-center mt-6 space-x-3">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className={`px-4 py-2 rounded-xl text-sm font-medium border ${
+                  currentPage === 1
+                    ? "border-gray-200 text-gray-400 cursor-not-allowed opacity-50"
+                    : "border-gray-300 text-slate-600 hover:bg-gray-50 transition-colors"
+                }`}
+              >
+                Anterior
+              </button>
+              <span className="text-sm text-slate-500">
+                Página {currentPage} de {totalPages || 1}
+              </span>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className={`px-4 py-2 rounded-xl text-sm font-medium border ${
+                  currentPage === totalPages
+                    ? "border-gray-200 text-gray-400 cursor-not-allowed opacity-50"
+                    : "border-gray-300 text-slate-600 hover:bg-gray-50 transition-colors"
+                }`}
+              >
+                Siguiente
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════
+            VISTA 2: CATÁLOGO OFICIAL CISCO (TARJETAS NETACAD)
+        ═══════════════════════════════════════════════════════════════ */}
+        {activeTab === "catalog" && (
+          <div>
+            {templatesError && <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{templatesError}</div>}
+            {/* Barra de Búsqueda y Filtros de Catálogo */}
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+              <div className="relative w-full md:w-96">
+                <FontAwesomeIcon
+                  icon={faSearch}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"
+                />
+                <input
+                  type="text"
+                  placeholder="Buscar curso en el catálogo oficial..."
+                  value={catalogSearch}
+                  onChange={(e) => setCatalogSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-300 bg-white text-slate-700 placeholder-slate-400 focus:outline-none focus:border-[#6cc24a] focus:ring-2 focus:ring-[#6cc24a]/20 transition text-sm shadow-sm"
+                />
+              </div>
+
+              <div className="text-xs text-slate-500 font-medium">
+                Mostrando {filteredTemplates.length} de {templates.length} cursos disponibles
+              </div>
+              {!isReadOnly && <button onClick={() => openTemplateForm()} className="px-4 py-2.5 rounded-xl bg-[#005073] text-white text-sm font-semibold">Crear curso en catálogo</button>}
             </div>
 
-            <RegisterCourseModal isOpen={isRegisterModalOpen} onClose={() => setIsRegisterModalOpen(false)} course={selectedCourse} />
-            <ReportsModalityModal isOpen={isReportsModalOpen} onClose={() => setIsReportsModalOpen(false)} />
-            <CoursePreviewModal isOpen={isDetailsModalOpen} onClose={() => setIsDetailsModalOpen(false)} course={selectedCourse} />
-        </div >
-    );
+            {/* Grid de Tarjetas Estilo Cisco NetAcad */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredTemplates.map((template) => {
+                const category = getCourseCategory(template.course_name);
+                const detail = template.Detail || null;
+                const totalHours = detail?.total_hours || "Sin definir";
+                const chaptersCount = template.Chapters?.length || 0;
+
+                return (
+                  <div
+                    key={template.course_id}
+                    className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-[#6cc24a] transition-all flex flex-col justify-between overflow-hidden group"
+                  >
+                    {/* Encabezado de la Tarjeta */}
+                    <div className="p-6">
+                      <div className="flex items-center justify-between gap-2 mb-3">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${category.color}`}
+                        >
+                          <FontAwesomeIcon icon={category.icon} className="text-[11px]" />
+                          {category.name}
+                        </span>
+
+                        <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                          Catálogo CISCO
+                        </span>
+                      </div>
+
+                      <h3 className="text-lg font-bold text-slate-900 group-hover:text-[#005073] transition-colors leading-snug mb-2 line-clamp-2">
+                        {template.course_name}
+                      </h3>
+
+                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-4">
+                        {detail?.course_description || "Sin descripción registrada."}
+                      </p>
+
+                      {/* Métricas del Plan Curricular */}
+                      <div className="grid grid-cols-2 gap-2 pt-3 border-t border-gray-100">
+                        <div className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 px-3 py-2 rounded-xl border border-gray-100">
+                          <FontAwesomeIcon icon={faClock} className="text-[#049fd9]" />
+                          <div>
+                            <p className="text-[10px] text-slate-400 font-medium">Carga horaria</p>
+                              <p className="font-bold text-slate-800">{totalHours}{typeof totalHours === "number" ? " Horas" : ""}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 px-3 py-2 rounded-xl border border-gray-100">
+                          <FontAwesomeIcon icon={faGraduationCap} className="text-[#6cc24a]" />
+                          <div>
+                            <p className="text-[10px] text-slate-400 font-medium">Temario</p>
+                            <p className="font-bold text-slate-800">
+                              {chaptersCount > 0 ? `${chaptersCount} Módulos` : "Temario base"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Footer de Acciones de la Tarjeta */}
+                    <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between gap-3">
+                      <button
+                        onClick={() => handleOpenChapterModal(template)}
+                        className="text-xs font-semibold text-[#005073] hover:text-[#049fd9] transition-colors flex items-center gap-1.5"
+                      >
+                        <FontAwesomeIcon icon={faListOl} />
+                        Ver Temario ({chaptersCount})
+                      </button>
+                      {!isReadOnly && <button onClick={() => openTemplateForm(template)} className="text-xs font-semibold text-amber-700 hover:text-amber-900">Editar ficha</button>}
+
+                      {!isReadOnly && <button
+                        onClick={() => navigate(`/course/start?templateId=${template.course_id}`)}
+                        className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#6cc24a] hover:bg-[#5aad3a] transition-all shadow-sm flex items-center gap-1.5"
+                      >
+                        <FontAwesomeIcon icon={faPlayCircle} />
+                        Iniciar Convocatoria
+                      </button>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {loadingTemplates && <div className="rounded-xl border border-slate-200 bg-white py-12 text-center text-sm text-slate-500">Cargando catálogo de cursos…</div>}
+
+            {filteredTemplates.length === 0 && !loadingTemplates && !templatesError && (
+              <div className="text-center py-16 bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+                <FontAwesomeIcon icon={faBookOpen} className="text-slate-300 text-4xl mb-3" />
+                <p className="text-base font-bold text-slate-700">No se encontraron cursos en el catálogo</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Intenta con otro término de búsqueda o limpia el filtro.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {!isReadOnly && templateFormOpen && (
+          <div className="fixed inset-0 z-[70] bg-slate-900/60 flex items-center justify-center p-4">
+            <form onSubmit={saveTemplate} className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 space-y-4">
+              <div className="flex justify-between"><h2 className="text-xl font-bold">{editingTemplateId ? "Editar ficha de catálogo" : "Crear curso en catálogo"}</h2><button type="button" onClick={() => setTemplateFormOpen(false)}>Cerrar</button></div>
+              <div className="grid md:grid-cols-2 gap-3">
+                {[["course_name","Nombre del curso"],["subject_area","Área temática"],["total_hours","Horas totales"],["instructor_hours","Horas con instructor"],["activities_hours","Horas autónomas"],["participant_requeriment","Requisitos de participantes"],["prerequisites","Prerrequisitos"],["course_description","Descripción"],["objective","Objetivo general"],["specific_objectives","Objetivos específicos"],["justification","Justificación"],["methodology","Metodología"],["evaluation_criteria","Criterios de evaluación"],["resources_materials","Recursos y materiales"],["bibliography","Bibliografía"]].map(([key,label]) => <label key={key} className="text-sm font-medium text-slate-700">{label}<textarea required={key === "course_name"} rows={key === "course_name" || key.includes("hours") ? 1 : 2} value={templateForm[key]} onChange={(e) => setTemplateForm((f) => ({ ...f, [key]: e.target.value }))} className="mt-1 w-full rounded-lg border border-slate-300 p-2" /></label>)}
+              </div>
+              <fieldset className="rounded-xl border border-slate-200 p-4"><legend className="px-1 text-sm font-semibold text-slate-700">Público destinatario</legend>{participantTypes.length ? <div className="grid sm:grid-cols-2 gap-2">{participantTypes.map((type) => <label key={type.participant_type_id} className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={getSelectedAudiences().includes(type.name)} onChange={() => toggleAudience(type.name)} />{type.name}</label>)}</div> : <p className="text-xs text-slate-500">No hay tipos de participante activos para seleccionar. Adminístrelos en Tipos de Participante.</p>}</fieldset>
+              <div className="grid md:grid-cols-2 gap-3">{[["course_name_en","Nombre en inglés"],["course_code","Código del curso"],["academic_responsible","Responsable académico"],["academic_responsible_charge","Cargo del responsable"]].map(([key,label]) => <label key={key} className="text-sm font-medium text-slate-700">{label}<textarea rows={2} value={templateForm[key] || ""} onChange={(e) => setTemplateForm((f) => ({ ...f, [key]: e.target.value }))} className="mt-1 w-full rounded-lg border border-slate-300 p-2" /></label>)}</div>
+              <fieldset className="rounded-xl border border-slate-200 p-4"><legend className="px-1 text-sm font-semibold text-slate-700">Tipos de pago aceptados</legend>{paymentTypes.length ? <div className="grid sm:grid-cols-2 gap-2">{paymentTypes.map((type) => <label key={type.payment_type_id} className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={getSelectedPaymentMethods().includes(type.name)} onChange={() => togglePaymentMethod(type.name)} />{type.name}</label>)}</div> : <p className="text-xs text-slate-500">No hay tipos de pago registrados para seleccionar.</p>}</fieldset>
+              <div className="flex justify-end gap-3 border-t border-slate-100 pt-4"><button type="button" onClick={() => { setTemplateFormOpen(false); setTemplateForm(emptyTemplate); setEditingTemplateId(null); }} className="px-5 py-2 rounded-xl border border-slate-300 text-slate-600 font-semibold">Cancelar</button><button disabled={templateSaving} className="px-5 py-2 rounded-xl bg-[#6cc24a] text-white font-bold">{templateSaving ? "Guardando…" : "Guardar ficha"}</button></div>
+            </form>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════
+            MODAL DE TEMARIO DEL CURSO DE CATÁLOGO
+        ═══════════════════════════════════════════════════════════════ */}
+        {isChapterModalOpen && previewTemplate && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-xl border border-gray-200 max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+              {/* Header */}
+              <div className="p-6 border-b border-gray-100 flex items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 text-[#049fd9] border border-blue-200">
+                      Temario del curso
+                    </span>
+                    <span className="text-[11px] font-semibold text-slate-500">
+                      {previewTemplate.Detail?.total_hours ? `${previewTemplate.Detail.total_hours} Horas` : "Horas sin definir"}
+                    </span>
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-900">
+                    {previewTemplate.course_name}
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Módulos y capítulos académicos definidos para este curso en Cisco NetAcad
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsChapterModalOpen(false)}
+                  className="text-slate-400 hover:text-slate-600 p-2 rounded-lg"
+                >
+                  <FontAwesomeIcon icon={faTimes} />
+                </button>
+              </div>
+
+              {/* Lista de Capítulos */}
+              <div className="p-6 overflow-y-auto max-h-[55vh] space-y-2.5">
+                {previewTemplate.Chapters && previewTemplate.Chapters.length > 0 ? (
+                  previewTemplate.Chapters.map((ch, idx) => (
+                    <div
+                      key={ch.chapter_id || idx}
+                      className="flex items-center justify-between p-3.5 bg-slate-50 border border-gray-200 rounded-xl hover:bg-white hover:border-[#6cc24a] transition-all"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 text-slate-700 font-bold text-xs flex items-center justify-center flex-shrink-0">
+                          {idx + 1}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800 line-clamp-1">
+                            {ch.chapter_name}
+                          </p>
+                          <p className="text-[11px] text-slate-400">
+                            {ch.hours ? `${ch.hours} horas estimadas` : "Carga horaria base"}
+                          </p>
+                        </div>
+                      </div>
+                      {!isReadOnly && <div className="flex items-center gap-1"><button onClick={() => moveCatalogChapter(ch.chapter_id, -1)} disabled={idx === 0} title="Mover arriba" className="px-1 text-slate-500 disabled:opacity-30">↑</button><button onClick={() => moveCatalogChapter(ch.chapter_id, 1)} disabled={idx === previewTemplate.Chapters.length - 1} title="Mover abajo" className="px-1 text-slate-500 disabled:opacity-30">↓</button><button onClick={() => { setCatalogChapterToEdit(ch); setIsCatalogChapterEditorOpen(true); }} className="text-xs font-semibold text-amber-700 hover:text-amber-900">Editar</button></div>}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-gray-300">
+                    <FontAwesomeIcon icon={faBookOpen} className="text-slate-300 text-3xl mb-2" />
+                    <p className="text-sm text-slate-500">
+                      No hay capítulos específicos vinculados todavía a esta plantilla.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer con CTA */}
+              <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                {!isReadOnly && <button
+                  onClick={() => { setCatalogChapterToEdit(null); setIsCatalogChapterEditorOpen(true); }}
+                  className="px-4 py-2 text-xs font-semibold text-[#005073] hover:bg-blue-50 rounded-xl transition-colors"
+                >
+                  Agregar contenido
+                </button>}
+                <button
+                  onClick={() => setIsChapterModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-gray-100 rounded-xl transition-colors"
+                >
+                  Cerrar temario
+                </button>
+
+                {!isReadOnly && <button
+                  onClick={() => {
+                    setIsChapterModalOpen(false);
+                    navigate(`/course/start?templateId=${previewTemplate.course_id}`);
+                  }}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-[#6cc24a] hover:bg-[#5aad3a] transition-all shadow-sm flex items-center gap-1.5"
+                >
+                  <FontAwesomeIcon icon={faPlayCircle} />
+                  Iniciar Convocatoria con este Temario
+                </button>}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modales Existentes */}
+        {!isReadOnly && <RegisterCourseModal
+          isOpen={isRegisterModalOpen}
+          onClose={() => setIsRegisterModalOpen(false)}
+          course={selectedCourse}
+        />}
+
+        <CoursePreviewModal
+          isOpen={isDetailsModalOpen}
+          onClose={() => setIsDetailsModalOpen(false)}
+          course={selectedCourse}
+        />
+        {!isReadOnly && <CertificateDownloadModal
+          isOpen={isCertificateModalOpen}
+          onClose={() => setIsCertificateModalOpen(false)}
+          course={courseForCertificates}
+          onDownload={downloadCertificates}
+        />}
+        {!isReadOnly && <EditChapterModal
+          isOpen={isCatalogChapterEditorOpen}
+          onClose={() => { setIsCatalogChapterEditorOpen(false); setCatalogChapterToEdit(null); }}
+          courseId={previewTemplate?.course_id}
+          chapter={catalogChapterToEdit}
+          isCatalogTemplate
+          onSaved={async () => {
+            await loadTemplates();
+            if (previewTemplate) {
+              const refreshed = await getCourseTemplatesRequest();
+              const list = Array.isArray(refreshed.data) ? refreshed.data : refreshed.data?.templates || [];
+              setPreviewTemplate(list.find((item) => item.course_id === previewTemplate.course_id) || previewTemplate);
+            }
+          }}
+        />}
+      </div>
+    </div>
+  );
 }
 
 export default CoursePage;
-
-
-
-
-
-
-
-
-
-
-

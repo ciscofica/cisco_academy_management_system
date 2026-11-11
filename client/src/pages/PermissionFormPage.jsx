@@ -1,39 +1,3 @@
-// import { useForm } from "react-hook-form";
-// import { usePermission } from "../context/PermissionContext";
-// function PermissionFormPage() {
-
-//   const { register, handleSubmit } = useForm();
-//   const { createPermission } = usePermission();
-
-//   const onSubmit = handleSubmit((data) => {
-//     createPermission(data);
-//   })
-
-//   return (
-//     <div className="bg-zinc-800 max-w-md w-full p-10 rounded-md">
-//       <form onSubmit={onSubmit}>
-//         <input type="text"
-//           placeholder="nombre"
-//           {...register("name")}
-//           className="w-full bg-zinc-7000 text-white px-4 py-2 rounded-md my-2"
-//           autoFocus />
-
-//         <textarea rows={3}
-//           placeholder="descripción"
-//           {...register("description")}
-//           className="w-full bg-zinc-7000 text-white px-4 py-2 rounded-md my-2"
-
-//         ></textarea>
-//         <button type="submit"
-//           className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-md my-2 transition-colors"
-//         >Guardar</button>
-//       </form>
-//     </div>
-//   )
-// }
-
-// export default PermissionFormPage
-
 import { useForm } from "react-hook-form";
 import { useEffect } from "react";
 import { usePermission } from "../context/PermissionContext";
@@ -55,28 +19,37 @@ function PermissionFormPage({ onClose, permission }) {
     } else {
       createPermission(data);
     }
-    onClose();
+    if (onClose) onClose();
   });
 
   return (
-    <div className="bg-zinc-800 max-w-md w-full p-10 rounded-md">
-      <form onSubmit={onSubmit}>
-        <input
-          type="text"
-          placeholder="Nombre del permiso"
-          {...register("name")}
-          className="w-full bg-zinc-700 text-white px-4 py-2 rounded-md my-2"
-          autoFocus
-        />
-        <textarea
-          rows={3}
-          placeholder="Descripción"
-          {...register("description")}
-          className="w-full bg-zinc-700 text-white px-4 py-2 rounded-md my-2"
-        ></textarea>
+    <div className="bg-white max-w-md w-full p-8 rounded-2xl shadow-sm border border-gray-100">
+      <h2 className="text-xl font-bold text-slate-800 mb-4">
+        {permission ? "Editar Permiso" : "Nuevo Permiso"}
+      </h2>
+      <form onSubmit={onSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
+          <input
+            type="text"
+            placeholder="Nombre del permiso"
+            {...register("name", { required: true })}
+            className="w-full bg-gray-50 border border-gray-300 text-slate-800 text-sm px-4 py-2.5 rounded-xl placeholder-slate-400 focus:outline-none focus:border-[#6cc24a] focus:ring-2 focus:ring-[#6cc24a]/20 transition"
+            autoFocus
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Descripción</label>
+          <textarea
+            rows={3}
+            placeholder="Descripción del permiso"
+            {...register("description")}
+            className="w-full bg-gray-50 border border-gray-300 text-slate-800 text-sm px-4 py-2.5 rounded-xl placeholder-slate-400 focus:outline-none focus:border-[#6cc24a] focus:ring-2 focus:ring-[#6cc24a]/20 transition resize-none"
+          ></textarea>
+        </div>
         <button
           type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-md my-2 transition-colors"
+          className="w-full bg-[#6cc24a] hover:bg-[#5aad3a] text-white font-semibold py-2.5 rounded-xl transition-colors shadow-sm"
         >
           Guardar
         </button>

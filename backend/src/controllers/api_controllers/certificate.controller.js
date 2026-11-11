@@ -12,14 +12,20 @@ const notifications = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
 
 export const addCertificate = async (req, res) => {
   try {
-    const { name, year_of_issue, is_international, file_url } = req.body;
+    const { name, year_of_issue, is_international, file_url, signatory_type = "instructor", signatory_name, instructor_id } = req.body;
 
     const newCertificate = await Certificate.create({
       name,
       year_of_issue,
       is_international,
       file_url,
+      signatory_type,
+      signatory_name,
     });
+
+    if (instructor_id) {
+      await InstructorCertificate.create({ certificate_id: newCertificate.certificate_id, instructor_id });
+    }
 
     return res
       .status(201)

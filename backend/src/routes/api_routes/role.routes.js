@@ -6,6 +6,7 @@ import {
   inactiveRole,
   updateRole,
 } from "../../controllers/api_controllers/role.controller.js";
+import { authRequired, adminOnlyRequired } from "../../middlewares/validateToken.js";
 
 const router = Router();
 
@@ -76,7 +77,7 @@ const router = Router();
  *       500:
  *         description: Error interno del servidor.
  */
-router.post('/roles', getRoles);
+router.post('/roles', authRequired, adminOnlyRequired, getRoles);
 
 /**
  * @swagger
@@ -136,7 +137,7 @@ router.post('/roles', getRoles);
  *       500:
  *         description: Error interno del servidor.
  */
-router.post('/role', addRole);
+router.post('/role', authRequired, adminOnlyRequired, addRole);
 
 /**
  * @swagger
@@ -184,7 +185,7 @@ router.post('/role', addRole);
  *       500:
  *         description: Error interno del servidor.
  */
-router.get('/role/:id', getRoleById);
+router.get('/role/:id', authRequired, adminOnlyRequired, getRoleById);
 
 /**
  * @swagger
@@ -253,7 +254,7 @@ router.get('/role/:id', getRoleById);
  *       500:
  *         description: Error interno del servidor.
  */
-router.put('/role/:id', updateRole);
+router.put('/role/:id', authRequired, adminOnlyRequired, updateRole);
 
 /**
  * @swagger
@@ -284,6 +285,6 @@ router.put('/role/:id', updateRole);
  *       500:
  *         description: Error interno del servidor.
  */
-router.delete('/role/:id', inactiveRole);
+router.delete('/role/:id', authRequired, adminOnlyRequired, inactiveRole);
 
 export default router;

@@ -27,6 +27,16 @@ const Certificate = sequelize.define('Certificate', {
     type: DataTypes.STRING(255),
     allowNull: true,  // Puede ser nulo si no es obligatorio
   },
+  signatory_type: {
+    type: DataTypes.STRING(50),
+    defaultValue: 'instructor',
+    field: 'signatory_type',
+  },
+  signatory_name: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
+    field: 'signatory_name',
+  },
   createdAt: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,

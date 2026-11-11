@@ -1,6 +1,8 @@
+import { adminRequired } from "../../middlewares/validateToken.js";
 import { Router } from "express";
 import {  addCost, getCostById, getCosts, updateCost, deleteCost } from "../../controllers/api_controllers/cost.controller.js";
 const router = Router();
+router.use(adminRequired);
 
 router.get('/cost/:id', getCostById);
 router.post('/costs', getCosts);

@@ -18,23 +18,39 @@ function PaymentTypeForm({ onClose, payment_type }) {
         } else {
             createPaymentType(data);
         }
-        onClose();
+        if (onClose) onClose();
     });
 
     return (
-        <div className="bg-zinc-800 max-w-md w-full p-10 rounded-md">
-            <h2 className="text-center text-2xl text-white">Tipo de Pago</h2>
-            <form onSubmit={onSubmit}>
-                <input
-                    type="text"
-                    placeholder="Nombre del Tipo de Participante"
-                    {...register("name")}
-                    className="w-full bg-zinc-700 text-white px-4 py-2 rounded-md my-2"
-                    autoFocus
-                />
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 max-w-md w-full p-8 relative">
+            {onClose && (
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="text-slate-400 hover:text-slate-700 hover:bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center absolute top-4 right-4 transition-colors font-semibold"
+                >
+                    ✕
+                </button>
+            )}
+
+            <h2 className="text-xl font-bold text-slate-800 text-center mb-6">
+                {payment_type ? "Editar Tipo de Pago" : "Nuevo Tipo de Pago"}
+            </h2>
+
+            <form onSubmit={onSubmit} className="space-y-4">
+                <div>
+                    <label className="text-sm font-medium text-slate-700 block mb-1">Nombre</label>
+                    <input
+                        type="text"
+                        placeholder="Ej: Transferencia, Efectivo, Tarjeta"
+                        {...register("name", { required: true })}
+                        className="w-full bg-gray-50 border border-gray-300 text-slate-800 text-sm px-4 py-2.5 rounded-xl placeholder-slate-400 focus:outline-none focus:border-[#6cc24a] focus:ring-2 focus:ring-[#6cc24a]/20 transition"
+                        autoFocus
+                    />
+                </div>
                 <button
                     type="submit"
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-md my-2 transition-colors"
+                    className="w-full bg-[#6cc24a] hover:bg-[#5aad3a] text-white font-semibold py-2.5 rounded-xl transition-colors shadow-sm mt-2"
                 >
                     Guardar
                 </button>

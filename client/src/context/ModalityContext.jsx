@@ -5,7 +5,6 @@ import {
   getModalitiesRequest,
   getAllModalitiesRequest,
   updateModalitiesRequest,  // Importa la función de actualización
-  deleteModalitiesRequest,
   getModalitiesDropdownRequest
 } from "../api/modality";
 
@@ -91,25 +90,6 @@ export function ModalityProvider({ children }) {
     }
   };
 
-  const deleteModality = async (id) => {
-    try {
-      const res = await deleteModalitiesRequest(id);
-      Swal.fire({ 
-        icon: 'success',
-        title: 'Éxito',
-        text: res.data.message,
-      });
-      getModalities({ page: currentPage }); 
-    } catch (error) {
-      Swal.fire({ 
-        icon: 'error',
-        title: 'Error',
-        text: error.response.data.message,
-      });
-      console.log(error);
-    }
-  };
-
   return (
     <ModalityContext.Provider
       value={{
@@ -118,7 +98,6 @@ export function ModalityProvider({ children }) {
         updateModality,
         getModalities,
         getAllModalities,
-        deleteModality,
         getModalitiesDropdown,
         allmodalitiesforreport,
         totalPages,

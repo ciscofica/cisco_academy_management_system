@@ -24,6 +24,9 @@ const Participant = sequelize.define(
     cid: {
       type: DataTypes.INTEGER,
     },
+    email: {
+      type: DataTypes.STRING,
+    },
     phone: {
       type: DataTypes.STRING,
     },
@@ -34,6 +37,12 @@ const Participant = sequelize.define(
       type: DataTypes.STRING,
     },
     participant_type_id: {
+      type: DataTypes.INTEGER,
+    },
+    degree: {
+      type: DataTypes.STRING,
+    },
+    degree_level: {
       type: DataTypes.INTEGER,
     },
     certificate_required: {

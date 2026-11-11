@@ -56,6 +56,15 @@ export const getInfosUtn = async (req, res) => {
   }
 };
 
+export const getInfosUtnDropdown = async (_req, res) => {
+  try {
+    const infos_utn = await InfoUtn.findAll({ attributes: ["info_utn_id", "faculty", "degree", "degree_level"], order: [["faculty", "ASC"], ["degree", "ASC"]] });
+    return res.status(200).json({ infos_utn });
+  } catch (error) {
+    return res.status(500).json({ message: "No se pudo cargar el catálogo académico.", error: error.message });
+  }
+};
+
 export const getInfoUtnById = async (req, res) => {
   try {
     const { id } = req.params;

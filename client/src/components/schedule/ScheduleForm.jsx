@@ -1,12 +1,11 @@
 import { useForm } from "react-hook-form";
 import { useEffect } from "react";
-import { useSchedule } from "../../context/ScheduleContext"; // Contexto para manejar horarios
+import { useSchedule } from "../../context/ScheduleContext";
 
 function ScheduleForm({ onClose, schedule }) {
     const { register, handleSubmit, setValue } = useForm();
     const { createSchedule, updateSchedule } = useSchedule();
 
-    // Mapeo para días de la semana
     const daysOfWeek = [
         { label: "Lunes", value: 1 },
         { label: "Martes", value: 2 },
@@ -17,13 +16,11 @@ function ScheduleForm({ onClose, schedule }) {
         { label: "Domingo", value: 7 },
     ];
 
-    // Función para manejar la conversión de días seleccionados a formato numérico con guiones
     const formatDaysForInput = (daysString) => {
         if (!daysString) return [];
         return daysString.split('-').map(Number);
     };
 
-    // Función para convertir la selección de días en la cadena de números "1-2-3"
     const formatDaysForStorage = (daysArray) => {
         return daysArray.join('-');
     };
@@ -32,38 +29,50 @@ function ScheduleForm({ onClose, schedule }) {
         if (schedule) {
             setValue("start_time", schedule.start_time);
             setValue("end_time", schedule.end_time);
-            setValue("days", formatDaysForInput(schedule.days)); // Convertimos los días a un array de números
-            console.log(formatDaysForInput(schedule.days));
+            setValue("days", formatDaysForInput(schedule.days));
         }
     }, [schedule, setValue]);
 
     const onSubmit = handleSubmit((data) => {
         const formattedData = {
             ...data,
-            days: formatDaysForStorage(data.days), 
+            days: formatDaysForStorage(data.days || []), 
         };
         if (schedule) {
             updateSchedule({ ...formattedData, id: schedule.schedule_id });
         } else {
             createSchedule(formattedData);
         }
-        onClose();
+        if (onClose) onClose();
     });
 
     return (
-        <div className="bg-zinc-800 max-w-md w-full p-10 rounded-md">
-            <h2 className="text-center text-2xl text-white">Horario</h2>
-            <form onSubmit={onSubmit}>
-                <div className="my-2">
-                    <label className="text-white">Selecciona los días:</label>
-                    <div className="flex flex-wrap gap-2 mt-2">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 max-w-md w-full p-8 relative">
+            {onClose && (
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="text-slate-400 hover:text-slate-700 hover:bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center absolute top-4 right-4 transition-colors font-semibold"
+                >
+                    ✕
+                </button>
+            )}
+
+            <h2 className="text-xl font-bold text-slate-800 text-center mb-6">
+                {schedule ? "Editar Horario" : "Nuevo Horario"}
+            </h2>
+
+            <form onSubmit={onSubmit} className="space-y-4">
+                <div>
+                    <label className="text-xs font-semibold text-slate-700 block mb-2">Selecciona los días:</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         {daysOfWeek.map((day) => (
-                            <label key={day.value} className="text-white">
+                            <label key={day.value} className="text-xs font-medium text-slate-600 flex items-center gap-2 cursor-pointer bg-slate-50 border border-gray-200 p-2 rounded-xl">
                                 <input
                                     type="checkbox"
                                     value={day.value}
                                     {...register("days")}
-                                    className="mr-2"
+                                    className="accent-[#6cc24a] w-3.5 h-3.5 rounded"
                                 />
                                 {day.label}
                             </label>
@@ -71,27 +80,27 @@ function ScheduleForm({ onClose, schedule }) {
                     </div>
                 </div>
 
-                <div className="my-2">
-                    <label className="text-white">Hora de Inicio:</label>
+                <div>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">Hora de Inicio:</label>
                     <input
                         type="time"
                         {...register("start_time")}
-                        className="w-full bg-zinc-700 text-white px-4 py-2 rounded-md"
+                        className="w-full bg-gray-50 border border-gray-300 text-slate-800 text-sm px-4 py-2.5 rounded-xl focus:outline-none focus:border-[#6cc24a] focus:ring-2 focus:ring-[#6cc24a]/20 transition"
                     />
                 </div>
 
-                <div className="my-2">
-                    <label className="text-white">Hora de Fin:</label>
+                <div>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">Hora de Fin:</label>
                     <input
                         type="time"
                         {...register("end_time")}
-                        className="w-full bg-zinc-700 text-white px-4 py-2 rounded-md"
+                        className="w-full bg-gray-50 border border-gray-300 text-slate-800 text-sm px-4 py-2.5 rounded-xl focus:outline-none focus:border-[#6cc24a] focus:ring-2 focus:ring-[#6cc24a]/20 transition"
                     />
                 </div>
 
                 <button
                     type="submit"
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-md my-2 transition-colors"
+                    className="w-full bg-[#6cc24a] hover:bg-[#5aad3a] text-white font-semibold py-2.5 rounded-xl transition-colors shadow-sm mt-3"
                 >
                     Guardar
                 </button>

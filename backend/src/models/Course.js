@@ -17,6 +17,7 @@ const Course = sequelize.define(
       type: DataTypes.STRING(255),
       allowNull: false,
     },
+    class_code: { type: DataTypes.STRING(255), allowNull: true, field: "class_code" },
     start_registration_date: {
       type: DataTypes.DATE,
     },
@@ -64,6 +65,15 @@ const Course = sequelize.define(
         key: "detail_id",
       },
       field: "detail_id",
+    },
+    template_course_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: "course",
+        key: "course_id",
+      },
+      field: "template_course_id",
     },
   },
   {
