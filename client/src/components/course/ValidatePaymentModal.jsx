@@ -15,6 +15,8 @@ import {
 import { validateParticipantPaymentRequest } from "../../api/course";
 import { getPaymentsDropdownRequest } from "../../api/payment";
 
+const asInputString = (value) => (value === null || value === undefined ? "" : String(value));
+
 export default function ValidatePaymentModal({
   isOpen,
   onClose,
@@ -47,9 +49,9 @@ export default function ValidatePaymentModal({
         69.0;
       const today = new Date().toISOString().split("T")[0];
 
-      setInvoiceNumber(currentInvoice);
-      setPayerName(participant.name || "");
-      setPayerCidRuc(participant.cid || "");
+      setInvoiceNumber(asInputString(currentInvoice));
+      setPayerName(asInputString(participant.name));
+      setPayerCidRuc(asInputString(participant.cid));
       setAmount(Number(currentAmount) || 69.0);
       setInvoiceDate(participant?.CourseParticipant?.validation_date || today);
 
@@ -78,11 +80,11 @@ export default function ValidatePaymentModal({
     const matched = availablePayments.find(
       (p) =>
         p.invoice_number &&
-        p.invoice_number.trim().toLowerCase() === val.trim().toLowerCase()
+        asInputString(p.invoice_number).trim().toLowerCase() === asInputString(val).trim().toLowerCase()
     );
     if (matched) {
       if (matched.payer_name) setPayerName(matched.payer_name);
-      if (matched.payer_cid_ruc) setPayerCidRuc(matched.payer_cid_ruc);
+      if (matched.payer_cid_ruc) setPayerCidRuc(asInputString(matched.payer_cid_ruc));
       if (matched.amount) setAmount(Number(matched.amount));
       if (matched.invoice_date) setInvoiceDate(matched.invoice_date);
     }
@@ -90,7 +92,7 @@ export default function ValidatePaymentModal({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const cleanInvoice = invoiceNumber.trim();
+    const cleanInvoice = asInputString(invoiceNumber).trim();
     if (!cleanInvoice) {
       Swal.fire({
         icon: "warning",
@@ -105,8 +107,8 @@ export default function ValidatePaymentModal({
       setSaving(true);
       const payload = {
         invoice_number: cleanInvoice,
-        payer_name: payerName.trim() || participant.name,
-        payer_cid_ruc: payerCidRuc.trim() || participant.cid,
+        payer_name: asInputString(payerName).trim() || asInputString(participant.name),
+        payer_cid_ruc: asInputString(payerCidRuc).trim() || asInputString(participant.cid),
         amount: parseFloat(amount) || 69.0,
         invoice_date: invoiceDate || new Date().toISOString().split("T")[0],
         enrolled: true,

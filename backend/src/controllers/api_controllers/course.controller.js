@@ -2124,6 +2124,8 @@ export const validateParticipantPayment = async (req, res) => {
 
     const cleanInvoice = String(invoice_number).trim();
     const cleanDate = invoice_date || new Date().toISOString().split("T")[0];
+    const cleanPayerName = payer_name === null || payer_name === undefined ? "" : String(payer_name).trim();
+    const cleanPayerCidRuc = payer_cid_ruc === null || payer_cid_ruc === undefined ? "" : String(payer_cid_ruc).trim();
 
     // 1. Buscar si ya existe la factura en la base de datos de pagos
     let payment = await Payment.findOne({
@@ -2134,8 +2136,8 @@ export const validateParticipantPayment = async (req, res) => {
       // Si la factura ya existía en pagos, actualizamos datos si se proporcionaron y vinculamos al curso
       const updates = {};
       if (!payment.course_id) updates.course_id = id;
-      if (payer_name && payer_name.trim()) updates.payer_name = payer_name.trim();
-      if (payer_cid_ruc && payer_cid_ruc.trim()) updates.payer_cid_ruc = payer_cid_ruc.trim();
+      if (cleanPayerName) updates.payer_name = cleanPayerName;
+      if (cleanPayerCidRuc) updates.payer_cid_ruc = cleanPayerCidRuc;
       if (invoice_date) updates.invoice_date = invoice_date;
       if (amount !== undefined && amount !== null && !isNaN(amount)) {
         updates.amount = parseFloat(amount);
@@ -2159,8 +2161,8 @@ export const validateParticipantPayment = async (req, res) => {
       payment = await Payment.create({
         invoice_number: cleanInvoice,
         invoice_date: cleanDate,
-        payer_cid_ruc: payer_cid_ruc || participant?.cid || "",
-        payer_name: payer_name || participant?.name || "",
+        payer_cid_ruc: cleanPayerCidRuc || String(participant?.cid ?? ""),
+        payer_name: cleanPayerName || String(participant?.name ?? ""),
         subtotal: finalSubtotal,
         iva: finalIva,
         amount: finalAmount,
