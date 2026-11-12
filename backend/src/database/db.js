@@ -3,10 +3,10 @@ import { Sequelize } from "sequelize";
 const sequelize = new Sequelize(
   'utn_cms',
   'root',
-  '#Zxcvbnm123',
+  'ServBay.dev',
   {
-    host: 'localhost',
-    port: 3307,
+    host: '127.0.0.1',
+    port: 3306,
     dialect: 'mysql',
     logging: false,
   }
