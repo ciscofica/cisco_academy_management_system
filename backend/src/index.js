@@ -1,3 +1,4 @@
+import "./config/loadEnv.js";
 import app from "./app.js";
 import { associateModels } from "./database/associations.js";
 import db from "./database/db.js";

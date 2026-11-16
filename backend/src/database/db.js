@@ -1,12 +1,21 @@
 import { Sequelize } from "sequelize";
 
+const databaseName = process.env.DB_NAME || "utn_cms";
+const databaseUser = process.env.DB_USER || "root";
+// Configure DB_PASSWORD en el archivo .env con la contraseña que muestra ServBay para MySQL.
+const databasePassword = process.env.DB_PASSWORD;
+
+if (!databasePassword) {
+  throw new Error("Falta DB_PASSWORD. Configure la contraseña de MySQL en el archivo .env del proyecto.");
+}
+
 const sequelize = new Sequelize(
-  'utn_cms',
-  'root',
-  '#Zxcvbnm123',
+  databaseName,
+  databaseUser,
+  databasePassword,
   {
-    host: 'localhost',
-    port: 3307,
+    host: process.env.DB_HOST || "127.0.0.1",
+    port: Number(process.env.DB_PORT) || 3306,
     dialect: 'mysql',
     logging: false,
   }
